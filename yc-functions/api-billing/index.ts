@@ -2,6 +2,7 @@ import { verifyAuth, ensureUser } from '../_shared/auth';
 import { query, queryOne } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 import { getYookassaPayment, isYookassaIp, getClientIp, timingSafeEqual } from '../_shared/yookassa';
+import { randomUUID } from 'node:crypto';
 
 const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID || '';
 const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY || '';
@@ -98,7 +99,7 @@ async function createCheckout(body: string, user: any) {
   const amount = (planRow.price_kopecks / 100).toFixed(2);
   const description = plan === 'monthly' ? 'PRO подписка QuizFlow (месяц)' : 'PRO подписка QuizFlow (год)';
 
-  const idempotenceKey = crypto.randomUUID();
+  const idempotenceKey = randomUUID();
   const auth = Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString('base64');
 
   const paymentBody = {
