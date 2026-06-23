@@ -189,7 +189,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
   // CTA styles
   const ctaClass = (() => {
-    if (busy || isCurrent || (isFree && !freeActionable)) {
+    const isDisabledState = busy || (isFree && (isCurrent || !freeActionable));
+    if (isDisabledState) {
       return isDark
         ? 'bg-white/5 text-white/30 cursor-not-allowed'
         : 'bg-gray-100 text-gray-400 cursor-not-allowed';
@@ -215,7 +216,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
   const ctaLabel = (() => {
     if (busy) return 'Перенаправляем…';
-    if (isCurrent) return isFree ? 'Текущий тариф' : 'Активно';
+    if (isCurrent) return isFree ? 'Текущий тариф' : 'Продлить подписку';
     if (isFree) {
       if (!freeActionable) return 'Доступен всегда';
       return isDark ? 'Начать бесплатно' : 'Включено в FREE';
@@ -223,7 +224,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
     return 'Оформить подписку';
   })();
 
-  const ctaDisabled = busy || isCurrent || (isFree && !freeActionable);
+  const ctaDisabled = busy || (isFree && (isCurrent || !freeActionable));
 
   // Spotlight overlay color follows the warm landing palette in both themes.
   const spotlightColor = isDark ? 'rgba(251,191,36,0.10)' : 'rgba(251,191,36,0.12)';
