@@ -1,0 +1,34 @@
+{
+  "name": "quizflow22-yc-functions",
+  "private": true,
+  "scripts": {
+    "build:shared": "tsc -p tsconfig.json",
+    "build": "npm run build:shared && npm run build:router && npm run build:quizzes && npm run build:results && npm run build:billing && npm run build:admin && npm run build:support && npm run build:ai-proxy && npm run build:upload && npm run build:cron && npm run build:promo && npm run build:grant-pro && npm run build:session",
+    "build:router": "esbuild api-router/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-router/index.js",
+    "build:quizzes": "esbuild api-quizzes/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-quizzes/index.js",
+    "build:results": "esbuild api-results/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-results/index.js",
+    "build:billing": "esbuild api-billing/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-billing/index.js",
+    "build:admin": "esbuild api-admin/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-admin/index.js",
+    "build:support": "esbuild api-support/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-support/index.js",
+    "build:ai-proxy": "esbuild api-ai-proxy/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-ai-proxy/index.js",
+    "build:upload": "esbuild upload-asset/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/upload-asset/index.js",
+    "build:cron": "esbuild cron-cleanup/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/cron-cleanup/index.js",
+    "build:promo": "esbuild billing-redeem-promo/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/billing-redeem-promo/index.js",
+    "build:grant-pro": "esbuild billing-admin-grant-pro/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/billing-admin-grant-pro/index.js",
+    "build:session": "esbuild save-quiz-session/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/save-quiz-session/index.js",
+    "build:api-router": "npm run build:router",
+    "build:cron-cleanup": "npm run build:cron"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
+    "jose": "^5.9.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.5.0"
+  }
+}

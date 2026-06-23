@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "lib": ["deno.ns", "ES2022", "DOM"],
+    "moduleResolution": "bundler",
+    "strict": true
+  },
+  "include": ["**/*.ts"]
+}

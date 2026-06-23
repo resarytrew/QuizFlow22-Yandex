@@ -1,0 +1,24 @@
+openapi: 3.0.0
+info:
+  title: Potok API
+  version: 3.0.0
+
+x-yc-apigateway:
+  cors:
+    origin: "*"
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    headers: ["authorization", "content-type", "x-request-id", "x-admin-secret", "x-cron-secret"]
+
+paths:
+  /api/{proxy+}:
+    x-yc-apigateway-any-method:
+      parameters:
+        - in: path
+          name: proxy
+          schema:
+            type: string
+          required: true
+      x-yc-apigateway-integration:
+        type: cloud-functions
+        function_id: d4e5i4hk70go9os35mpv
+        service_account_id: ajetpjs1t60c67arf209

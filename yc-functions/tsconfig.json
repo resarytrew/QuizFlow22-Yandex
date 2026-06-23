@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "paths": {
+      "@shared/*": ["./_shared/*"]
+    },
+    "baseUrl": "."
+  },
+  "include": ["_shared/**/*.ts", "api-router/**/*.ts", "api-quizzes/**/*.ts", "api-results/**/*.ts", "api-billing/**/*.ts", "api-admin/**/*.ts", "api-support/**/*.ts", "api-ai-proxy/**/*.ts", "upload-asset/**/*.ts", "cron-cleanup/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

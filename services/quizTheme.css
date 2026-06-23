@@ -1,0 +1,7 @@
+/* Tailwind для автономных квизов. Компилируется Vite (?inline) и инлайнится
+   в <head> генерируемого HTML вместо cdn.tailwindcss.com (SEC-05/09).
+   Набор утилит формируется из content-сканирования в tailwind.config.js
+   (включает services/** — шаблоны и движок квизов). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

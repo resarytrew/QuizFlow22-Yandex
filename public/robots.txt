@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /editor/
+Disallow: /dashboard/
+Disallow: /billing/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /play/
+Disallow: /__quiz_engine.js
+
+Sitemap: https://mykviz.ru/sitemap.xml

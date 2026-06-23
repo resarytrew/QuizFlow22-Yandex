@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      CSP notes
+      ==========
+      * style-src keeps 'unsafe-inline' because React inserts inline
+        <style> tags for HMR and component-level CSS-in-JS. The
+        production-grade alternative is nonce-based CSP, which requires
+        server-side rendering of the nonce and dynamic adjustment of the
+        meta tag. Tracked as a P2 hardening item; document the trade-off
+        rather than ship a broken prod build.
+      * script-src keeps 'unsafe-inline' OFF. In dev, @vitejs/plugin-react
+        injects one inline React Refresh preamble. vite.config.ts computes
+        its exact SHA-256 CSP source and replaces the marker below. The
+        marker is removed in production because the preamble is not emitted.
+        'unsafe-eval' IS allowed because the in-app
+        preview iframe uses services/quizEngine.entry.ts, which boots
+        the engine via `new Function(quizEngineScript)()`. CSP inherits
+        from parent into same-origin sandboxed iframes, and Chromium
+        intersects the iframe's own meta CSP with the parent's —
+        there is no way to allow 'unsafe-eval' for the iframe alone.
+        Risk surface: 'unsafe-eval' enables eval() of strings. The only
+        string we eval is our own bundled engine code (services/quizEngine.ts);
+        user-provided quiz content is JSON-parsed, never eval'd, and is
+        DOMPurify-sanitized before injection. The right long-term fix is
+        to convert quizEngine.entry.ts to a real ESM module (no
+        new Function), but that requires a build-time stringification of
+        the engine for the standalone HTML path. Tracked as a P2
+        hardening item.
+      * connect-src is narrow: only Supabase and any-storage. The
+        trailing `https:` is a fallback for user-uploaded media on
+        arbitrary storage origins; tighten it once the storage CORS
+        configuration is fixed.
+      * frame-ancestors and report-uri are NOT included: per spec, both
+        directives are ignored when CSP is delivered via <meta> (they
+        only take effect as HTTP headers). Keeping them in the meta
+        would just spam the console with warnings on every page load.
+        X-Frame-Options / Content-Security-Policy headers should be set
+        by the hosting layer (Vercel, Supabase, etc.) instead.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' __VITE_REACT_REFRESH_CSP__; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https:; frame-src 'self' https://rutube.ru https://vk.com https://*.vk.com https://www.youtube.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <script src="/assets/legal-redirect.js"></script>
+    <title>Поток: визуальный конструктор квизов</title>
+    <meta name="description" content="Поток — визуальный конструктор интерактивных квизов. Создавайте увлекательные тесты, викторины и опросы без кода с помощью удобного редактора на графах." />
+    <meta name="keywords" content="конструктор квизов, создание тестов, интерактивные квизы, визуальный редактор, опросы онлайн" />
+    <meta name="yandex-verification" content="1b29fa7b17df3a82" />
+    <meta name="google-site-verification" content="2oHEcbEPob7eEpJZEnU06kCz-UtKAaWaXjRfj9Jxx1I" />
+    <link rel="canonical" href="https://mykviz.ru/" />
+
+    <!-- Open Graph (VK, Яндекс, Telegram) -->
+    <meta property="og:url" content="https://mykviz.ru/" />
+    <meta property="og:title" content="Поток — визуальный конструктор квизов" />
+    <meta property="og:description" content="Создавайте интерактивные тесты, викторины и опросы без кода с помощью удобного редактора на графах." />
+    <meta property="og:image" content="https://mykviz.ru/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- VK -->
+    <meta property="vk:title" content="Поток — конструктор квизов" />
+    <meta property="vk:description" content="Создавайте интерактивные тесты, викторины и опросы без кода." />
+    <meta property="vk:image" content="https://mykviz.ru/og-image.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --ease-out: cubic-bezier(.22,1,.36,1);
+        --ease-in: cubic-bezier(.5,0,.75,0);
+        --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+        --dur-1: .2s;
+        --dur-2: .4s;
+        --radii: 16px;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0c0a09; /* Warmer dark background (Stone-950) */
+        color: #e7e5e4;
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      .font-manrope { font-family: 'Manrope', sans-serif; }
+      .font-lora { font-family: 'Lora', serif; }
+      
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #44403c; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #78716c; }
+
+      /* ReactFlow Customization */
+      .react-flow__minimap {
+        background-color: #1c1917 !important;
+        border: 1px solid #292524 !important;
+        border-radius: 12px;
+      }
+       .react-flow__minimap-mask {
+        fill: rgba(255, 255, 255, 0.1) !important;
+       }
+       .react-flow__minimap-node {
+        fill: #44403c !important;
+        stroke: transparent !important;
+      }
+      .react-flow__controls {
+        background-color: #1c1917 !important;
+        border: 1px solid #292524 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      }
+      .react-flow__controls-button {
+        background-color: transparent !important;
+        color: #a8a29e !important;
+        border: none !important;
+        border-bottom: none !important;
+      }
+      .react-flow__controls-button:hover {
+        background-color: #292524 !important;
+        color: #fff !important;
+      }
+
+      .sr-only {
+        position: absolute; width: 1px; height: 1px;
+        padding: 0; margin: -1px; overflow: hidden;
+        clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+      }
+
+      /* --- Premium Landing Page Theme --- */
+      .landing-page-body {
+        --bg-dark: #0c0a09; /* Stone 950 */
+        --bg-content: #151413; /* Custom slightly lighter dark */
+        --border-color: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(255, 213, 128, 0.2);
+        --text-light: #f5f5f4;
+        --text-muted: #a8a29e;
+        --accent-amber: #fbbf24;
+        --accent-glow: rgba(251, 191, 36, 0.15);
+        --font-serif: 'Lora', serif;
+        --font-sans: 'Inter', sans-serif;
+
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+        font-family: var(--font-sans);
+      }
+      
+      /* Cinematic Noise Texture */
+      .grainy-bg::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      /* Animation Utilities */
+      @keyframes float-slow {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(-10px, 15px); }
+      }
+      .animate-float { animation: float-slow 8s ease-in-out infinite; }
+      
+      .chalk-underline { 
+        position: relative; 
+        display: inline-block; 
+        white-space: nowrap;
+      }
+      .chalk-underline::after {
+        content: '';
+        position: absolute;
+        bottom: 2px; left: 0; right: 0;
+        height: 8px;
+        background-color: var(--accent-amber);
+        opacity: 0.2;
+        transform: skewX(-20deg) rotate(-1deg);
+        z-index: -1;
+        transition: all 0.3s ease;
+      }
+      .chalk-underline:hover::after {
+        opacity: 0.4;
+        bottom: 0;
+        height: 12px;
+      }
+
+      .reveal { 
+        opacity: 0; 
+        transform: translateY(30px); 
+        transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); 
+        will-change: transform, opacity;
+      }
+      .reveal.visible { opacity: 1; transform: none; }
+      
+      /* Scrollytelling Polish */
+      .scrolly-sticky-panel {
+        position: sticky; top: 20vh;
+        height: 60vh;
+        display: flex; align-items: center; justify-content: center;
+      }
+      
+      /* Author Card Polish */
+      .author-photo {
+        filter: grayscale(20%) sepia(10%);
+        transition: all 0.5s ease;
+      }
+      .author-photo:hover {
+        filter: grayscale(0%);
+        transform: scale(1.02) rotate(1deg);
+      }
+
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      .animate-shimmer { animation: shimmer 2s ease-in-out infinite; }
+
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

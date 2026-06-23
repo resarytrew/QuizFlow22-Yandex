@@ -1,0 +1,11 @@
+cors.json
+{
+  "corsRules": [
+    {
+      "allowedOrigins": ["https://mykviz.ru", "https://mykviz.online", "http://localhost:5173"],
+      "allowedMethods": ["GET", "PUT", "POST", "DELETE"],
+      "allowedHeaders": ["*"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}

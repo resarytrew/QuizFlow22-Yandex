@@ -1,0 +1,209 @@
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+@keyframes progress {
+  0% { width: 0%; margin-left: 0; }
+  50% { width: 60%; margin-left: 0; }
+  100% { width: 0%; margin-left: 100%; }
+}
+
+.animate-progress {
+  animation: progress 1.2s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.4s ease-out forwards;
+}
+
+.react-flow__node {
+  transition: box-shadow 0.2s ease, transform 0.15s ease !important;
+}
+
+.react-flow__node:hover {
+  z-index: 10 !important;
+}
+
+.react-flow__node.selected {
+  box-shadow:
+    0 0 0 2px var(--editor-primary, #6366f1),
+    0 10px 40px -10px rgba(99, 102, 241, 0.35) !important;
+}
+
+.react-flow__handle {
+  width: 10px !important;
+  height: 10px !important;
+  border: 2px solid white !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  transition: transform 0.15s ease, background-color 0.15s ease !important;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.4) !important;
+  background-color: var(--editor-primary, #6366f1) !important;
+}
+
+.flow-edge-path {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.react-flow__edge:hover .flow-edge-path {
+  stroke: var(--editor-primary-hover, #818cf8);
+  stroke-width: 2.5px;
+}
+
+.flow-edge-dot {
+  opacity: 0;
+}
+
+.react-flow__edge.selected .flow-edge-dot,
+.react-flow__edge:hover .flow-edge-dot {
+  opacity: 1;
+}
+
+.react-flow__selection {
+  background: rgba(99, 102, 241, 0.06) !important;
+  border: 1.5px dashed var(--editor-primary, #6366f1) !important;
+  border-radius: 8px !important;
+}
+
+.react-flow__minimap {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+.react-flow__pane {
+  cursor: grab;
+}
+
+.react-flow__pane:active {
+  cursor: grabbing;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.pref-no-icons .node-icon {
+  display: none !important;
+}
+
+.pref-no-descriptions .node-description {
+  display: none !important;
+}
+
+.pref-no-badges .node-pro-badge {
+  display: none !important;
+}
+
+.pref-no-shadow .node-card,
+.pref-no-shadow .node-card:hover {
+  box-shadow: none !important;
+}
+
+.pref-no-anim .node-card,
+.pref-no-anim .node-card * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.pref-no-anim .node-card:hover,
+.pref-no-anim .node-card.scale-105 {
+  transform: none !important;
+}
+
+.font-inter,
+.react-flow {
+  font-family: var(--editor-font, "Inter", system-ui, sans-serif);
+}
+
+.pref-reduce-motion *,
+.pref-reduce-motion *::before,
+.pref-reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+.pref-reduce-motion .flow-edge-dot {
+  display: none !important;
+}
+
+.pref-reduce-motion .node-card,
+.pref-reduce-motion .react-flow__node,
+.pref-reduce-motion .react-flow__handle,
+.pref-reduce-motion .react-flow__controls,
+.pref-reduce-motion .react-flow__minimap,
+.pref-reduce-motion [class*="shadow-"] {
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.pref-minimal .node-card,
+.pref-minimal .react-flow__controls,
+.pref-minimal .react-flow__minimap {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.pref-minimal .node-card > [aria-hidden="true"] {
+  opacity: 0 !important;
+}
+
+.pref-simplified .node-icon,
+.pref-simplified .node-pro-badge,
+.pref-simplified .node-description,
+.pref-simplified .react-flow__minimap {
+  display: none !important;
+}
+
+.pref-simplified .node-card,
+.pref-simplified .node-card * {
+  animation: none !important;
+  transition: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.pref-simplified .node-card > [aria-hidden="true"] {
+  display: none !important;
+}

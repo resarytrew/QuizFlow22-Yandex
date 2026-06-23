@@ -1,0 +1,174 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, Arial, sans-serif;
+  background: #09090b;
+  color: #f7f3eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 4%, rgba(252, 190, 68, 0.13), transparent 28rem),
+    radial-gradient(circle at 90% 94%, rgba(251, 113, 133, 0.08), transparent 32rem),
+    #09090b;
+}
+
+main {
+  width: min(920px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 64px 0 96px;
+}
+
+.eyebrow {
+  color: #f6c768;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3 {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+h1 {
+  max-width: 760px;
+  margin: 16px 0 12px;
+  font-size: clamp(40px, 7vw, 72px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+
+h2 {
+  margin: 38px 0 12px;
+  font-size: 25px;
+}
+
+h3 {
+  margin: 30px 0 10px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 19px;
+}
+
+p,
+li {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.legal-document > h1 {
+  margin-top: 16px;
+}
+
+.legal-document > h2 {
+  padding-top: 8px;
+}
+
+.legal-document ul,
+.legal-document ol {
+  margin: 14px 0 22px;
+  padding-left: 24px;
+}
+
+.legal-document li + li {
+  margin-top: 7px;
+}
+
+.legal-document code {
+  padding: 2px 6px;
+  border: 1px solid rgba(246, 199, 104, 0.14);
+  border-radius: 6px;
+  background: rgba(246, 199, 104, 0.07);
+  color: #f8d58d;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+.legal-document hr {
+  height: 1px;
+  margin: 34px 0;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+a {
+  color: #f6c768;
+}
+
+.meta,
+.notice,
+.details,
+nav {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 24px 8px 24px 8px;
+  padding: 22px;
+}
+
+.meta {
+  margin: 28px 0 44px;
+}
+
+.notice {
+  margin: 28px 0;
+  border-color: rgba(246, 199, 104, 0.22);
+  background: rgba(246, 199, 104, 0.065);
+}
+
+.notice strong {
+  color: #ffe4a3;
+}
+
+.details {
+  margin-top: 44px;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin-top: 48px;
+}
+
+nav a {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.muted {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+    background: white;
+    color: black;
+  }
+
+  body {
+    background: white;
+  }
+
+  p,
+  li,
+  .muted {
+    color: #333;
+  }
+
+  .meta,
+  .notice,
+  .details,
+  nav {
+    border-color: #bbb;
+    background: #fff;
+  }
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://aistudiocdn.com https://esm.sh https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://aistudiocdn.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src https:; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Quiz Flow Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://aistudiocdn.com/reactflow@^11.11.4/dist/style.css" />
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color:#232b32; /* Slightly softer background */
+      }
+      .font-manrope {
+        font-family: 'Manrope', sans-serif;
+      }
+      /* Custom scrollbar styles for a more professional look */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+      }
+
+      /* Custom styles for ReactFlow to match the new professional theme */
+      .react-flow__minimap {
+        background-color: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px;
+        box-shadow: 0 4px 14px 0 rgb(0 0 0 / 0.05);
+      }
+       .react-flow__minimap-mask {
+        fill: rgba(203, 213, 225, 0.6) !important;
+       }
+       .react-flow__minimap-node {
+        fill: #ffffff !important;
+        stroke: #94a3b8 !important;
+      }
+      .react-flow__controls {
+        background-color: #ffffff !important;
+        backdrop-filter: none !important;
+        border-radius: 8px !important;
+        padding: 6px !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 14px 0 rgb(0 0 0 / 0.05);
+      }
+      .react-flow__controls-button {
+        background-color: transparent !important;
+        color:#47694a !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        transition: background-color 0.2s ease;
+      }
+       .react-flow__controls-button:last-child {
+        border-bottom: none !important;
+      }
+      .react-flow__controls-button:hover {
+        background-color: #f8fafc !important;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "zustand": "https://esm.sh/zustand@4.5.4",
+    "reactflow": "https://esm.sh/reactflow@11.11.4",
+
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.0",
+    "dagre": "https://esm.sh/dagre@0.8.5",
+    "canvas-confetti": "https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/+esm",
+    "react-hot-toast": "https://cdn.jsdelivr.net/npm/react-hot-toast@2.4.1/+esm",
+    "tslib": "https://esm.sh/tslib@2.6.2"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

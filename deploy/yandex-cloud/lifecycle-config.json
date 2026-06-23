@@ -1,0 +1,11 @@
+{
+  "lifecycleRules": [
+    {
+      "id": "expire-noncurrent-versions",
+      "enabled": true,
+      "filter": {"prefix": ""},
+      "noncurrentExpiration": {"noncurrentDays": "30"},
+      "abortIncompleteMultipartUpload": {"daysAfterExpiration": "7"}
+    }
+  ]
+}

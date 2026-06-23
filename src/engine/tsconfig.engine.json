@@ -1,0 +1,14 @@
+// src/engine/tsconfig.engine.json
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "outDir": "../../.generated",
+    "declaration": false,
+    "sourceMap": true,
+    "lib": ["ES2015", "DOM"]
+  },
+  "include": ["./**/*.ts"]
+}
