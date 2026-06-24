@@ -7,6 +7,7 @@ interface QuizConfig {
 }
 
 let _config: QuizConfig = {};
+let _sessionId: string | null = null;
 
 export function setQuizConfig(config: QuizConfig): void {
   _config = config;
@@ -14,6 +15,18 @@ export function setQuizConfig(config: QuizConfig): void {
 
 function _getApiBase(): string | null {
   return _config.apiBaseUrl?.replace(/\/$/, "") ?? null;
+}
+
+function getSessionId(): string {
+  if (_sessionId) return _sessionId;
+
+  const random =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+  _sessionId = `anon_${Date.now()}_${random}`;
+  return _sessionId;
 }
 
 export function saveResults(finalNodeTitle: string): void {
@@ -24,6 +37,7 @@ export function saveResults(finalNodeTitle: string): void {
 
   const payload = {
     quiz_id: _config.quizId,
+    session_id: getSessionId(),
     score: state.score,
     participant_name:
       (state.variables.playerName as string | undefined) ?? "Guest",
@@ -33,7 +47,7 @@ export function saveResults(finalNodeTitle: string): void {
       achievements: state.achievements,
     },
     path_data: state.path,
-    time_spent: getTimeSince(state.startTime),
+    time_spent_seconds: getTimeSince(state.startTime),
   };
 
   const base = _getApiBase();
@@ -56,6 +70,7 @@ export function sendAbandonmentBeacon(): void {
 
   const payload = JSON.stringify({
     quiz_id: _config.quizId,
+    session_id: getSessionId(),
     score: state.score,
     participant_name:
       (state.variables.playerName as string | undefined) ?? "Guest",
@@ -64,7 +79,7 @@ export function sendAbandonmentBeacon(): void {
       abandoned: true,
       lastNodeId: state.currentNodeId,
     },
-    time_spent: getTimeSince(state.startTime),
+    time_spent_seconds: getTimeSince(state.startTime),
   });
 
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {

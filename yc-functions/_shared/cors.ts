@@ -3,8 +3,11 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://mykviz.ru,http:
   .map(s => s.trim());
 
 export function corsHeaders(origin?: string): Record<string, string> {
-  const allowed = origin && ALLOWED_ORIGINS.includes(origin)
-    ? origin
+  const normalizedOrigin = origin === 'null' ? 'null' : origin;
+  const allowed = normalizedOrigin === 'null'
+    ? 'null'
+    : normalizedOrigin && ALLOWED_ORIGINS.includes(normalizedOrigin)
+    ? normalizedOrigin
     : ALLOWED_ORIGINS[0] || '*';
 
   return {

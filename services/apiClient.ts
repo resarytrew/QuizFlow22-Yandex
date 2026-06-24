@@ -29,7 +29,7 @@ import type {
   UserSupportTicket,
 } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const API_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : '')).replace(/\/$/, '');
 
 type QueryValue = string | number | boolean | null | undefined;
 
@@ -136,8 +136,9 @@ export const api = {
   }),
 
   // ─── AI ─────────────────────────────────────────────────────
-  aiProxy: (payload: any) => apiRequest<{ result: string; used: number; limit: number }>('/ai-proxy', {
+  aiProxy: (payload: any, signal?: AbortSignal) => apiRequest<{ result: string; used: number; limit: number }>('/ai-proxy', {
     method: 'POST',
+    signal,
     body: JSON.stringify(payload),
   }),
 

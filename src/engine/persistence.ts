@@ -8,6 +8,7 @@ interface QuizConfig {
 }
 
 let quizConfig: QuizConfig = {};
+let sessionId: string | null = null;
 
 export function setQuizConfig(config: QuizConfig): void {
   quizConfig = config;
@@ -15,6 +16,18 @@ export function setQuizConfig(config: QuizConfig): void {
 
 function getApiBase(): string | null {
   return quizConfig.apiBaseUrl?.replace(/\/$/, '') ?? null;
+}
+
+function getSessionId(): string {
+  if (sessionId) return sessionId;
+
+  const random =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+  sessionId = `anon_${Date.now()}_${random}`;
+  return sessionId;
 }
 
 // ===== SAVE =====
@@ -27,6 +40,7 @@ export function saveResults(finalNodeTitle: string): void {
 
   const payload = {
     quiz_id: quizConfig.quizId,
+    session_id: getSessionId(),
     score: state.score,
     participant_name: state.variables.playerName ?? 'Guest',
     final_node_title: finalNodeTitle,
@@ -35,7 +49,7 @@ export function saveResults(finalNodeTitle: string): void {
       achievements: state.achievements,
     },
     path_data: state.path,
-    time_spent: getTimeSince(state.startTime),
+    time_spent_seconds: getTimeSince(state.startTime),
   };
 
   const base = getApiBase();
@@ -56,10 +70,11 @@ export function sendAbandonmentBeacon(): void {
   if (state.isResultSaved) return;
 
   const base = getApiBase();
-  if (!base) return;
+  if (!base || !quizConfig.quizId) return;
 
   const payload = {
     quiz_id: quizConfig.quizId,
+    session_id: getSessionId(),
     score: state.score,
     participant_name: state.variables.playerName ?? 'Guest',
     results_data: {
@@ -67,7 +82,7 @@ export function sendAbandonmentBeacon(): void {
       abandoned: true,
       lastNodeId: state.currentNodeId,
     },
-    time_spent: getTimeSince(state.startTime),
+    time_spent_seconds: getTimeSince(state.startTime),
   };
 
   // sendBeacon — единственный надёжный способ при закрытии вкладки

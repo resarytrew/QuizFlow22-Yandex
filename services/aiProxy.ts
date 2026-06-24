@@ -49,7 +49,29 @@ export async function chatCompletion(
   expectJson: boolean = false,
   signal?: AbortSignal,
 ): Promise<string> {
-  const result = await api.aiProxy({ prompt, type: expectJson ? 'json' : 'text' });
+  const payload = {
+    model,
+    prompt,
+    type: expectJson ? 'json' : 'text',
+    expectJson,
+  };
+
+  if (import.meta.env.DEV) {
+    const response = await fetch('/api/ai-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+      throw new Error(err.error || `HTTP ${response.status}`);
+    }
+    const result = await response.json();
+    return result.result;
+  }
+
+  const result = await api.aiProxy(payload, signal);
   return result.result;
 }
 

@@ -54,9 +54,11 @@ describe("persistence", () => {
 
       const body = JSON.parse(options.body as string);
       expect(body.quiz_id).toBe("q1");
+      expect(body.session_id).toEqual(expect.stringMatching(/^anon_/));
       expect(body.score).toBe(42);
       expect(body.participant_name).toBe("Alice");
       expect(body.final_node_title).toBe("Great Job!");
+      expect(body.time_spent_seconds).toEqual(expect.any(Number));
     });
 
     it("handles fetch error gracefully", () => {
@@ -76,7 +78,9 @@ describe("persistence", () => {
       expect(beaconSpy).toHaveBeenCalledOnce();
       expect(beaconSpy.mock.calls[0][0]).toBe("https://api.example.com/api/results");
       const body = JSON.parse(beaconSpy.mock.calls[0][1] as string);
+      expect(body.session_id).toEqual(expect.stringMatching(/^anon_/));
       expect(body.results_data.abandoned).toBe(true);
+      expect(body.time_spent_seconds).toEqual(expect.any(Number));
     });
 
     it("does not send beacon when result already saved", () => {

@@ -1,15 +1,11 @@
-
 // services/openRouterClient.ts
-// Calls AI through backend proxy — API keys are never exposed to the client.
+// Calls AI through a backend proxy. API keys must never be exposed to the client.
 
 import { chatCompletion, chatCompletionStream } from './aiProxy';
 
-/**
- * Модели для разных задач
- */
-export const AI_MODEL_TEXT = 'openai/gpt-4o-mini';      // Дешёвая для текста/идей
-export const AI_MODEL_JSON = 'google/gemini-3-flash-preview';           // Лучшая для JSON
-export const AI_MODEL = AI_MODEL_TEXT;                        // Дефолтная (для обратной совместимости)
+export const AI_MODEL_TEXT = 'openai/gpt-4o-mini';
+export const AI_MODEL_JSON = 'google/gemini-3-flash-preview';
+export const AI_MODEL = AI_MODEL_TEXT;
 
 type ChatRole = 'system' | 'user' | 'assistant';
 export type ChatMessage = { role: ChatRole; content: string };
@@ -19,15 +15,11 @@ export type StreamCallbacks = {
   onError?: (err: unknown) => void;
 };
 
-/**
- * Основной вызов AI через прокси.
- * Сетевые/HTTP-ошибки нормализуются в дружелюбные сообщения.
- */
 export async function callOpenRouter(
   model: string,
   prompt: string,
   expectJson: boolean = false,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<string> {
   try {
     const content = await chatCompletion(model, prompt, expectJson, signal);
@@ -42,9 +34,6 @@ export async function callOpenRouter(
   }
 }
 
-/**
- * Streaming-версия для real-time отображения токенов
- */
 export async function callOpenRouterStream(
   model: string,
   prompt: string,
@@ -53,25 +42,29 @@ export async function callOpenRouterStream(
     expectJson?: boolean;
     signal?: AbortSignal;
     temperature?: number;
-  }
+  },
 ): Promise<string> {
   return chatCompletionStream(model, prompt, callbacks, options);
 }
 
-// =====================================================
-// JSON extraction + repair utilities
-// =====================================================
-
 export function extractFirstJsonObject(text: string): string | null {
-  const clean = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  const clean = stripJsonMarkdown(text);
+  return extractBalancedJson(clean, '{', '}');
+}
 
+export function extractJsonArray(text: string): string | null {
+  const clean = stripJsonMarkdown(text);
+  return extractBalancedJson(clean, '[', ']');
+}
+
+function extractBalancedJson(text: string, open: '{' | '[', close: '}' | ']'): string | null {
   let inStr = false;
   let escape = false;
   let depth = 0;
   let start = -1;
 
-  for (let i = 0; i < clean.length; i++) {
-    const ch = clean[i];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
 
     if (inStr) {
       if (escape) escape = false;
@@ -80,16 +73,21 @@ export function extractFirstJsonObject(text: string): string | null {
       continue;
     }
 
-    if (ch === '"') { inStr = true; continue; }
-    if (ch === '{') {
+    if (ch === '"') {
+      inStr = true;
+      continue;
+    }
+
+    if (ch === open) {
       if (depth === 0) start = i;
       depth++;
       continue;
     }
-    if (ch === '}') {
+
+    if (ch === close) {
       depth--;
       if (depth === 0 && start !== -1) {
-        return clean.slice(start, i + 1).trim();
+        return text.slice(start, i + 1).trim();
       }
     }
   }
@@ -97,54 +95,114 @@ export function extractFirstJsonObject(text: string): string | null {
   return null;
 }
 
-export function extractJsonArray(text: string): string | null {
-  const clean = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+function stripJsonMarkdown(text: string): string {
+  return text
+    .replace(/^\uFEFF/, '')
+    .replace(/```(?:json|javascript|js)?\s*/gi, '')
+    .replace(/```/g, '')
+    .trim();
+}
 
+function extractFirstJsonValue(text: string): string | null {
+  const objectJson = extractFirstJsonObject(text);
+  const arrayJson = extractJsonArray(text);
+
+  if (!objectJson) return arrayJson;
+  if (!arrayJson) return objectJson;
+
+  const clean = stripJsonMarkdown(text);
+  const objectIndex = clean.indexOf(objectJson);
+  const arrayIndex = clean.indexOf(arrayJson);
+  return arrayIndex !== -1 && arrayIndex < objectIndex ? arrayJson : objectJson;
+}
+
+function stripJsonComments(text: string): string {
+  let out = '';
   let inStr = false;
   let escape = false;
-  let depth = 0;
-  let start = -1;
 
-  for (let i = 0; i < clean.length; i++) {
-    const ch = clean[i];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
 
     if (inStr) {
+      out += ch;
       if (escape) escape = false;
       else if (ch === '\\') escape = true;
       else if (ch === '"') inStr = false;
       continue;
     }
 
-    if (ch === '"') { inStr = true; continue; }
-    if (ch === '[') {
-      if (depth === 0) start = i;
-      depth++;
+    if (ch === '"') {
+      inStr = true;
+      out += ch;
       continue;
     }
-    if (ch === ']') {
-      depth--;
-      if (depth === 0 && start !== -1) {
-        return clean.slice(start, i + 1).trim();
-      }
+
+    if (ch === '/' && next === '/') {
+      while (i < text.length && text[i] !== '\n') i++;
+      out += '\n';
+      continue;
     }
+
+    if (ch === '/' && next === '*') {
+      i += 2;
+      while (i < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++;
+      i++;
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return out;
+}
+
+function normalizeLikelyJson(text: string): string {
+  return stripJsonComments(stripJsonMarkdown(text))
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/,\s*([}\]])/g, '$1')
+    .trim();
+}
+
+function tryParseJson<T>(text: string): { data: T; jsonText: string } | null {
+  const candidates = [
+    text,
+    stripJsonMarkdown(text),
+    extractFirstJsonValue(text),
+    normalizeLikelyJson(text),
+    extractFirstJsonValue(normalizeLikelyJson(text)),
+  ].filter((candidate): candidate is string => Boolean(candidate && candidate.trim()));
+
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const jsonText = candidate.trim();
+    if (seen.has(jsonText)) continue;
+    seen.add(jsonText);
+
+    try {
+      return { data: JSON.parse(jsonText) as T, jsonText };
+    } catch {}
   }
 
   return null;
 }
 
 export async function repairJsonViaOpenRouter(badText: string, signal?: AbortSignal): Promise<string | null> {
-  const prompt = `Fix this JSON. Return ONLY valid JSON object.
+  const prompt = `Fix this JSON. Return ONLY valid JSON.
 Rules:
 - Double quotes for keys/strings
 - Remove comments, trailing commas
 - Keep structure intact
+- Do not add Markdown fences
 
 Input:
-${badText.slice(0, 8000)}`;
+${badText.slice(0, 12000)}`;
 
   try {
     const fixed = await callOpenRouter(AI_MODEL_JSON, prompt, true, signal);
-    return extractFirstJsonObject(fixed);
+    return extractFirstJsonValue(fixed) ?? normalizeLikelyJson(fixed);
   } catch {
     return null;
   }
@@ -152,19 +210,18 @@ ${badText.slice(0, 8000)}`;
 
 export async function parseJsonWithRepair<T = any>(
   rawText: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<{ data: T; jsonText: string; repaired: boolean }> {
-  const extracted = extractFirstJsonObject(rawText) ?? rawText;
+  const parsed = tryParseJson<T>(rawText);
+  if (parsed) return { ...parsed, repaired: false };
 
-  try {
-    return { data: JSON.parse(extracted) as T, jsonText: extracted, repaired: false };
-  } catch {
-    const repaired = await repairJsonViaOpenRouter(rawText, signal);
-    if (repaired) {
-      try {
-        return { data: JSON.parse(repaired) as T, jsonText: repaired, repaired: true };
-      } catch {}
-    }
-    throw new Error('Не удалось распарсить JSON.');
+  const repaired = await repairJsonViaOpenRouter(rawText, signal);
+  if (repaired) {
+    const parsedRepair = tryParseJson<T>(repaired);
+    if (parsedRepair) return { ...parsedRepair, repaired: true };
   }
+
+  const preview = stripJsonMarkdown(rawText).slice(0, 240);
+  console.error('[AI JSON] Failed to parse response preview:', preview);
+  throw new Error('Не удалось распарсить JSON. Ответ AI был неполным или невалидным.');
 }

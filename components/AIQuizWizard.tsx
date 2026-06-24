@@ -70,18 +70,21 @@ const RETRY_CONFIG = {
 const NODE_TYPES_COMPACT = `
 Node Schema Definitions:
 - startNode: {}
-- infoNode: { title, description, imageUrl }
-- questionNode: { question, answers: [{id, text}], imageUrl } (Visual: single choice buttons)
-- multipleChoiceNode: { question, answers: [{id, text}], correctOptions: [id_string], imageUrl } (Visual: checkboxes. Logic: strictly matches correctOptions)
-- textInputNode: { question, keyword, imageUrl } (Logic: checks if answer contains keyword)
-- conditionNode: { variable, operator, value } (Ops: eq, neq, gt, lt, gte, lte. NO 'contains')
+- infoNode: { label, title, description, imageUrl, buttonText }
+- dialogueNode: { label, characterName, characterRole, dialogueText, mood, buttonText }
+- questionNode: { label, question, answers: [{id, text, isCorrect?}], imageUrl } (Visual: single choice buttons)
+- multipleChoiceNode: { label, question, answers: [{id, text}], correctOptions: [id_string], minSelections, maxSelections, imageUrl } (Visual: checkboxes. Logic: strictly matches correctOptions)
+- textInputNode: { label, question, keyword, acceptedAnswers?: [string], imageUrl } (Logic: checks exact accepted answer / keyword)
+- matchingNode: { label, question, leftColumn: [{id,text}], rightColumn: [{id,text}], correctPairs: [{leftId,rightId}], imageUrl }
+- timelineNode: { label, question, events: [{id,text}], imageUrl } (events must be listed in correct order)
+- conditionNode: { label, variable, operator, value } (Ops: eq, neq, gt, lt, gte, lte)
 - variableNode: { variableName, operation, value } (Ops: set, add, subtract)
 - scoreNode: { operation, value } (Ops: add, subtract, set)
 - formulaNode: { variableName, expression, decimalPlaces } (Mathjs expression, e.g. "a + b")
-- allocatorNode: { question, maxTotal, items: [{id, label, variableName}] } (Sliders)
-- collectInfoNode: { title, description, fields: [{id, label, type, variableName}] } (Forms. Use variableName='playerName' to enable {{playerName}} personalization later)
+- allocatorNode: { label, question, maxTotal, requireExactTotal, items: [{id, label, variableName, defaultValue?}] } (Sliders)
+- collectInfoNode: { label, title, description, fields: [{id, label, type, variableName}] } (Forms. Use variableName='playerName' to enable {{playerName}} personalization later)
 - achievementNode: { title, description, imageUrl } (Popup reward notification)
-- feedbackNode: { title, message, imageUrl }
+- feedbackNode: { title, message, explanation, imageUrl }
 - resultNode: { title, description, showScore: boolean, imageUrl }
 `.trim();
 
@@ -96,15 +99,122 @@ CRITICAL EDGE LOGIC RULES:
 3. textInputNode: Has exactly 2 outputs. "sourceHandle" must be "correct" or "incorrect".
 4. conditionNode: Has exactly 2 outputs. "sourceHandle" must be "true" or "false".
 5. matchingNode / timelineNode: "sourceHandle" must be "correct" or "incorrect".
-6. All other nodes (startNode, infoNode, scoreNode, variableNode, formulaNode, achievementNode, collectInfoNode, etc.): "sourceHandle" is null.
+6. progressionNode may use "levelUp" plus default null.
+7. All other nodes (startNode, infoNode, dialogueNode, scoreNode, variableNode, formulaNode, achievementNode, collectInfoNode, allocatorNode, etc.): "sourceHandle" is null.
 
 General Rules:
 - First node: {"id":"start","type":"startNode","position":{"x":400,"y":50},"data":{"label":"Start"}}
 - Every node needs: id, type, position:{x,y}, data:{...}
 - Edges: {"id":"e1","source":"nodeId","target":"nodeId","sourceHandle":...}
+- Never create answer choices as separate nodes. Put answer options inside questionNode.data.answers or multipleChoiceNode.data.answers.
 - Must have at least 2 resultNodes at the end (e.g. Success/Failure).
 - All nodes must be reachable from start.
 - If you use collectInfoNode, set variableName to "playerName". Then use {{playerName}} in subsequent nodes (text, questions, results) to address the user by name.
+`.trim();
+
+const PREMIUM_QUALITY_CONTRACT = `
+Premium quality bar:
+- Build a finished educational product, not a draft. No placeholders, generic "Question 1", vague facts, or repeated answer patterns.
+- Use the platform broadly. Prefer a mix of questionNode, multipleChoiceNode, matchingNode, timelineNode, textInputNode, dialogueNode, feedbackNode, achievementNode, variableNode, scoreNode, conditionNode, formulaNode/allocatorNode when relevant.
+- Every selected option is mandatory. If an option says "secret branch", the graph must contain a real secret branch with conditionNode, hidden trigger, unique content, and a distinct reward/result.
+- Wrong answers should teach: send them through feedbackNode or explanation before continuing when possible.
+- Endings must feel authored: each resultNode has a different title, tone, diagnosis, and recommendation.
+- Branches must be meaningful: choices should change score, variables, feedback, difficulty, or ending.
+- Content must be specific to the topic and audience, with concrete examples, not generic motivational copy.
+`.trim();
+
+const OPTION_IMPLEMENTATION_CONTRACT: Record<string, string> = {
+  secret_branch: [
+    'MUST implement secret_branch as a real hidden path.',
+    'Required graph evidence: conditionNode checking variable "secretKey"; a hidden answer/choice or hard-to-spot trigger that sets secretKey="found"; secret dialogue/info; achievementNode; distinct secret resultNode or return path.',
+  ].join(' '),
+  bonus_branch: 'MUST implement bonus_branch with a score/variable condition, extra challenge or explanation, achievementNode, and branch back or special result.',
+  multiple_endings: 'MUST create at least 4 distinct resultNode endings and route to them via score/variable conditions.',
+  lives_system: 'MUST initialize variable "lives"=3 and subtract lives on incorrect paths using edge effects or variableNode. Include failure route for lives <= 0.',
+  hint_system: 'MUST initialize variable "hints"=3 and include at least one hint/feedback path that consumes or references hints.',
+  relaxed_mode: 'MUST avoid punitive dead ends. Incorrect answers explain and continue learning.',
+  storytelling_mode: 'MUST include recurring character/dialogueNode scenes and a coherent narrative role for the learner.',
+  adaptive_difficulty: 'MUST track "streak" or skill variables and route strong users to harder questions.',
+  difficulty_choice: 'MUST include an early difficulty choice with Easy/Medium/Hard branches.',
+  humor_mode: 'MUST use light humor in feedback and result copy without reducing factual precision.',
+  academic_mode: 'MUST use precise academic wording, definitions, and evidence-based explanations.',
+};
+
+const FINAL_JSON_SIZE_RULES = `
+Output budget rules:
+- Keep JSON compact. No Markdown. No comments. No duplicate prose.
+- Keep title/question/answer fields concise: 6-16 words where possible.
+- Keep descriptions/messages under 180 characters unless the node is a final result.
+- Prefer graph mechanics over long text. The frontend will enrich mandatory mechanics after parsing.
+`.trim();
+
+const getDomainExpertiseContract = (topic: string, format: string, audience?: string): string => {
+  const source = `${topic} ${format} ${audience ?? ''}`.toLowerCase();
+  const includesAny = (needles: string[]) => needles.some(needle => source.includes(needle));
+
+  let domainRole = 'a senior subject-matter expert in the quiz topic';
+  let domainStandards = [
+    'Use accurate terminology, causal models, and concrete examples from the discipline.',
+    'Questions must test understanding, transfer, and decision quality, not memorization only.',
+  ];
+
+  if (includesAny(['финанс', 'деньг', 'бюджет', 'эконом', 'инвест', 'кредит', 'налог', 'банк', 'доход', 'расход'])) {
+    domainRole = 'a professional economist, financial literacy educator, behavioral economist, and personal finance advisor';
+    domainStandards = [
+      'Use real financial concepts: budget constraint, income vs expenses, cash flow, liquidity, inflation, compound interest, risk-return tradeoff, debt burden, opportunity cost, diversification, emergency fund, taxes, financial goals.',
+      'Each wrong answer should represent a realistic financial misconception: confusing revenue with profit, ignoring recurring costs, overusing credit, underestimating inflation, chasing high returns without risk, treating all debt as equal.',
+      'Scenarios should force decisions under constraints: limited budget, uncertainty, time horizon, needs vs wants, short-term temptation vs long-term stability.',
+      'Avoid shallow textbook questions like "what is money" unless they are embedded in a practical decision.',
+    ];
+  } else if (includesAny(['истор', 'войн', 'революц', 'импер', 'ссср', 'древн', 'средневек'])) {
+    domainRole = 'a professional historian, source critic, and history teacher';
+    domainStandards = [
+      'Use chronology, causality, historical context, actors, motives, consequences, and source reliability.',
+      'Wrong answers should be plausible historical misconceptions, anachronisms, or oversimplified causal claims.',
+      'Scenarios should ask the learner to interpret evidence, compare motives, and evaluate consequences.',
+    ];
+  } else if (includesAny(['матем', 'алгебр', 'геометр', 'физик', 'хим', 'биолог', 'наук'])) {
+    domainRole = 'a professional STEM teacher and assessment designer';
+    domainStandards = [
+      'Use conceptual models, formulas only when meaningful, units, assumptions, and error analysis.',
+      'Wrong answers should reveal common misconceptions or calculation traps.',
+      'Scenarios should require applying concepts to unfamiliar examples, not repeating definitions.',
+    ];
+  } else if (includesAny(['язык', 'литерат', 'текст', 'русск', 'англ', 'эссе'])) {
+    domainRole = 'a language/literature teacher, editor, and reading-comprehension assessment designer';
+    domainStandards = [
+      'Use interpretation, argument, evidence from text, style, tone, genre, and author intent.',
+      'Wrong answers should be plausible misreadings or unsupported interpretations.',
+      'Scenarios should ask the learner to justify meaning and notice nuance.',
+    ];
+  }
+
+  return `
+Expert panel requirement:
+- Write as ${domainRole}.
+- Also act as an instructional designer, assessment designer, game designer, and sharp Russian-language editor.
+- Use professional domain depth. Do not make generic school-test content.
+- Every quiz must include: realistic scenario, expert vocabulary explained through context, common misconceptions, meaningful feedback, and decisions with consequences.
+- Domain standards:
+${domainStandards.map(item => `  - ${item}`).join('\n')}
+- Gamification must serve learning: mechanics should reveal mastery, risk, strategy, misconception, or progression.
+- Final results must diagnose learner profile and recommend a next learning action.
+`.trim();
+};
+
+const MINIMAL_GRAPH_CONTEXT = `
+Return ONLY valid compact JSON: {"nodes":[],"edges":[]}
+Allowed node types:
+startNode, infoNode, dialogueNode, questionNode, multipleChoiceNode, textInputNode, matchingNode, timelineNode, collectInfoNode, feedbackNode, resultNode, scoreNode, variableNode, conditionNode, achievementNode.
+Rules:
+- First node id must be "start", type "startNode".
+- Every node: id,type,position:{x,y},data.
+- Every edge: id,source,target,sourceHandle.
+- questionNode edges use answer ids as sourceHandle.
+- multipleChoiceNode/textInputNode/matchingNode/timelineNode use "correct" and "incorrect".
+- conditionNode uses "true" and "false".
+- Other nodes use null sourceHandle.
+- Never create separate nodes named choice1_A/choice1_B. Answer choices belong inside data.answers.
 `.trim();
 
 const START_NODE = {
@@ -338,6 +448,13 @@ interface QuizEdge {
   source: string;
   target: string;
   sourceHandle?: string | null;
+  data?: {
+    effects?: Array<{
+      variableName: string;
+      op: 'set' | 'add' | 'subtract';
+      value: string | number;
+    }>;
+  };
 }
 
 interface WizardState {
@@ -389,13 +506,116 @@ const STAGE_LABELS: Record<WizardStage, string> = {
 
 const clamp = (n: number, min: number, max: number): number => Math.max(min, Math.min(max, n));
 
+const indexedTextFromRecord = (record: Record<string, any>): string | null => {
+  const numericKeys = Object.keys(record)
+    .filter(key => /^\d+$/.test(key))
+    .sort((a, b) => Number(a) - Number(b));
+  if (!numericKeys.length) return null;
+  return numericKeys.map(key => String(record[key] ?? '')).join('').trim() || null;
+};
+
+const extractDataText = (data: unknown): string | null => {
+  if (typeof data === 'string') return data.trim() || null;
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    return indexedTextFromRecord(data as Record<string, any>);
+  }
+  return null;
+};
+
+const parseInlineAnswers = (text: string): { question: string; answers: Array<{ id: string; text: string }> } | null => {
+  const matches = [...text.matchAll(/(?:^|[\s;])([A-HА-З])\)\s*([^;]+)/g)];
+  if (matches.length < 2) return null;
+
+  const firstOptionIndex = matches[0].index ?? -1;
+  const question = firstOptionIndex > 0
+    ? text.slice(0, firstOptionIndex).replace(/[:;,\s-]+$/, '').trim()
+    : text.trim();
+  const answers = matches.map((match, index) => ({
+    id: String(index + 1),
+    text: String(match[2] ?? '').trim(),
+  })).filter(answer => answer.text);
+
+  return answers.length >= 2 ? { question: question || text, answers } : null;
+};
+
+const coerceNodeData = (type: string, rawData: unknown): Record<string, any> => {
+  const rawObject = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+    ? rawData as Record<string, any>
+    : null;
+  const text = extractDataText(rawData);
+
+  if (!text) {
+    return rawObject ? { ...rawObject } : {};
+  }
+
+  const withoutIndexedChars = rawObject
+    ? Object.fromEntries(Object.entries(rawObject).filter(([key]) => !/^\d+$/.test(key)))
+    : {};
+  const parsedQuestion = parseInlineAnswers(text);
+
+  if (type === 'startNode') {
+    return { ...withoutIndexedChars, label: withoutIndexedChars.label ?? text };
+  }
+
+  if (type === 'resultNode') {
+    return {
+      ...withoutIndexedChars,
+      label: withoutIndexedChars.label ?? 'Результат',
+      title: withoutIndexedChars.title ?? text,
+      description: withoutIndexedChars.description ?? text,
+      showScore: withoutIndexedChars.showScore ?? true,
+    };
+  }
+
+  if (type === 'infoNode' || type === 'dialogueNode' || type === 'feedbackNode' || type === 'achievementNode') {
+    return {
+      ...withoutIndexedChars,
+      label: withoutIndexedChars.label ?? text,
+      title: withoutIndexedChars.title ?? text.replace(/\?$/, ''),
+      description: withoutIndexedChars.description ?? text,
+      message: withoutIndexedChars.message ?? (type === 'feedbackNode' ? text : undefined),
+    };
+  }
+
+  if ((type === 'questionNode' || type === 'multipleChoiceNode') && parsedQuestion) {
+    return {
+      ...withoutIndexedChars,
+      label: withoutIndexedChars.label ?? parsedQuestion.question,
+      question: withoutIndexedChars.question ?? parsedQuestion.question,
+      answers: withoutIndexedChars.answers ?? parsedQuestion.answers,
+      ...(type === 'multipleChoiceNode' && !withoutIndexedChars.correctOptions
+        ? { correctOptions: [parsedQuestion.answers[0]?.id].filter(Boolean), minSelections: 1, maxSelections: 1 }
+        : {}),
+    };
+  }
+
+  if (type === 'textInputNode') {
+    return {
+      ...withoutIndexedChars,
+      label: withoutIndexedChars.label ?? text,
+      question: withoutIndexedChars.question ?? text,
+      keyword: withoutIndexedChars.keyword ?? '',
+    };
+  }
+
+  return {
+    ...withoutIndexedChars,
+    label: withoutIndexedChars.label ?? text,
+    title: withoutIndexedChars.title ?? text,
+  };
+};
+
 const normalizeNodes = (rawNodes: unknown[]): QuizNode[] => {
   return rawNodes.map((node: unknown, index: number) => {
     const n = node as Partial<QuizNode>;
     const originalId = typeof n?.id === 'string' && n.id.trim() ? n.id : `node-${index}`;
     const normalizedId = originalId.replace(/[^a-zA-Z0-9_-]/g, '_');
     
-    const type = typeof n?.type === 'string' && n.type ? n.type : 'infoNode';
+    let type = typeof n?.type === 'string' && n.type ? n.type : 'infoNode';
+    const rawText = extractDataText(n?.data);
+    if (type === 'multipleChoiceNode' && rawText && /^[A-HА-З]\)/.test(rawText.trim()) && !parseInlineAnswers(rawText)) {
+      type = 'infoNode';
+    }
     const pos = n?.position ?? { x: 400, y: 100 + index * DEFAULT_NODE_Y_STEP };
     
     return {
@@ -405,7 +625,7 @@ const normalizeNodes = (rawNodes: unknown[]): QuizNode[] => {
         x: clamp(typeof pos.x === 'number' ? pos.x : 400, MIN_NODE_X, MAX_NODE_X),
         y: typeof pos.y === 'number' ? pos.y : 100 + index * DEFAULT_NODE_Y_STEP
       },
-      data: { label: type, ...(n?.data || {}) },
+      data: { label: type, ...coerceNodeData(type, n?.data) },
       _originalId: originalId,
     };
   });
@@ -442,7 +662,8 @@ const normalizeEdges = (rawEdges: unknown[], nodes: QuizNode[]): QuizEdge[] => {
       id: e.id || `edge-${index}-${source}-${target}`,
       source,
       target,
-      sourceHandle: e.sourceHandle ?? null
+      sourceHandle: e.sourceHandle ?? null,
+      data: e.data,
     });
   });
 
@@ -563,7 +784,7 @@ const ensureGraphConnectivity = (nodes: QuizNode[], edges: QuizEdge[]): QuizEdge
 
     for (let i = index - 1; i >= 0; i--) {
       const prevNode = sortedNodes[i];
-      if (reachable.has(prevNode.id)) {
+      if (reachable.has(prevNode.id) && prevNode.type !== 'resultNode') {
         newEdges.push({
           id: `auto-edge-${prevNode.id}-${node.id}`,
           source: prevNode.id,
@@ -613,6 +834,765 @@ const addMissingAnswerEdges = (nodes: QuizNode[], edges: QuizEdge[]): QuizEdge[]
   });
 
   return newEdges;
+};
+
+const addMissingOutcomeEdges = (nodes: QuizNode[], edges: QuizEdge[]): QuizEdge[] => {
+  const outcomeTypes = new Set(['multipleChoiceNode', 'textInputNode', 'matchingNode', 'timelineNode']);
+  const resultNodes = nodes.filter(n => n.type === 'resultNode');
+  const sortedNodes = [...nodes].sort((a, b) => a.position.y - b.position.y);
+  const existingEdges = new Set(edges.map(e => `${e.source}:${e.sourceHandle || 'default'}`));
+  const newEdges = [...edges];
+
+  nodes.forEach((node) => {
+    if (!outcomeTypes.has(node.type)) return;
+
+    const currentY = node.position.y;
+    const nextNodes = sortedNodes.filter(n => n.position.y > currentY && n.id !== node.id);
+    const successTarget = nextNodes.find(n => n.type !== 'resultNode') ?? resultNodes[0] ?? nextNodes[0];
+    const failureTarget = nextNodes.find(n => n.type === 'feedbackNode') ?? resultNodes[1] ?? resultNodes[0] ?? successTarget;
+
+    ([
+      ['correct', successTarget],
+      ['incorrect', failureTarget],
+    ] as const).forEach(([handle, target]) => {
+      const edgeKey = `${node.id}:${handle}`;
+      if (existingEdges.has(edgeKey) || !target) return;
+
+      newEdges.push({
+        id: `outcome-edge-${node.id}-${handle}`,
+        source: node.id,
+        target: target.id,
+        sourceHandle: handle,
+      });
+      existingEdges.add(edgeKey);
+    });
+  });
+
+  return newEdges;
+};
+
+const normalizeNodeSemantics = (nodes: QuizNode[]): QuizNode[] => {
+  return nodes.map((node) => {
+    if (node.type === 'questionNode' && Array.isArray(node.data?.answers)) {
+      const correctAnswers = node.data.answers.filter((answer: any) => answer?.isCorrect === true);
+      if (correctAnswers.length > 1) {
+        return {
+          ...node,
+          type: 'multipleChoiceNode',
+          data: {
+            ...node.data,
+            correctOptions: correctAnswers.map((answer: any) => String(answer.id)),
+            minSelections: correctAnswers.length,
+            maxSelections: correctAnswers.length,
+          },
+        };
+      }
+    }
+
+    if (node.type === 'matchingNode' && Array.isArray(node.data?.correctPairs)) {
+      const normalizedPairs = node.data.correctPairs
+        .map((pair: any) => {
+          if (pair && typeof pair === 'object' && pair.leftId && pair.rightId) return pair;
+          if (typeof pair === 'string') {
+            const [leftId, rightId] = pair.split(/[-:|>]/).map(part => part.trim()).filter(Boolean);
+            if (leftId && rightId) return { leftId, rightId };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          correctPairs: normalizedPairs,
+        },
+      };
+    }
+
+    return node;
+  });
+};
+
+const addAssessmentEdgeEffects = (nodes: QuizNode[], edges: QuizEdge[]): QuizEdge[] => {
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
+  return edges.map((edge) => {
+    const source = nodeById.get(edge.source);
+    if (!source) return edge;
+
+    if (source.type === 'questionNode') {
+      const answer = Array.isArray(source.data?.answers)
+        ? source.data.answers.find((item: any) => String(item.id) === String(edge.sourceHandle))
+        : null;
+      if (!answer) return edge;
+      if (answer.isCorrect === true) {
+        return addEdgeEffect(
+          addEdgeEffect(edge, { variableName: 'score', op: 'add', value: 10 }),
+          { variableName: 'streak', op: 'add', value: 1 },
+        );
+      }
+      return addEdgeEffect(edge, { variableName: 'streak', op: 'set', value: 0 });
+    }
+
+    if (['multipleChoiceNode', 'textInputNode', 'matchingNode', 'timelineNode'].includes(source.type)) {
+      if (edge.sourceHandle === 'correct') {
+        return addEdgeEffect(
+          addEdgeEffect(edge, { variableName: 'score', op: 'add', value: 10 }),
+          { variableName: 'streak', op: 'add', value: 1 },
+        );
+      }
+      if (edge.sourceHandle === 'incorrect') {
+        return addEdgeEffect(edge, { variableName: 'streak', op: 'set', value: 0 });
+      }
+    }
+
+    return edge;
+  });
+};
+
+const uniqueNodeId = (nodes: QuizNode[], base: string): string => {
+  const ids = new Set(nodes.map(n => n.id));
+  if (!ids.has(base)) return base;
+  let index = 2;
+  while (ids.has(`${base}-${index}`)) index += 1;
+  return `${base}-${index}`;
+};
+
+const maxNodeY = (nodes: QuizNode[]): number => Math.max(50, ...nodes.map(n => n.position.y));
+
+const makeNode = (
+  nodes: QuizNode[],
+  baseId: string,
+  type: string,
+  position: { x: number; y: number },
+  data: Record<string, any>,
+): QuizNode => ({
+  id: uniqueNodeId(nodes, baseId),
+  type,
+  position,
+  data: { label: data.label ?? data.title ?? type, ...data },
+});
+
+const makeEdge = (
+  id: string,
+  source: string,
+  target: string,
+  sourceHandle: string | null = null,
+  data?: QuizEdge['data'],
+): QuizEdge => ({ id, source, target, sourceHandle, ...(data ? { data } : {}) });
+
+const findStartNode = (nodes: QuizNode[]): QuizNode | undefined =>
+  nodes.find(n => n.id === 'start' || n.type === 'startNode');
+
+const insertChainAfterStart = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  chain: QuizNode[],
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  if (!chain.length) return { nodes, edges };
+
+  const startNode = findStartNode(nodes);
+  if (!startNode) return { nodes: [...nodes, ...chain], edges };
+
+  const startEdgeIndex = edges.findIndex(e => e.source === startNode.id && (e.sourceHandle ?? null) === null);
+  const originalStartEdge = startEdgeIndex >= 0 ? edges[startEdgeIndex] : null;
+  const fallbackTarget = nodes.find(n => n.id !== startNode.id && n.type !== 'resultNode')?.id ?? null;
+  const targetAfterChain = originalStartEdge?.target ?? fallbackTarget;
+  const nextEdges = startEdgeIndex >= 0
+    ? edges.filter((_, index) => index !== startEdgeIndex)
+    : [...edges];
+
+  nextEdges.push(makeEdge(`edge-${startNode.id}-${chain[0].id}`, startNode.id, chain[0].id));
+  chain.slice(0, -1).forEach((node, index) => {
+    nextEdges.push(makeEdge(`edge-${node.id}-${chain[index + 1].id}`, node.id, chain[index + 1].id));
+  });
+  if (targetAfterChain && targetAfterChain !== chain[chain.length - 1].id) {
+    nextEdges.push(makeEdge(`edge-${chain[chain.length - 1].id}-${targetAfterChain}`, chain[chain.length - 1].id, targetAfterChain));
+  }
+
+  return { nodes: [...nodes, ...chain], edges: nextEdges };
+};
+
+const ensureVariableInit = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  variableName: string,
+  value: string | number,
+  label: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  const exists = nodes.some(n => n.type === 'variableNode' && n.data?.variableName === variableName);
+  if (exists) return { nodes, edges };
+
+  const node = makeNode(nodes, `init-${variableName}`, 'variableNode', { x: 220, y: 120 }, {
+    label,
+    variableName,
+    operation: 'set',
+    value,
+  });
+
+  return insertChainAfterStart(nodes, edges, [node]);
+};
+
+const addEdgeEffect = (
+  edge: QuizEdge,
+  effect: { variableName: string; op: 'set' | 'add' | 'subtract'; value: string | number },
+): QuizEdge => {
+  const effects = edge.data?.effects ?? [];
+  const hasSame = effects.some(e =>
+    e.variableName === effect.variableName && e.op === effect.op && e.value === effect.value,
+  );
+  if (hasSame) return edge;
+  return {
+    ...edge,
+    data: {
+      ...(edge.data ?? {}),
+      effects: [...effects, effect],
+    },
+  };
+};
+
+const ensureStoryIntro = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  topic: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  if (nodes.some(n => n.type === 'dialogueNode')) return { nodes, edges };
+
+  const node = makeNode(nodes, 'ai-story-mentor', 'dialogueNode', { x: 420, y: 160 }, {
+    label: 'Наставник',
+    characterName: 'Наставник',
+    characterRole: 'проводник по сценарию',
+    mood: 'mysterious',
+    dialogueText: `Перед тобой не тест, а маршрут по теме "${topic}". Решения будут менять траекторию, подсказки и финал.`,
+    buttonText: 'Начать путь',
+  });
+
+  return insertChainAfterStart(nodes, edges, [node]);
+};
+
+const ensureHintSystem = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  topic: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  let result = ensureVariableInit(nodes, edges, 'hints', 3, 'Подсказки');
+  if (result.nodes.some(n => n.id.startsWith('ai-hint-'))) return result;
+
+  const node = makeNode(result.nodes, 'ai-hint-card', 'feedbackNode', { x: 640, y: 190 }, {
+    label: 'Система подсказок',
+    title: 'Подсказка доступна',
+    message: `Если застрянешь на теме "${topic}", ищи обучающие намеки в обратной связи. Подсказки ограничены, поэтому выбирай внимательно.`,
+    explanation: 'Подсказка не дает готовый ответ, а показывает принцип рассуждения.',
+    buttonText: 'Понятно',
+  });
+
+  result = insertChainAfterStart(result.nodes, result.edges, [node]);
+  return {
+    nodes: result.nodes,
+    edges: result.edges.map(edge => {
+      if (edge.sourceHandle !== 'incorrect') return edge;
+      return addEdgeEffect(edge, { variableName: 'hints', op: 'subtract', value: 1 });
+    }),
+  };
+};
+
+const ensureLivesSystem = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  let result = ensureVariableInit(nodes, edges, 'lives', 3, 'Жизни');
+  result = {
+    nodes: result.nodes,
+    edges: result.edges.map(edge => {
+      if (edge.sourceHandle !== 'incorrect') return edge;
+      return addEdgeEffect(edge, { variableName: 'lives', op: 'subtract', value: 1 });
+    }),
+  };
+
+  if (!result.nodes.some(n => n.id.startsWith('ai-lives-empty'))) {
+    const resultIds = new Set(result.nodes.filter(n => n.type === 'resultNode').map(n => n.id));
+    const edgeIndex = result.edges.findIndex(e => resultIds.has(e.target) && !resultIds.has(e.source));
+    const node = makeNode(result.nodes, 'ai-lives-empty-result', 'resultNode', { x: 1120, y: maxNodeY(result.nodes) + 180 }, {
+      label: 'Жизни закончились',
+      title: 'Ресурс исчерпан',
+      description: 'Ошибки накопились быстрее, чем стратегия успела укрепиться. Повтори ключевые блоки и попробуй пройти маршрут заново.',
+      showScore: true,
+    });
+    const condition = makeNode([...result.nodes, node], 'ai-lives-gate', 'conditionNode', { x: 1020, y: maxNodeY(result.nodes) + 40 }, {
+      label: 'Проверка жизней',
+      variable: 'lives',
+      operator: 'lte',
+      value: 0,
+    });
+    if (edgeIndex >= 0) {
+      const original = result.edges[edgeIndex];
+      const nextEdges = result.edges.filter((_, index) => index !== edgeIndex);
+      nextEdges.push(
+        makeEdge(original.id, original.source, condition.id, original.sourceHandle ?? null, original.data),
+        makeEdge(`edge-${condition.id}-${node.id}`, condition.id, node.id, 'true'),
+        makeEdge(`edge-${condition.id}-${original.target}`, condition.id, original.target, 'false'),
+      );
+      result = { nodes: [...result.nodes, condition, node], edges: nextEdges };
+    } else {
+      result = { nodes: [...result.nodes, condition, node], edges: result.edges };
+    }
+  }
+
+  return result;
+};
+
+const ensureSecretBranch = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  topic: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  if (nodes.some(n => n.id.startsWith('ai-secret-') || n.data?.variable === 'secretKey')) {
+    return { nodes, edges };
+  }
+
+  let nextNodes = nodes;
+  let nextEdges = edges;
+  let source = nextNodes.find(n => n.type === 'questionNode' && Array.isArray(n.data?.answers)) as QuizNode | undefined;
+
+  if (!source) {
+    const question = makeNode(nextNodes, 'ai-secret-entry-question', 'questionNode', { x: 400, y: 220 }, {
+      label: 'Скрытая развилка',
+      question: `Какая деталь в теме "${topic}" может открыть дополнительный путь?`,
+      answers: [
+        { id: 'main_path', text: 'Идти по основному маршруту' },
+        { id: 'secret_answer', text: 'Проверить скрытую закономерность' },
+      ],
+    });
+    ({ nodes: nextNodes, edges: nextEdges } = insertChainAfterStart(nextNodes, nextEdges, [question]));
+    source = question;
+  }
+
+  const secretAnswerId = 'secret_answer';
+  const answers = Array.isArray(source.data.answers) ? source.data.answers : [];
+  if (!answers.some((answer: any) => answer.id === secretAnswerId)) {
+    source.data.answers = [
+      ...answers,
+      { id: secretAnswerId, text: 'Заметить скрытую закономерность' },
+    ];
+  }
+
+  const normalTarget = nextEdges.find(e => e.source === source!.id && e.sourceHandle !== secretAnswerId)?.target
+    ?? nextNodes.find(n => n.type !== 'resultNode' && n.id !== source!.id)?.id
+    ?? nextNodes.find(n => n.type === 'resultNode')?.id;
+  const y = maxNodeY(nextNodes) + 180;
+  const gate = makeNode(nextNodes, 'ai-secret-gate', 'conditionNode', { x: 980, y }, {
+    label: 'Проверка секретного ключа',
+    variable: 'secretKey',
+    operator: 'eq',
+    value: 'found',
+  });
+  const dialogue = makeNode([...nextNodes, gate], 'ai-secret-dialogue', 'dialogueNode', { x: 980, y: y + 150 }, {
+    label: 'Секретная сцена',
+    characterName: 'Хранитель маршрута',
+    characterRole: 'секретная ветка',
+    mood: 'mysterious',
+    dialogueText: `Ты заметил скрытую связь в теме "${topic}". Теперь доступен путь для тех, кто смотрит глубже обычного теста.`,
+    buttonText: 'Войти в секретную ветку',
+  });
+  const info = makeNode([...nextNodes, gate, dialogue], 'ai-secret-insight', 'infoNode', { x: 980, y: y + 300 }, {
+    label: 'Секретное объяснение',
+    title: 'Скрытая закономерность',
+    description: `Этот блок раскрывает дополнительный контекст по теме "${topic}" и связывает разрозненные факты в одну причинно-следственную цепочку.`,
+  });
+  const achievement = makeNode([...nextNodes, gate, dialogue, info], 'ai-secret-achievement', 'achievementNode', { x: 980, y: y + 450 }, {
+    label: 'Достижение',
+    title: 'Секретная ветка найдена',
+    description: 'Игрок открыл дополнительный маршрут и получил расширенную интерпретацию материала.',
+  });
+  const result = makeNode([...nextNodes, gate, dialogue, info, achievement], 'ai-secret-result', 'resultNode', { x: 980, y: y + 620 }, {
+    label: 'Секретный финал',
+    title: 'Секретный финал',
+    description: 'Ты прошел не только проверку знаний, но и нашел скрытую логику сценария. Это премиальный маршрут для внимательных.',
+    showScore: true,
+  });
+
+  nextNodes = [...nextNodes, gate, dialogue, info, achievement, result];
+  nextEdges = nextEdges.filter(e => !(e.source === source!.id && e.sourceHandle === secretAnswerId));
+  nextEdges.push(
+    makeEdge(`edge-${source.id}-${gate.id}`, source.id, gate.id, secretAnswerId, {
+      effects: [{ variableName: 'secretKey', op: 'set', value: 'found' }],
+    }),
+    makeEdge(`edge-${gate.id}-${dialogue.id}`, gate.id, dialogue.id, 'true'),
+    makeEdge(`edge-${gate.id}-${normalTarget ?? result.id}`, gate.id, normalTarget ?? result.id, 'false'),
+    makeEdge(`edge-${dialogue.id}-${info.id}`, dialogue.id, info.id),
+    makeEdge(`edge-${info.id}-${achievement.id}`, info.id, achievement.id),
+    makeEdge(`edge-${achievement.id}-${result.id}`, achievement.id, result.id),
+  );
+
+  return { nodes: nextNodes, edges: nextEdges };
+};
+
+const ensureBonusBranch = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  topic: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  if (nodes.some(n => n.id.startsWith('ai-bonus-'))) return { nodes, edges };
+
+  const resultIds = new Set(nodes.filter(n => n.type === 'resultNode').map(n => n.id));
+  const edgeIndex = edges.findIndex(e => resultIds.has(e.target) && !resultIds.has(e.source));
+  if (edgeIndex < 0) return { nodes, edges };
+
+  const original = edges[edgeIndex];
+  const y = maxNodeY(nodes) + 180;
+  const condition = makeNode(nodes, 'ai-bonus-score-gate', 'conditionNode', { x: 760, y }, {
+    label: 'Бонусная проверка',
+    variable: 'score',
+    operator: 'gte',
+    value: 80,
+  });
+  const info = makeNode([...nodes, condition], 'ai-bonus-insight', 'infoNode', { x: 760, y: y + 150 }, {
+    label: 'Бонусный материал',
+    title: 'Бонусная ветка',
+    description: `Высокий результат открыл расширенный блок по теме "${topic}": здесь игрок получает более глубокое объяснение и дополнительный вывод.`,
+  });
+  const achievement = makeNode([...nodes, condition, info], 'ai-bonus-achievement', 'achievementNode', { x: 760, y: y + 300 }, {
+    label: 'Бонус',
+    title: 'Бонус открыт',
+    description: 'Игрок набрал достаточно очков для продвинутого маршрута.',
+  });
+  const result = makeNode([...nodes, condition, info, achievement], 'ai-bonus-result', 'resultNode', { x: 760, y: y + 460 }, {
+    label: 'Бонусный финал',
+    title: 'Продвинутый результат',
+    description: 'Ты прошел основной материал на высоком уровне и открыл расширенную траекторию.',
+    showScore: true,
+  });
+
+  const nextEdges = edges.filter((_, index) => index !== edgeIndex);
+  nextEdges.push(
+    makeEdge(original.id, original.source, condition.id, original.sourceHandle ?? null, original.data),
+    makeEdge(`edge-${condition.id}-${info.id}`, condition.id, info.id, 'true'),
+    makeEdge(`edge-${condition.id}-${original.target}`, condition.id, original.target, 'false'),
+    makeEdge(`edge-${info.id}-${achievement.id}`, info.id, achievement.id),
+    makeEdge(`edge-${achievement.id}-${result.id}`, achievement.id, result.id),
+  );
+
+  return { nodes: [...nodes, condition, info, achievement, result], edges: nextEdges };
+};
+
+const ensureMultipleEndings = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  if (nodes.filter(n => n.type === 'resultNode').length >= 4 && nodes.some(n => n.id.startsWith('ai-ending-'))) {
+    return { nodes, edges };
+  }
+
+  const resultIds = new Set(nodes.filter(n => n.type === 'resultNode').map(n => n.id));
+  const edgeIndex = edges.findIndex(e => resultIds.has(e.target) && !resultIds.has(e.source));
+  if (edgeIndex < 0) {
+    const y = maxNodeY(nodes) + 180;
+    const extra = [
+      makeNode(nodes, 'ai-ending-expert', 'resultNode', { x: 260, y }, { title: 'Экспертный финал', description: 'Глубокое понимание и уверенная стратегия.', showScore: true }),
+      makeNode(nodes, 'ai-ending-steady', 'resultNode', { x: 520, y }, { title: 'Уверенный финал', description: 'Материал освоен, но есть точки роста.', showScore: true }),
+      makeNode(nodes, 'ai-ending-learner', 'resultNode', { x: 780, y }, { title: 'Учебный финал', description: 'База есть, нужно закрепить ключевые идеи.', showScore: true }),
+      makeNode(nodes, 'ai-ending-retry', 'resultNode', { x: 1040, y }, { title: 'Повторный маршрут', description: 'Лучше вернуться к объяснениям и пройти еще раз.', showScore: true }),
+    ];
+    return { nodes: [...nodes, ...extra], edges };
+  }
+
+  const original = edges[edgeIndex];
+  const y = maxNodeY(nodes) + 180;
+  const expert = makeNode(nodes, 'ai-ending-expert', 'resultNode', { x: 220, y: y + 440 }, {
+    title: 'Экспертный финал',
+    description: 'Ты не просто ответил правильно, а собрал систему: факты, причинность и выводы работают вместе.',
+    showScore: true,
+  });
+  const steady = makeNode([...nodes, expert], 'ai-ending-steady', 'resultNode', { x: 500, y: y + 440 }, {
+    title: 'Уверенный финал',
+    description: 'Основной маршрут пройден хорошо. Остались отдельные места, где стоит усилить аргументацию.',
+    showScore: true,
+  });
+  const learner = makeNode([...nodes, expert, steady], 'ai-ending-learner', 'resultNode', { x: 780, y: y + 440 }, {
+    title: 'Учебный финал',
+    description: 'Понимание появилось, но материал еще требует тренировки и повторного применения.',
+    showScore: true,
+  });
+  const retry = makeNode([...nodes, expert, steady, learner], 'ai-ending-retry', 'resultNode', { x: 1060, y: y + 440 }, {
+    title: 'Маршрут повторения',
+    description: 'Лучший ход сейчас - вернуться к объяснениям, восстановить базу и пройти сценарий заново.',
+    showScore: true,
+  });
+  const high = makeNode([...nodes, expert, steady, learner, retry], 'ai-ending-high-gate', 'conditionNode', { x: 500, y }, {
+    label: 'Финал: эксперт',
+    variable: 'score',
+    operator: 'gte',
+    value: 90,
+  });
+  const mid = makeNode([...nodes, expert, steady, learner, retry, high], 'ai-ending-mid-gate', 'conditionNode', { x: 620, y: y + 140 }, {
+    label: 'Финал: уверенно',
+    variable: 'score',
+    operator: 'gte',
+    value: 65,
+  });
+  const low = makeNode([...nodes, expert, steady, learner, retry, high, mid], 'ai-ending-low-gate', 'conditionNode', { x: 740, y: y + 280 }, {
+    label: 'Финал: база',
+    variable: 'score',
+    operator: 'gte',
+    value: 35,
+  });
+
+  const nextEdges = edges.filter((_, index) => index !== edgeIndex);
+  nextEdges.push(
+    makeEdge(original.id, original.source, high.id, original.sourceHandle ?? null, original.data),
+    makeEdge(`edge-${high.id}-${expert.id}`, high.id, expert.id, 'true'),
+    makeEdge(`edge-${high.id}-${mid.id}`, high.id, mid.id, 'false'),
+    makeEdge(`edge-${mid.id}-${steady.id}`, mid.id, steady.id, 'true'),
+    makeEdge(`edge-${mid.id}-${low.id}`, mid.id, low.id, 'false'),
+    makeEdge(`edge-${low.id}-${learner.id}`, low.id, learner.id, 'true'),
+    makeEdge(`edge-${low.id}-${retry.id}`, low.id, retry.id, 'false'),
+  );
+
+  return {
+    nodes: [...nodes, expert, steady, learner, retry, high, mid, low],
+    edges: nextEdges,
+  };
+};
+
+const ensureDifficultyChoice = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  topic: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  if (nodes.some(n => n.id.startsWith('ai-difficulty-'))) return { nodes, edges };
+
+  const startNode = findStartNode(nodes);
+  if (!startNode) return { nodes, edges };
+  const startEdge = edges.find(e => e.source === startNode.id && (e.sourceHandle ?? null) === null);
+  const target = startEdge?.target ?? nodes.find(n => n.id !== startNode.id && n.type !== 'resultNode')?.id;
+  if (!target) return { nodes, edges };
+
+  const y = 170;
+  const choice = makeNode(nodes, 'ai-difficulty-choice', 'questionNode', { x: 420, y }, {
+    label: 'Выбор сложности',
+    question: `Какой маршрут по теме "${topic}" выбрать?`,
+    answers: [
+      { id: 'easy', text: 'Базовый: спокойно разобраться' },
+      { id: 'medium', text: 'Стандартный: проверить понимание' },
+      { id: 'hard', text: 'Сложный: идти через вызовы' },
+    ],
+  });
+  const easy = makeNode([...nodes, choice], 'ai-difficulty-easy', 'infoNode', { x: 120, y: y + 170 }, {
+    title: 'Базовый маршрут',
+    description: 'Больше объяснений, мягкая обратная связь и фокус на понимании.',
+  });
+  const medium = makeNode([...nodes, choice, easy], 'ai-difficulty-medium', 'infoNode', { x: 420, y: y + 170 }, {
+    title: 'Стандартный маршрут',
+    description: 'Баланс проверки, объяснений и самостоятельных решений.',
+  });
+  const hard = makeNode([...nodes, choice, easy, medium], 'ai-difficulty-hard', 'infoNode', { x: 720, y: y + 170 }, {
+    title: 'Сложный маршрут',
+    description: 'Меньше подсказок, выше ставки и больше требований к аргументации.',
+  });
+
+  const nextEdges = edges.filter(e => e !== startEdge);
+  nextEdges.push(
+    makeEdge(`edge-${startNode.id}-${choice.id}`, startNode.id, choice.id),
+    makeEdge(`edge-${choice.id}-${easy.id}`, choice.id, easy.id, 'easy', { effects: [{ variableName: 'difficulty', op: 'set', value: 'easy' }] }),
+    makeEdge(`edge-${choice.id}-${medium.id}`, choice.id, medium.id, 'medium', { effects: [{ variableName: 'difficulty', op: 'set', value: 'medium' }] }),
+    makeEdge(`edge-${choice.id}-${hard.id}`, choice.id, hard.id, 'hard', { effects: [{ variableName: 'difficulty', op: 'set', value: 'hard' }] }),
+    makeEdge(`edge-${easy.id}-${target}`, easy.id, target),
+    makeEdge(`edge-${medium.id}-${target}`, medium.id, target),
+    makeEdge(`edge-${hard.id}-${target}`, hard.id, target),
+  );
+
+  return { nodes: [...nodes, choice, easy, medium, hard], edges: nextEdges };
+};
+
+const ensureAdaptiveDifficulty = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  let result = ensureVariableInit(nodes, edges, 'streak', 0, 'Серия правильных ответов');
+  result = {
+    nodes: result.nodes,
+    edges: result.edges.map(edge => {
+      if (edge.sourceHandle === 'correct') {
+        return addEdgeEffect(edge, { variableName: 'streak', op: 'add', value: 1 });
+      }
+      if (edge.sourceHandle === 'incorrect') {
+        return addEdgeEffect(edge, { variableName: 'streak', op: 'set', value: 0 });
+      }
+      return edge;
+    }),
+  };
+
+  if (result.nodes.some(n => n.type === 'progressionNode')) return result;
+
+  const progression = makeNode(result.nodes, 'ai-adaptive-progression', 'progressionNode', { x: 880, y: maxNodeY(result.nodes) + 180 }, {
+    label: 'Адаптивная сложность',
+    levelVar: 'rankLevel',
+    nameVar: 'rankName',
+    lockDegrade: true,
+    onLevelUpHandle: 'levelUp',
+    rules: [
+      { id: 'rank-base', level: 1, name: 'Исследователь', requireAll: true, requirements: [{ id: 'rank-base-req', type: 'minScore', value: 0 }] },
+      { id: 'rank-strong', level: 2, name: 'Сильный маршрут', requireAll: true, requirements: [{ id: 'rank-strong-req', type: 'minVar', variable: 'streak', value: 3 }] },
+    ],
+  });
+
+  return insertChainAfterStart(result.nodes, result.edges, [progression]);
+};
+
+const ensureSelectedOptionFeatures = (
+  nodes: QuizNode[],
+  edges: QuizEdge[],
+  selectedOptions: string[],
+  topic: string,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  let result = { nodes, edges };
+  const selected = new Set(selectedOptions);
+
+  if (selected.has('storytelling_mode')) result = ensureStoryIntro(result.nodes, result.edges, topic);
+  if (selected.has('difficulty_choice')) result = ensureDifficultyChoice(result.nodes, result.edges, topic);
+  if (selected.has('hint_system')) result = ensureHintSystem(result.nodes, result.edges, topic);
+  if (selected.has('lives_system')) result = ensureLivesSystem(result.nodes, result.edges);
+  if (selected.has('adaptive_difficulty')) result = ensureAdaptiveDifficulty(result.nodes, result.edges);
+  if (selected.has('secret_branch')) result = ensureSecretBranch(result.nodes, result.edges, topic);
+  if (selected.has('bonus_branch')) result = ensureBonusBranch(result.nodes, result.edges, topic);
+  if (selected.has('multiple_endings')) result = ensureMultipleEndings(result.nodes, result.edges);
+
+  return result;
+};
+
+const createFallbackQuizData = (
+  topic: string,
+  goal: string,
+  audience: string,
+  requestedQuestionCount: number,
+): { nodes: QuizNode[]; edges: QuizEdge[] } => {
+  const count = clamp(Math.round(requestedQuestionCount || 8), 5, 10);
+  const safeTopic = topic.trim() || 'тема квиза';
+  const nodes: QuizNode[] = [
+    { ...START_NODE },
+    {
+      id: 'fallback-intro',
+      type: 'infoNode',
+      position: { x: 400, y: 180 },
+      data: {
+        label: 'Вступление',
+        title: `Маршрут: ${safeTopic}`,
+        description: goal
+          ? `Цель: ${goal}. Отвечай внимательно: решения будут влиять на очки и финал.`
+          : `Проверь понимание темы "${safeTopic}" через короткий интерактивный маршрут.`,
+      },
+    },
+  ];
+  const edges: QuizEdge[] = [
+    makeEdge('fallback-edge-start-intro', 'start', 'fallback-intro'),
+  ];
+
+  let previousId = 'fallback-intro';
+  for (let index = 1; index <= count; index += 1) {
+    const nodeId = `fallback-q-${index}`;
+    const feedbackId = `fallback-feedback-${index}`;
+    const isMultiple = index % 4 === 0;
+    const isText = index % 5 === 0;
+    const type = isText ? 'textInputNode' : isMultiple ? 'multipleChoiceNode' : 'questionNode';
+
+    const questionNode: QuizNode = {
+      id: nodeId,
+      type,
+      position: { x: 400 + (index % 2) * 280, y: 180 + index * 160 },
+      data: type === 'textInputNode'
+        ? {
+            label: `Проверка ${index}`,
+            question: `Назови ключевое понятие или факт по теме "${safeTopic}".`,
+            keyword: safeTopic.split(/\s+/)[0] || safeTopic,
+            acceptedAnswers: [safeTopic.split(/\s+/)[0] || safeTopic],
+          }
+        : type === 'multipleChoiceNode'
+          ? {
+              label: `Множественный выбор ${index}`,
+              question: `Какие признаки помогают уверенно разобраться в теме "${safeTopic}"?`,
+              answers: [
+                { id: 'a', text: 'Причины и последствия' },
+                { id: 'b', text: 'Случайные детали без связи' },
+                { id: 'c', text: 'Ключевые понятия' },
+                { id: 'd', text: 'Только запоминание дат' },
+              ],
+              correctOptions: ['a', 'c'],
+              minSelections: 2,
+              maxSelections: 2,
+            }
+          : {
+              label: `Вопрос ${index}`,
+              question: `Какой вывод лучше всего раскрывает тему "${safeTopic}"?`,
+              answers: [
+                { id: 'correct', text: 'Связать факт с причиной и последствием', isCorrect: true },
+                { id: 'partial', text: 'Запомнить отдельный термин' },
+                { id: 'wrong', text: 'Выбрать первое похожее объяснение' },
+              ],
+            },
+    };
+
+    const feedbackNode: QuizNode = {
+      id: feedbackId,
+      type: 'feedbackNode',
+      position: { x: 760, y: 180 + index * 160 },
+      data: {
+        label: `Разбор ${index}`,
+        title: 'Разбор ответа',
+        message: `Вернись к логике темы "${safeTopic}": сильный ответ объясняет связь, а не просто называет факт.`,
+        explanation: audience ? `Для аудитории "${audience}" важно держать фокус на понимании, а не угадывании.` : undefined,
+      },
+    };
+
+    nodes.push(questionNode, feedbackNode);
+    edges.push(makeEdge(`fallback-edge-${previousId}-${nodeId}`, previousId, nodeId));
+    if (type === 'questionNode') {
+      edges.push(
+        makeEdge(`fallback-edge-${nodeId}-correct`, nodeId, index === count ? 'fallback-result-good' : feedbackId, 'correct', {
+          effects: [{ variableName: 'score', op: 'add', value: 10 }],
+        }),
+        makeEdge(`fallback-edge-${nodeId}-partial`, nodeId, feedbackId, 'partial', {
+          effects: [{ variableName: 'score', op: 'add', value: 4 }],
+        }),
+        makeEdge(`fallback-edge-${nodeId}-wrong`, nodeId, feedbackId, 'wrong'),
+      );
+    } else {
+      edges.push(
+        makeEdge(`fallback-edge-${nodeId}-correct`, nodeId, index === count ? 'fallback-result-good' : feedbackId, 'correct', {
+          effects: [{ variableName: 'score', op: 'add', value: 10 }],
+        }),
+        makeEdge(`fallback-edge-${nodeId}-incorrect`, nodeId, feedbackId, 'incorrect'),
+      );
+    }
+    previousId = feedbackId;
+  }
+
+  nodes.push(
+    {
+      id: 'fallback-result-good',
+      type: 'resultNode',
+      position: { x: 320, y: 240 + count * 180 },
+      data: {
+        label: 'Сильный финал',
+        title: 'Материал собран в систему',
+        description: `Ты уверенно прошел маршрут по теме "${safeTopic}" и показал понимание связей.`,
+        showScore: true,
+      },
+    },
+    {
+      id: 'fallback-result-review',
+      type: 'resultNode',
+      position: { x: 660, y: 240 + count * 180 },
+      data: {
+        label: 'Финал повторения',
+        title: 'Нужно закрепить основу',
+        description: `Тема "${safeTopic}" уже знакома, но стоит повторить ключевые связи и пройти маршрут снова.`,
+        showScore: true,
+      },
+    },
+  );
+  edges.push(makeEdge(`fallback-edge-${previousId}-review`, previousId, 'fallback-result-review'));
+
+  return { nodes, edges };
 };
 
 const validateGraph = (nodes: QuizNode[], edges: QuizEdge[]): { isValid: boolean; issues: string[] } => {
@@ -1695,7 +2675,10 @@ const AIQuizWizardBase: FC = () => {
   const getSelectedOptionsPrompt = useCallback((): string => {
     return ALL_OPTIONS
       .filter(o => inputs.selectedOptions.includes(o.id))
-      .map(o => `- ${o.label}: ${o.promptAddition}`)
+      .map(o => {
+        const mandatoryContract = OPTION_IMPLEMENTATION_CONTRACT[o.id];
+        return `- ${o.label}: ${o.promptAddition}${mandatoryContract ? ` Mandatory: ${mandatoryContract}` : ''}`;
+      })
       .join('\n');
   }, [inputs.selectedOptions]);
 
@@ -1706,6 +2689,7 @@ const AIQuizWizardBase: FC = () => {
       inputs.audience && `Audience: ${inputs.audience}`,
       `Format: ${inputs.format}`,
       `Questions: ${inputs.questionCount}`,
+      getDomainExpertiseContract(inputs.topic, inputs.format, inputs.audience),
     ].filter(Boolean);
     
     if (generation.selectedIdea) {
@@ -1732,7 +2716,10 @@ const AIQuizWizardBase: FC = () => {
     const controller = createNew();
 
     try {
-      const prompt = `Generate 4 distinct quiz concepts in Russian based on the input below.
+      const prompt = `Generate 4 distinct premium quiz concepts in Russian based on the input below.
+The ideas must be strong enough to become a finished interactive educational product.
+Avoid generic "test about the topic" ideas. Each idea needs a clear role for the learner, conflict, branching potential, and memorable mechanic.
+
 Return ONLY a valid JSON object with this exact structure:
 {
   "ideas": [
@@ -1748,8 +2735,21 @@ Return ONLY a valid JSON object with this exact structure:
 Input Data:
 Topic: ${inputs.topic}
 Format: ${inputs.format}
+Question count target: ${inputs.questionCount}
 ${inputs.goal ? `Goal: ${inputs.goal}` : ''}
-${inputs.audience ? `Audience: ${inputs.audience}` : ''}`;
+${inputs.audience ? `Audience: ${inputs.audience}` : ''}
+${inputs.additionalContext ? `Additional context: ${inputs.additionalContext}` : ''}
+${getDomainExpertiseContract(inputs.topic, inputs.format, inputs.audience)}
+
+Selected mechanics:
+${getSelectedOptionsPrompt() || '- none'}
+
+Quality criteria:
+- Every concept must imply meaningful choices, not just a linear quiz.
+- Hooks should create curiosity or tension in the first 10 seconds.
+- Descriptions must mention how the learner changes state: score, variables, paths, skill level, or ending.
+- Descriptions must include the professional domain lens, not only a playful wrapper.
+- If a selected mechanic is present above, at least two ideas must explicitly use it.`;
 
       // Use AI_MODEL_JSON for better structured output reliability
       const response = await withRetry(
@@ -1788,7 +2788,7 @@ ${inputs.audience ? `Audience: ${inputs.audience}` : ''}`;
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [inputs, createNew]);
+  }, [inputs, createNew, getSelectedOptionsPrompt]);
 
   const generateContentStream = useCallback(async (
     stageName: 'concept' | 'architecture' | 'mechanics', 
@@ -1906,17 +2906,25 @@ ${buildContext()}
       
       const prompt = `${PLATFORM_CONTEXT}
 
+${PREMIUM_QUALITY_CONTRACT}
+${FINAL_JSON_SIZE_RULES}
+
 Specification:
 ${buildContext()}
 
 ${optionsPrompt ? `Additional mechanics:\n${optionsPrompt}` : ''}
+${inputs.additionalContext ? `\nAuthor notes:\n${inputs.additionalContext}` : ''}
 
 Requirements:
-- Exactly ${inputs.questionCount} question nodes (questionNode or multipleChoiceNode)
-- Minimum 2 resultNodes (good/bad ending)
+- Create ${inputs.questionCount} core assessment checkpoints. Use a rich mix: questionNode, multipleChoiceNode, textInputNode, matchingNode, timelineNode where relevant.
+- Minimum 2 resultNodes (good/bad ending). If multiple_endings is selected, create 4+ resultNodes.
+- Use at least 8 different node types when the selected mechanics allow it.
+- Include feedbackNode explanations for important wrong answers.
+- Include scoreNode/variableNode/conditionNode whenever branches or endings depend on learner state.
 - All nodes connected via edges
 - For questionNode: each answer.id must match an edge's sourceHandle
 - For multipleChoiceNode: edges must use sourceHandle "correct" or "incorrect"
+- For textInputNode/matchingNode/timelineNode: edges must use sourceHandle "correct" and "incorrect"
 - Use Russian language for all content
 
 Generate ONLY valid JSON: {"nodes":[...],"edges":[...]}`;
@@ -1932,7 +2940,50 @@ Use Russian. Include resultNode at end.`;
         response = await callOpenRouter(AI_MODEL_JSON, simplePrompt, true, controller.signal);
       }
 
-      const { data } = await parseJsonWithRepair<{ nodes: any[]; edges: any[] }>(response, controller.signal);
+      let data: { nodes: any[]; edges: any[] };
+      try {
+        ({ data } = await parseJsonWithRepair<{ nodes: any[]; edges: any[] }>(response, controller.signal));
+      } catch (parseError) {
+        console.warn('Retrying final quiz generation after invalid JSON...', parseError);
+        const compactQuestionCount = clamp(inputs.questionCount, 5, 12);
+        const compactPrompt = `${MINIMAL_GRAPH_CONTEXT}
+
+${FINAL_JSON_SIZE_RULES}
+
+Create a complete quiz as COMPACT MINIFIED JSON only.
+No Markdown. No comments. No explanation.
+Top-level shape must be exactly {"nodes":[],"edges":[]}.
+
+Topic: ${inputs.topic}
+Format: ${inputs.format}
+Core checkpoints: ${compactQuestionCount}
+${inputs.goal ? `Goal: ${inputs.goal}` : ''}
+${inputs.audience ? `Audience: ${inputs.audience}` : ''}
+${inputs.additionalContext ? `Author notes: ${inputs.additionalContext}` : ''}
+${getDomainExpertiseContract(inputs.topic, inputs.format, inputs.audience)}
+
+${optionsPrompt ? `Mechanics:\n${optionsPrompt}` : ''}
+
+Rules:
+- Include one startNode.
+- Include ${compactQuestionCount} core assessment checkpoints.
+- Use varied checkpoint types: questionNode, multipleChoiceNode, textInputNode, matchingNode, timelineNode.
+- Include at least 2 resultNode endings.
+- If a selected mechanic is listed, it is mandatory and must be visible in the graph.
+- Every node needs id, type, position, data.
+- Every edge needs id, source, target.
+- For questionNode, answer ids must be used as edge sourceHandle values.
+- For correct/incorrect nodes, include both correct and incorrect edges.
+- Use Russian content.`;
+
+        try {
+          response = await callOpenRouter(AI_MODEL_JSON, compactPrompt, true, controller.signal);
+          ({ data } = await parseJsonWithRepair<{ nodes: any[]; edges: any[] }>(response, controller.signal));
+        } catch (compactParseError) {
+          console.warn('Using local fallback quiz after repeated invalid JSON...', compactParseError);
+          data = createFallbackQuizData(inputs.topic, inputs.goal, inputs.audience, inputs.questionCount);
+        }
+      }
       
       let rawNodes = Array.isArray(data?.nodes) ? data.nodes : [];
       let rawEdges = Array.isArray(data?.edges) ? data.edges : [];
@@ -1941,16 +2992,28 @@ Use Russian. Include resultNode at end.`;
 
       // ========== Graph Normalization Pipeline ==========
       let nodes = normalizeNodes(rawNodes);
+      nodes = normalizeNodeSemantics(nodes);
       nodes = ensureStartNode(nodes);
       
       let edges = normalizeEdges(rawEdges, nodes);
       edges = addMissingAnswerEdges(nodes, edges);
+      edges = addMissingOutcomeEdges(nodes, edges);
+      edges = addAssessmentEdgeEffects(nodes, edges);
       edges = ensureStartEdge(nodes, edges);
       edges = ensureGraphConnectivity(nodes, edges);
       
       const withResults = ensureResultNodes(nodes, edges);
       nodes = withResults.nodes;
       edges = withResults.edges;
+
+      const withSelectedFeatures = ensureSelectedOptionFeatures(nodes, edges, inputs.selectedOptions, inputs.topic);
+      nodes = withSelectedFeatures.nodes;
+      edges = withSelectedFeatures.edges;
+      edges = addMissingAnswerEdges(nodes, edges);
+      edges = addMissingOutcomeEdges(nodes, edges);
+      edges = addAssessmentEdgeEffects(nodes, edges);
+      edges = ensureStartEdge(nodes, edges);
+      edges = ensureGraphConnectivity(nodes, edges);
       
       // Clean internal properties
       nodes = cleanNodes(nodes);

@@ -12,6 +12,9 @@ const { useReactFlow, useViewport } = ReactFlowPkg as any;
 interface BottomControlBarProps {
     onLayout: (dir: 'TB' | 'LR') => void;
     onPreview: () => void;
+    onAIAssistant: () => void;
+    isAIAssistantOpen: boolean;
+    isAIAssistantLocked: boolean;
     showGrid: boolean;
     onToggleGrid: () => void;
 }
@@ -19,6 +22,9 @@ interface BottomControlBarProps {
 export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     onLayout,
     onPreview,
+    onAIAssistant,
+    isAIAssistantOpen,
+    isAIAssistantLocked,
     showGrid,
     onToggleGrid,
 }) => {
@@ -175,6 +181,25 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
             >
                 <Icons.Play />
                 <span>Превью</span>
+            </button>
+
+            <button
+                onClick={onAIAssistant}
+                className={`flex items-center gap-2 px-4 py-2 font-medium rounded-xl transition-all hover:scale-105 mx-1 ${
+                    isAIAssistantOpen
+                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/25 hover:from-violet-700 hover:to-fuchsia-700'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700 shadow-sm'
+                }`}
+                title={isAIAssistantLocked ? 'AI Ассистент доступен только в PRO' : 'Открыть AI Ассистент'}
+                aria-pressed={isAIAssistantOpen}
+            >
+                <Icons.Sparkles />
+                <span>AI Ассистент</span>
+                {isAIAssistantLocked && (
+                    <span className="rounded-md bg-gradient-to-r from-amber-400 to-orange-500 px-1.5 py-0.5 text-[9px] font-extrabold leading-none tracking-wider text-white">
+                        PRO
+                    </span>
+                )}
             </button>
 
             <div className="relative">

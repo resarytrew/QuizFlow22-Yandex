@@ -34,6 +34,11 @@ import './styles/editor.css';
 import type { CustomNodeType } from '../../types';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { getCanvasBackgroundConfig } from './canvasPreferences';
+import { useUIStore } from '../../store/useUIStore';
+import { useEntitlementStore } from '../../store/useEntitlementStore';
+import { useAppNavigation } from '../../src/router/useAppNavigation';
+import { hasFeature } from '../Paywall';
+import toast from 'react-hot-toast';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'default' as const };
 const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: ZOOM.DEFAULT };
@@ -55,7 +60,12 @@ const QuizEditor: React.FC = () => {
   const reduceMotion = usePreferencesStore((s) => s.preferences.reduceMotion);
   const simplified = usePreferencesStore((s) => s.preferences.simplified);
   const setPreference = usePreferencesStore((s) => s.setPreference);
+  const isAIAssistantPanelVisible = useUIStore((s) => s.isAIAssistantPanelVisible);
+  const toggleAIAssistantPanel = useUIStore((s) => s.toggleAIAssistantPanel);
+  const entitlement = useEntitlementStore((s) => s.entitlement);
+  const nav = useAppNavigation();
   const lowPowerMode = reduceMotion || simplified;
+  const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
   const { screenToFlowPosition, getNode, fitView, setCenter } = useReactFlow();
 
@@ -192,6 +202,15 @@ const QuizEditor: React.FC = () => {
     actions.setPreviewMode(true);
   }, [actions.setPreviewMode]);
 
+  const handleAIAssistant = useCallback(() => {
+    if (isAIAssistantLocked) {
+      toast.error('AI Ассистент доступен только в PRO');
+      void nav.goToBilling();
+      return;
+    }
+    toggleAIAssistantPanel();
+  }, [isAIAssistantLocked, nav, toggleAIAssistantPanel]);
+
   const handleToggleGrid = useCallback(() => {
     setPreference('showGrid', !showGrid);
   }, [setPreference, showGrid]);
@@ -312,6 +331,9 @@ const QuizEditor: React.FC = () => {
           <BottomControlBar
             onLayout={handleLayout}
             onPreview={handlePreview}
+            onAIAssistant={handleAIAssistant}
+            isAIAssistantOpen={isAIAssistantPanelVisible}
+            isAIAssistantLocked={isAIAssistantLocked}
             showGrid={showGrid}
             onToggleGrid={handleToggleGrid}
           />
