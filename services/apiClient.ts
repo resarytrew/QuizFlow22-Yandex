@@ -74,6 +74,34 @@ export async function apiRequest<T>(
   return response.json();
 }
 
+async function listPublicQuizzesWithFallback(): Promise<PublicQuiz[]> {
+  try {
+    return await apiRequest<PublicQuiz[]>('/quizzes?public=true');
+  } catch (apiError) {
+    console.warn('[apiClient] Public gallery API failed, using Supabase fallback', apiError);
+
+    const { supabase, isSupabaseReady } = await import('./supabaseClient');
+    if (!isSupabaseReady || !supabase) throw apiError;
+
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('id,name,quiz_data,created_at,published_at,visibility,is_favorite')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw apiError;
+
+    return (data ?? []).map((quiz: any) => ({
+      ...quiz,
+      published_at: quiz.published_at || quiz.created_at,
+      is_published: Boolean(quiz.published_at),
+    })) as PublicQuiz[];
+  }
+}
+
 interface Quiz {
   id: string;
   name: string;
@@ -108,7 +136,7 @@ export const api = {
   deleteQuiz: (id: string) => apiRequest<void>(`/quizzes/${id}`, {
     method: 'DELETE',
   }),
-  listPublicQuizzes: () => apiRequest<PublicQuiz[]>('/quizzes?public=true'),
+  listPublicQuizzes: listPublicQuizzesWithFallback,
 
   // ─── Results ────────────────────────────────────────────────
   saveResult: (data: any) => apiRequest<{ id: string; score: number }>('/results', {
