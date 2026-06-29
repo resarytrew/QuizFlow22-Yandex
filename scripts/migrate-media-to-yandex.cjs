@@ -222,14 +222,32 @@ async function uploadToYandex(url, key) {
   return { skipped: false, bytes: bytes.length, checksum };
 }
 
-async function fetchQuizzes() {
-  const limitSql = LIMIT > 0 ? ` limit ${LIMIT}` : '';
+async function getQuizColumns() {
   const { rows } = await pg.query(
-    `select id, quiz_data, cover_image_url
+    `select column_name
+       from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'quizzes'`,
+  );
+  return new Set(rows.map((row) => row.column_name));
+}
+
+async function fetchQuizzes(columns) {
+  const limitSql = LIMIT > 0 ? ` limit ${LIMIT}` : '';
+  const hasCoverImageUrl = columns.has('cover_image_url');
+  const hasUpdatedAt = columns.has('updated_at');
+  const selectCover = hasCoverImageUrl ? 'cover_image_url' : `null::text as cover_image_url`;
+  const coverWhere = hasCoverImageUrl ? `or coalesce(cover_image_url, '') like $1` : '';
+  const orderBy = hasUpdatedAt
+    ? 'updated_at desc nulls last, created_at desc'
+    : 'created_at desc';
+
+  const { rows } = await pg.query(
+    `select id, quiz_data, ${selectCover}
        from public.quizzes
       where quiz_data::text like $1
-         or coalesce(cover_image_url, '') like $1
-      order by updated_at desc nulls last, created_at desc${limitSql}`,
+         ${coverWhere}
+      order by ${orderBy}${limitSql}`,
     [`%${supabaseHost}/storage/v1/%`],
   );
   return rows;
@@ -250,7 +268,10 @@ async function migrate() {
   };
 
   try {
-    const quizzes = await fetchQuizzes();
+    const quizColumns = await getQuizColumns();
+    const hasCoverImageUrl = quizColumns.has('cover_image_url');
+    const hasUpdatedAt = quizColumns.has('updated_at');
+    const quizzes = await fetchQuizzes(quizColumns);
     report.scannedQuizzes = quizzes.length;
 
     for (const quiz of quizzes) {
@@ -297,13 +318,19 @@ async function migrate() {
       report.changedQuizzes += 1;
 
       if (!DRY_RUN) {
+        const setParts = ['quiz_data = $2::jsonb'];
+        const values = [quiz.id, JSON.stringify(nextQuizData)];
+        if (hasCoverImageUrl) {
+          values.push(nextCover);
+          setParts.push(`cover_image_url = $${values.length}`);
+        }
+        if (hasUpdatedAt) setParts.push('updated_at = now()');
+
         await pg.query(
           `update public.quizzes
-              set quiz_data = $2::jsonb,
-                  cover_image_url = $3,
-                  updated_at = now()
+              set ${setParts.join(', ')}
             where id = $1`,
-          [quiz.id, JSON.stringify(nextQuizData), nextCover],
+          values,
         );
       }
       console.log(`${DRY_RUN ? 'would update' : 'updated'} quiz ${quiz.id}`);
