@@ -23,6 +23,7 @@ jobs:
     env:
       YC_CDN_RESOURCE_ID: ${{ secrets.YC_CDN_RESOURCE_ID }}
       MEDIA_BUCKET: ${{ secrets.S3_BUCKET }}
+      STATIC_BUCKET: ${{ secrets.YC_BUCKET }}
 
     steps:
       - name: Checkout repository
@@ -118,10 +119,14 @@ jobs:
             --cors-configuration file://deploy/yandex-cloud/cors-config.json
 
       - name: Apply media bucket CORS configuration
-        if: ${{ env.MEDIA_BUCKET != '' }}
         run: |
+          BUCKET="$MEDIA_BUCKET"
+          if [ -z "$BUCKET" ] || [ "$BUCKET" = "potok-quiz-assets" ]; then
+            BUCKET="$STATIC_BUCKET"
+          fi
+          test -n "$BUCKET"
           aws --endpoint-url=https://storage.yandexcloud.net s3api put-bucket-cors \
-            --bucket "$MEDIA_BUCKET" \
+            --bucket "$BUCKET" \
             --cors-configuration file://deploy/yandex-cloud/assets-cors-config.json
 
       - name: Install Yandex Cloud CLI

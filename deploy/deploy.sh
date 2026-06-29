@@ -70,10 +70,15 @@ aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-cors \
   --bucket "$YC_BUCKET" \
   --cors-configuration "file://$SCRIPT_DIR/yandex-cloud/cors-config.json"
 
-if [ -n "${S3_BUCKET:-}" ]; then
+MEDIA_BUCKET="${S3_BUCKET:-}"
+if [ -z "$MEDIA_BUCKET" ] || [ "$MEDIA_BUCKET" = "potok-quiz-assets" ]; then
+  MEDIA_BUCKET="$YC_BUCKET"
+fi
+
+if [ -n "$MEDIA_BUCKET" ]; then
   echo "==> Applying media bucket CORS configuration"
   aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-cors \
-    --bucket "$S3_BUCKET" \
+    --bucket "$MEDIA_BUCKET" \
     --cors-configuration "file://$SCRIPT_DIR/yandex-cloud/assets-cors-config.json"
 fi
 

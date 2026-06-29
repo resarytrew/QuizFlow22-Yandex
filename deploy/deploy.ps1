@@ -91,10 +91,15 @@ aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-cors `
     --cors-configuration "file://$ScriptDir/yandex-cloud/cors-config.json"
 if ($LASTEXITCODE -ne 0) { throw "put-bucket-cors failed" }
 
-if (-not [string]::IsNullOrEmpty($env:S3_BUCKET)) {
+$mediaBucket = $env:S3_BUCKET
+if ([string]::IsNullOrEmpty($mediaBucket) -or $mediaBucket -eq 'potok-quiz-assets') {
+    $mediaBucket = $env:YC_BUCKET
+}
+
+if (-not [string]::IsNullOrEmpty($mediaBucket)) {
     Write-Host "==> Applying media bucket CORS configuration"
     aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-cors `
-        --bucket "$env:S3_BUCKET" `
+        --bucket "$mediaBucket" `
         --cors-configuration "file://$ScriptDir/yandex-cloud/assets-cors-config.json"
     if ($LASTEXITCODE -ne 0) { throw "put-bucket-cors for media bucket failed" }
 }
