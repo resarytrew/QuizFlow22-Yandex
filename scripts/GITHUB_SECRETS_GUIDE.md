@@ -81,7 +81,7 @@ cd C:\Windows\System32\QuizeFlow22
 
 | Имя         | Описание          | Значение            |
 | ----------- | ----------------- | ------------------- |
-| `S3_BUCKET` | Бакет для ассетов | `potok-quiz-assets` |
+| `S3_BUCKET` | Бакет для медиатеки и ассетов квизов в Yandex Object Storage | `quizflow22-prod` |
 
 ---
 
@@ -121,4 +121,3 @@ yc config list
 # cloud-id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 # folder-id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
-

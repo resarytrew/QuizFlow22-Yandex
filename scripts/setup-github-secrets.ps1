@@ -206,7 +206,7 @@ if ($catalogId) { Set-GitHubSecret -Name "YC_CATALOG_ID" -Value $catalogId }
 # ─────────────────────────────────────────────────────────────
 Write-Host "`n[S3 Bucket for Assets]" -ForegroundColor Cyan
 
-$s3Bucket = Read-Host "  S3_BUCKET (potok-quiz-assets)"
+$s3Bucket = Read-Host "  S3_BUCKET (quizflow22-prod)"
 if ($s3Bucket) { Set-GitHubSecret -Name "S3_BUCKET" -Value $s3Bucket }
 
 # ─────────────────────────────────────────────────────────────
