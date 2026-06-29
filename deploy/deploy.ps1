@@ -91,6 +91,14 @@ aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-cors `
     --cors-configuration "file://$ScriptDir/yandex-cloud/cors-config.json"
 if ($LASTEXITCODE -ne 0) { throw "put-bucket-cors failed" }
 
+if (-not [string]::IsNullOrEmpty($env:S3_BUCKET)) {
+    Write-Host "==> Applying media bucket CORS configuration"
+    aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-cors `
+        --bucket "$env:S3_BUCKET" `
+        --cors-configuration "file://$ScriptDir/yandex-cloud/assets-cors-config.json"
+    if ($LASTEXITCODE -ne 0) { throw "put-bucket-cors for media bucket failed" }
+}
+
 if (-not [string]::IsNullOrEmpty($env:YC_CDN_RESOURCE_ID)) {
     $yc = Get-Command yc -ErrorAction SilentlyContinue
     if ($yc) {

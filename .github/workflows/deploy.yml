@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 15
     env:
       YC_CDN_RESOURCE_ID: ${{ secrets.YC_CDN_RESOURCE_ID }}
+      MEDIA_BUCKET: ${{ secrets.S3_BUCKET }}
 
     steps:
       - name: Checkout repository
@@ -116,6 +117,13 @@ jobs:
             --bucket ${{ secrets.YC_BUCKET }} \
             --cors-configuration file://deploy/yandex-cloud/cors-config.json
 
+      - name: Apply media bucket CORS configuration
+        if: ${{ env.MEDIA_BUCKET != '' }}
+        run: |
+          aws --endpoint-url=https://storage.yandexcloud.net s3api put-bucket-cors \
+            --bucket "$MEDIA_BUCKET" \
+            --cors-configuration file://deploy/yandex-cloud/assets-cors-config.json
+
       - name: Install Yandex Cloud CLI
         run: |
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i $HOME/yandex-cloud -n
@@ -189,6 +197,7 @@ jobs:
             PG_HOST PG_PORT PG_DATABASE PG_USER PG_PASSWORD PG_CA_CERT
             SUPABASE_URL SUPABASE_ANON_KEY
             YC_ACCESS_KEY_ID YC_SECRET_ACCESS_KEY S3_BUCKET
+            YANDEX_MEDIA_PUBLIC_BASE
             YOOKASSA_SHOP_ID YOOKASSA_SECRET_KEY
             FRONTEND_URL ALLOWED_ORIGINS
             BILLING_WEBHOOK_SECRET BILLING_ADMIN_SECRET
@@ -211,3 +220,44 @@ jobs:
             --service-account-id "$SA_ID" \
             --source-path "$ZIP_FILE" \
             "${SECRET_FLAGS[@]}"
+
+      - name: Update API Gateway for unified router
+        env:
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          set -euo pipefail
+          API_ROUTER_FUNCTION_ID=$(yc serverless function get --name "potok-api-quizzes" --format json | jq -r '.id')
+          SA_ID=$(yc iam service-account list --folder-id "$YC_FOLDER_ID" --format json | jq -r '.[] | select(.name == "quizflow-functions") | .id')
+          test -n "$API_ROUTER_FUNCTION_ID"
+          test -n "$SA_ID"
+
+          cat > /tmp/gateway-spec.yaml << EOF
+          openapi: 3.0.0
+          info:
+            title: Potok API
+            version: 3.0.0
+          x-yc-apigateway:
+            cors:
+              origin: "*"
+              methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+              headers: ["authorization", "content-type", "x-request-id", "x-admin-secret", "x-cron-secret"]
+          paths:
+            /api/{proxy+}:
+              x-yc-apigateway-any-method:
+                parameters:
+                  - in: path
+                    name: proxy
+                    schema:
+                      type: string
+                    required: true
+                x-yc-apigateway-integration:
+                  type: cloud-functions
+                  function_id: $API_ROUTER_FUNCTION_ID
+                  service_account_id: $SA_ID
+          EOF
+
+          if yc serverless api-gateway get --name potok-api --format json > /dev/null 2>&1; then
+            yc serverless api-gateway update --name potok-api --spec /tmp/gateway-spec.yaml
+          else
+            yc serverless api-gateway create --name potok-api --spec /tmp/gateway-spec.yaml --description "QuizFlow22 API Gateway"
+          fi

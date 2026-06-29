@@ -70,6 +70,13 @@ aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-cors \
   --bucket "$YC_BUCKET" \
   --cors-configuration "file://$SCRIPT_DIR/yandex-cloud/cors-config.json"
 
+if [ -n "${S3_BUCKET:-}" ]; then
+  echo "==> Applying media bucket CORS configuration"
+  aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-cors \
+    --bucket "$S3_BUCKET" \
+    --cors-configuration "file://$SCRIPT_DIR/yandex-cloud/assets-cors-config.json"
+fi
+
 if [ -n "${YC_CDN_RESOURCE_ID:-}" ] && command -v yc >/dev/null 2>&1; then
   echo "==> Purging Yandex CDN cache for resource $YC_CDN_RESOURCE_ID"
   yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --path '/*'
