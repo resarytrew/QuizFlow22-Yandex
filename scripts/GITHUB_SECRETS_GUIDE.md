@@ -82,6 +82,7 @@ cd C:\Windows\System32\QuizeFlow22
 | Имя         | Описание          | Значение            |
 | ----------- | ----------------- | ------------------- |
 | `S3_BUCKET` | Бакет для медиатеки и ассетов квизов в Yandex Object Storage | `quizflow22-prod` |
+| `YANDEX_MEDIA_PUBLIC_BASE` | Публичный base URL для медиа, если используется CDN | `https://storage.yandexcloud.net/quizflow22-prod` |
 
 ---
 

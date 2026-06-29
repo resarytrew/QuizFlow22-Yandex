@@ -18,10 +18,11 @@ const s3 = new S3Client({
   },
 });
 
-const configuredBucket = process.env.S3_BUCKET;
+const configuredBucket = process.env.S3_BUCKET?.trim();
 const BUCKET = !configuredBucket || configuredBucket === 'potok-quiz-assets'
   ? 'quizflow22-prod'
   : configuredBucket;
+const PUBLIC_BASE_URL = (process.env.YANDEX_MEDIA_PUBLIC_BASE || `https://storage.yandexcloud.net/${BUCKET}`).replace(/\/+$/, '');
 
 export async function handler(event: any) {
   const { httpMethod, headers, body } = event;
@@ -75,7 +76,7 @@ function ensureUserKey(userId: string, key: string): string | null {
 }
 
 function publicUrl(key: string): string {
-  return `https://storage.yandexcloud.net/${BUCKET}/${encodeURI(key).replace(/%2F/g, '/')}`;
+  return `${PUBLIC_BASE_URL}/${encodeURI(key).replace(/%2F/g, '/')}`;
 }
 
 function detectType(key: string, contentType?: string): 'image' | 'audio' {
