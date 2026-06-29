@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_functions != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -41,6 +42,12 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
+      - name: Type-check Yandex functions
+        run: npm run lint:functions
+
+      - name: Bundle Yandex functions
+        run: npm run test:functions
+
       - name: Build production bundle
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -57,18 +64,45 @@ jobs:
 
       - name: Sync immutable hashed assets to Yandex Object Storage
         run: |
-          aws --endpoint-url=https://storage.yandexcloud.net s3 sync ./dist s3://${{ secrets.YC_BUCKET }} \
+          aws --endpoint-url=https://storage.yandexcloud.net s3 sync ./dist/assets s3://${{ secrets.YC_BUCKET }}/assets \
             --delete \
-            --exclude "*" \
-            --include "assets/*" \
             --cache-control "public, max-age=31536000, immutable"
 
-      - name: Sync HTML and root files (no-cache)
+      - name: Upload immutable root assets to Yandex Object Storage
         run: |
-          aws --endpoint-url=https://storage.yandexcloud.net s3 sync ./dist s3://${{ secrets.YC_BUCKET }} \
-            --delete \
-            --exclude "assets/*" \
-            --cache-control "public, max-age=0, must-revalidate"
+          find ./dist -maxdepth 1 -type f \( \
+            -name "*.js" -o \
+            -name "*.css" -o \
+            -name "*.woff" -o \
+            -name "*.woff2" -o \
+            -name "*.png" -o \
+            -name "*.jpg" -o \
+            -name "*.jpeg" -o \
+            -name "*.svg" -o \
+            -name "*.webp" -o \
+            -name "*.ico" \
+          \) -print0 | while IFS= read -r -d '' file; do
+            aws --endpoint-url=https://storage.yandexcloud.net s3 cp "$file" "s3://${{ secrets.YC_BUCKET }}/$(basename "$file")" \
+              --cache-control "public, max-age=31536000, immutable"
+          done
+
+      - name: Upload HTML and root files to Yandex Object Storage
+        run: |
+          find ./dist -maxdepth 1 -type f ! \( \
+            -name "*.js" -o \
+            -name "*.css" -o \
+            -name "*.woff" -o \
+            -name "*.woff2" -o \
+            -name "*.png" -o \
+            -name "*.jpg" -o \
+            -name "*.jpeg" -o \
+            -name "*.svg" -o \
+            -name "*.webp" -o \
+            -name "*.ico" \
+          \) -print0 | while IFS= read -r -d '' file; do
+            aws --endpoint-url=https://storage.yandexcloud.net s3 cp "$file" "s3://${{ secrets.YC_BUCKET }}/$(basename "$file")" \
+              --cache-control "public, max-age=0, must-revalidate"
+          done
 
       - name: Apply website configuration
         run: |
@@ -100,7 +134,6 @@ jobs:
   deploy-functions:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: build-and-deploy
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_functions == 'true'
 
     steps:
@@ -133,23 +166,48 @@ jobs:
         working-directory: yc-functions
         run: npm ci
 
-      - name: Build all functions
+      - name: Build unified API router
         working-directory: yc-functions
-        run: npm run build
+        run: npm run build:router
 
-      - name: Deploy Cloud Functions
-        working-directory: yc-functions
-        env:
-          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
-          YC_OAUTH_TOKEN: ${{ secrets.YC_OAUTH_TOKEN }}
-        run: |
-          chmod +x deploy/deploy-functions.sh
-          ./deploy/deploy-functions.sh
-
-      - name: Deploy API Gateway
+      - name: Deploy unified API function
         working-directory: yc-functions
         env:
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
         run: |
-          chmod +x deploy/deploy-gateway.sh
-          ./deploy/deploy-gateway.sh
+          set -euo pipefail
+          LOCKBOX_SECRET_ID=$(yc lockbox secret list --folder-id "$YC_FOLDER_ID" --format json | jq -r '.[] | select(.name == "potok-secrets") | .id')
+          SA_ID=$(yc iam service-account list --folder-id "$YC_FOLDER_ID" --format json | jq -r '.[] | select(.name == "quizflow-functions") | .id')
+          test -n "$LOCKBOX_SECRET_ID"
+          test -n "$SA_ID"
+
+          ZIP_FILE="/tmp/api-router.zip"
+          rm -f "$ZIP_FILE"
+          (cd dist/api-router && zip -r "$ZIP_FILE" .)
+
+          SECRETS=(
+            PG_HOST PG_PORT PG_DATABASE PG_USER PG_PASSWORD PG_CA_CERT
+            SUPABASE_URL SUPABASE_ANON_KEY
+            YC_ACCESS_KEY_ID YC_SECRET_ACCESS_KEY S3_BUCKET
+            YOOKASSA_SHOP_ID YOOKASSA_SECRET_KEY
+            FRONTEND_URL ALLOWED_ORIGINS
+            BILLING_WEBHOOK_SECRET BILLING_ADMIN_SECRET
+            OPENROUTER_API_KEY AI_PROXY_ALLOWED_MODELS AI_PROXY_DEFAULT_MODEL
+            AI_PROXY_MAX_TOKENS AI_PROXY_MAX_PROMPT_CHARS AI_PROXY_REFERER
+            YC_CATALOG_ID YC_OAUTH_TOKEN
+          )
+
+          SECRET_FLAGS=()
+          for SECRET_KEY in "${SECRETS[@]}"; do
+            SECRET_FLAGS+=(--secret "environment-variable=$SECRET_KEY,name=$LOCKBOX_SECRET_ID,key=$SECRET_KEY")
+          done
+
+          yc serverless function version create \
+            --function-name potok-api-quizzes \
+            --runtime nodejs18 \
+            --entrypoint index.handler \
+            --memory 512m \
+            --execution-timeout 60s \
+            --service-account-id "$SA_ID" \
+            --source-path "$ZIP_FILE" \
+            "${SECRET_FLAGS[@]}"

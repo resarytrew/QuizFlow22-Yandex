@@ -34,18 +34,30 @@ export async function handler(event: any) {
 
 async function listQuizzes(headers: any, params: any) {
   if (params?.public === 'true' || params?.public === true) {
-    const rows = await query(
-      `SELECT id, name, quiz_data, created_at, published_at, visibility, is_favorite,
-              (published_at IS NOT NULL) as is_published,
-              quiz_data->>'description' as description,
-              quiz_data->>'cover_image_url' as cover_image_url
-       FROM public.quizzes
-       WHERE visibility = 'public'
-         AND deleted_at IS NULL
-         AND moderation_status NOT IN ('blocked', 'hidden', 'deleted', 'rejected')
-       ORDER BY published_at DESC NULLS LAST, created_at DESC
-       LIMIT 200`,
-    );
+    const baseSelect = `SELECT id, name, quiz_data, created_at, published_at, visibility, is_favorite,
+                               (published_at IS NOT NULL) as is_published,
+                               quiz_data->>'description' as description,
+                               quiz_data->>'cover_image_url' as cover_image_url
+                        FROM public.quizzes
+                        WHERE visibility = 'public'
+                          AND deleted_at IS NULL`;
+    let rows;
+    try {
+      rows = await query(
+        `${baseSelect}
+           AND COALESCE(moderation_status, 'approved') NOT IN ('blocked', 'hidden', 'deleted', 'rejected')
+         ORDER BY published_at DESC NULLS LAST, created_at DESC
+         LIMIT 200`,
+      );
+    } catch (error: any) {
+      if (error?.code !== '42703') throw error;
+      console.warn('[api-quizzes] moderation_status column is missing, using public gallery fallback');
+      rows = await query(
+        `${baseSelect}
+         ORDER BY published_at DESC NULLS LAST, created_at DESC
+         LIMIT 200`,
+      );
+    }
 
     return ok(rows);
   }

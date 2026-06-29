@@ -18,7 +18,10 @@ const s3 = new S3Client({
   },
 });
 
-const BUCKET = process.env.S3_BUCKET || 'potok-quiz-assets';
+const configuredBucket = process.env.S3_BUCKET;
+const BUCKET = !configuredBucket || configuredBucket === 'potok-quiz-assets'
+  ? 'quizflow22-prod'
+  : configuredBucket;
 
 export async function handler(event: any) {
   const { httpMethod, headers, body } = event;
@@ -84,10 +87,15 @@ function detectType(key: string, contentType?: string): 'image' | 'audio' {
 async function createUploadUrl(userId: string, filename: string, contentType?: string) {
   if (!filename) return badRequest('filename is required');
 
-  const cleanFilename = sanitizeSegment(filename).split('/').pop();
+  const normalizedFilename = sanitizeSegment(filename);
+  const parts = normalizedFilename.split('/').filter(Boolean);
+  const cleanFilename = parts.pop();
   if (!cleanFilename) return badRequest('filename is required');
 
-  const key = `${userId}/${Date.now()}_${cleanFilename}`;
+  const folderPath = parts.join('/');
+  const key = folderPath
+    ? `${userId}/${folderPath}/${Date.now()}_${cleanFilename}`
+    : `${userId}/${Date.now()}_${cleanFilename}`;
 
   const command = new PutObjectCommand({
     Bucket: BUCKET,
