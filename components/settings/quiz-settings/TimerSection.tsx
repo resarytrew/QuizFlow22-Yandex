@@ -35,6 +35,8 @@ export const TimerSection: React.FC = () => {
         <>
           <SettingRow label="Длительность" description="Время в секундах.">
             <input
+              id="global-timer-duration"
+              name="global-timer-duration"
               type="number"
               min={1}
               value={globalTimer.duration}
@@ -51,6 +53,8 @@ export const TimerSection: React.FC = () => {
             description="Узел, на который перейдёт пользователь, когда время выйдет."
           >
             <select
+              id="global-timer-timeout-node"
+              name="global-timer-timeout-node"
               value={globalTimer.onTimeoutNodeId || ''}
               onChange={(e) => handleTimerChange('onTimeoutNodeId', e.target.value || null)}
               className="w-full bg-slate-100 border border-slate-200/80 rounded-lg h-9 px-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"

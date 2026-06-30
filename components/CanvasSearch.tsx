@@ -59,6 +59,8 @@ const CanvasSearch: React.FC = () => {
             {isOpen ? (
                 <div className="relative">
                     <input
+                        id="canvas-node-search"
+                        name="canvas-node-search"
                         type="text"
                         autoFocus
                         value={searchTerm}

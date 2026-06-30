@@ -25,6 +25,7 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'math',
   'history',
   'newyear',
+  'screenQuiz',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

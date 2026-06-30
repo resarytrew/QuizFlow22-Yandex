@@ -1,8 +1,12 @@
 import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { parseText } from "../sanitize";
+import { getDesignSettings } from "../designState";
 
 function markerFor(index: number): string {
+  const markerStyle = getDesignSettings()?.answerCards?.markerStyle ?? "letters";
+  if (markerStyle === "none") return "";
+  if (markerStyle === "numbers") return String(index + 1);
   return index < 26 ? String.fromCharCode(65 + index) : String(index + 1);
 }
 
@@ -13,19 +17,30 @@ function createAnswerButton(
 ): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
-  button.className = `option${selected ? " selected" : ""}`;
+  const answerStyle = getDesignSettings()?.answerCards?.style ?? "card";
+  const markerStyle = getDesignSettings()?.answerCards?.markerStyle ?? "letters";
+  button.className = [
+    "option",
+    `option-style-${answerStyle}`,
+    markerStyle === "none" ? "option-no-marker" : "",
+    selected ? "selected" : "",
+  ].filter(Boolean).join(" ");
   button.style.setProperty("--control-index", String(index));
   button.setAttribute("aria-pressed", String(selected));
 
-  const marker = document.createElement("span");
-  marker.className = "option-marker";
-  marker.textContent = markerFor(index);
+  const markerText = markerFor(index);
+  if (markerText) {
+    const marker = document.createElement("span");
+    marker.className = "option-marker";
+    marker.textContent = markerText;
+    button.appendChild(marker);
+  }
 
   const copy = document.createElement("span");
   copy.className = "option-copy md-content";
   copy.innerHTML = parseText(answer.text ?? "");
 
-  button.append(marker, copy);
+  button.appendChild(copy);
   return button;
 }
 

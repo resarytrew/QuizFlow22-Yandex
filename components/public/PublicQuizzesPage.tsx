@@ -10,12 +10,13 @@ import GalleryCard from '../ui/GalleryCard.tsx';
 import ScrollToTop from '../ui/ScrollToTop.tsx';
 import AnimatedCounter from '../ui/AnimatedCounter.tsx';
 import { Link } from '@tanstack/react-router';
+import { normalizeQuizKeywords } from '../../utils/quizKeywords';
 
 const PAGE_SIZE = 12;
 
 const templateLabels: Record<string, string> = {
   default: 'Классический', ww2: 'ВОВ', economic: 'Экономика', yandex: 'Яндекс',
-  army: 'Армия', science: 'Наука', math: 'Математика', history: 'История', newyear: 'Новый год',
+  army: 'Армия', science: 'Наука', math: 'Математика', history: 'История', newyear: 'Новый год', screenQuiz: 'Экранная',
 };
 
 function getGroupLabel(dateStr: string): string {
@@ -37,6 +38,7 @@ const PublicQuizzesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const isAuthModalOpen = useUIStore(s => s.isAuthModalOpen);
   const setAuthModalOpen = useUIStore(s => s.setAuthModalOpen);
@@ -67,16 +69,38 @@ const PublicQuizzesPage: React.FC = () => {
     return Array.from(tags);
   }, [quizzes]);
 
+  const allKeywords = useMemo(() => {
+    const keywords = new Map<string, string>();
+    quizzes.forEach((quiz) => {
+      normalizeQuizKeywords(quiz.quiz_data?.keywords).forEach((keyword) => {
+        const key = keyword.toLocaleLowerCase('ru-RU');
+        if (!keywords.has(key)) keywords.set(key, keyword);
+      });
+    });
+    return Array.from(keywords.values()).sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [quizzes]);
+
   const filteredQuizzes = useMemo(() => {
+    const query = searchTerm.toLocaleLowerCase('ru-RU');
     return quizzes.filter(quiz => {
-      const matchesSearch = quiz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (quiz.quiz_data?.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const keywords = normalizeQuizKeywords(quiz.quiz_data?.keywords);
+      const keywordText = keywords.join(' ').toLocaleLowerCase('ru-RU');
+      const matchesSearch = quiz.name.toLocaleLowerCase('ru-RU').includes(query) ||
+        (quiz.quiz_data?.description || '').toLocaleLowerCase('ru-RU').includes(query) ||
+        keywordText.includes(query);
       const matchesTag = selectedTag
         ? (quiz.quiz_data?.templateId as string) === selectedTag
         : true;
-      return matchesSearch && matchesTag;
+      const matchesKeyword = selectedKeyword
+        ? keywords.some((keyword) => keyword.toLocaleLowerCase('ru-RU') === selectedKeyword.toLocaleLowerCase('ru-RU'))
+        : true;
+      return matchesSearch && matchesTag && matchesKeyword;
     });
-  }, [quizzes, searchTerm, selectedTag]);
+  }, [quizzes, searchTerm, selectedTag, selectedKeyword]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, selectedTag, selectedKeyword]);
 
   const groupedQuizzes = useMemo(() => {
     const groups: Record<string, PublicQuiz[]> = {};
@@ -130,7 +154,7 @@ const PublicQuizzesPage: React.FC = () => {
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within/search:text-indigo-400 transition-colors z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input
+            <input name="components-public-publicquizzespage-157-input"
               type="text"
               placeholder="Найти квиз по названию или описанию..."
               value={searchTerm}
@@ -171,6 +195,34 @@ const PublicQuizzesPage: React.FC = () => {
                 }`}
               >
                 {templateLabels[tag] || tag}
+              </button>
+            ))}
+          </div>
+        )}
+        {allKeywords.length > 0 && (
+          <div className="max-w-[1400px] mx-auto px-6 pb-4 flex items-center gap-2 overflow-x-auto scrollbar-hide [mask-image:linear-gradient(to_right,transparent,black_24px,black_calc(100%-24px),transparent)]">
+            <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.22em] text-stone-400">Ключи</span>
+            <button
+              onClick={() => setSelectedKeyword(null)}
+              className={`shrink-0 px-3 py-1.5 rounded-[0.8rem_0.25rem_0.8rem_0.25rem] border text-xs font-semibold transition-all duration-200 ${
+                !selectedKeyword
+                  ? 'border-stone-900 bg-stone-950 text-amber-50 shadow-sm'
+                  : 'border-stone-200 bg-[#fffaf0] text-stone-500 hover:border-amber-200 hover:text-stone-800'
+              }`}
+            >
+              Все ключевые слова
+            </button>
+            {allKeywords.map(keyword => (
+              <button
+                key={keyword.toLocaleLowerCase('ru-RU')}
+                onClick={() => setSelectedKeyword(keyword === selectedKeyword ? null : keyword)}
+                className={`shrink-0 px-3 py-1.5 rounded-[0.8rem_0.25rem_0.8rem_0.25rem] border text-xs font-semibold transition-all duration-200 ${
+                  keyword === selectedKeyword
+                    ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-sm'
+                    : 'border-stone-200 bg-[#fffaf0] text-stone-500 hover:border-amber-200 hover:text-stone-800'
+                }`}
+              >
+                {keyword}
               </button>
             ))}
           </div>
@@ -270,7 +322,7 @@ const PublicQuizzesPage: React.FC = () => {
             <p className="text-lg text-gray-400 font-medium">Ничего не найдено</p>
             <p className="text-sm text-gray-300 mt-2 mb-6">Попробуйте изменить параметры поиска</p>
             <button
-              onClick={() => { setSearchTerm(''); setSelectedTag(null); }}
+              onClick={() => { setSearchTerm(''); setSelectedTag(null); setSelectedKeyword(null); }}
               className="px-5 py-2.5 text-sm font-medium bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-xl transition-all border border-gray-200"
             >
               Сбросить фильтры

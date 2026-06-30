@@ -228,9 +228,17 @@ interface QuestionNodeData extends NodeData {
   options: {
     id: string;
     text: string;
+    imageUrl?: string;              // Изображение варианта ответа для визуальных шаблонов
     isCorrect: boolean;
     points?: number;                // Очки за правильный ответ
   }[];
+  correctAnswer?: string;           // ID правильного ответа для одиночного выбора
+  screenQuiz?: {
+    layout?: 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
+    transitionEffect?: 'swipe-reveal' | 'pixel-dissolve' | 'zoom-in-reveal' | 'glitch-cut';
+    showTimer?: boolean;
+    timerSeconds?: number;
+  };                                // Локальные переопределения экранной викторины для этой ноды
   timer?: number;                   // Таймер в секундах (опционально)
   imageUrl?: string;                // Изображение к вопросу
   explanation?: string;             // Объяснение после ответа
@@ -245,6 +253,7 @@ interface MultipleChoiceNodeData extends NodeData {
   options: {
     id: string;
     text: string;
+    imageUrl?: string;              // Изображение варианта ответа для визуальных шаблонов
     isCorrect: boolean;
   }[];
   penaltyForWrong?: number;         // Штраф за неправильный ответ

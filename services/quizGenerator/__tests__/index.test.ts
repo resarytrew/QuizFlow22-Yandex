@@ -68,6 +68,46 @@ describe("generateQuizHtml (integration)", () => {
     expect(html).toContain("<title>science</title>");
   });
 
+  it("injects design settings CSS in preview mode", () => {
+    const html = generateQuizHtml(
+      {
+        ...minimalInput,
+        designSettings: {
+          background: { color: "#123456", mode: "solid" },
+          typography: { headingColor: "#abcdef", bodyTextColor: "#654321" },
+          buttons: { backgroundColor: "#112233", textColor: "#ffffff" },
+          answerCards: {
+            backgroundColor: "#fafafa",
+            selectedBorderColor: "#334455",
+          },
+        },
+      },
+      { preview: true },
+    );
+
+    expect(html).toContain('id="quiz-design-settings"');
+    expect(html).toContain("--bg-color: #123456");
+    expect(html).toContain("--heading-color: #abcdef");
+    expect(html).toContain("--btn-bg: #112233");
+    expect(html).toContain('src="/assets/__quiz_engine.js"');
+  });
+
+  it("does not inject design settings CSS for non-default templates", () => {
+    const html = generateQuizHtml(
+      {
+        ...minimalInput,
+        templateId: "science" as any,
+        designSettings: {
+          background: { color: "#123456", mode: "solid" },
+        },
+      },
+      { preview: true },
+    );
+
+    expect(html).not.toContain('id="quiz-design-settings"');
+    expect(html).not.toContain("--bg-color: #123456");
+  });
+
   it("does not contain raw placeholders", () => {
     const html = generateQuizHtml(minimalInput);
     expect(html).not.toContain("%%QUIZ_DATA_INJECTION%%");

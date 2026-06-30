@@ -32,7 +32,7 @@ export const EdgeLabelEditor: React.FC<EdgeLabelEditorProps> = ({
             <div className="fixed inset-0 z-50" onClick={onCancel} />
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 min-w-[300px] animate-fade-in">
                 <h3 className="text-sm font-semibold text-slate-800 mb-3">Метка связи</h3>
-                <input
+                <input name="components-quizeditor-edgelabeleditor-35-input"
                     ref={inputRef}
                     type="text"
                     value={value}

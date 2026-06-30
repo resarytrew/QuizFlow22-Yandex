@@ -346,7 +346,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
         {/* Label */}
         <div className="border-t border-gray-200/75 pt-3 space-y-2">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Метка связи</div>
-          <input
+          <input name="components-edgecontextmenu-349-input"
             className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
             value={draftLabel}
             onChange={(e) => {
@@ -366,13 +366,13 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
 
           {/* Search + category */}
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <input name="components-edgecontextmenu-369-input"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetQuery}
               onChange={(e) => setPresetQuery(e.target.value)}
               placeholder="Поиск пресета…"
             />
-            <select
+            <select name="components-edgecontextmenu-375-select"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetCategory}
               onChange={(e) => setPresetCategory(e.target.value as any)}
@@ -463,13 +463,13 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
 
           {/* Preset title + category */}
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <input name="components-edgecontextmenu-466-input"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetTitle}
               onChange={(e) => setPresetTitle(e.target.value)}
               placeholder="Название для пресета (необязательно)"
             />
-            <select
+            <select name="components-edgecontextmenu-472-select"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetNewCategory}
               onChange={(e) => setPresetNewCategory(e.target.value as PresetCategory)}
@@ -536,14 +536,14 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
               {draftEffects.map((eff, idx) => (
                 <div key={idx} className="bg-slate-50 border border-slate-200/80 rounded-lg p-2 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
-                    <input
+                    <input name="components-edgecontextmenu-539-input"
                       className="bg-white border border-slate-200 rounded-md px-2 py-1.5 text-sm"
                       value={eff.variableName}
                       onChange={(e) => updateEffect(idx, { variableName: e.target.value })}
                       placeholder="variableName (например xp)"
                       list="var-suggestions"
                     />
-                    <select
+                    <select name="components-edgecontextmenu-546-select"
                       className="bg-white border border-slate-200 rounded-md px-2 py-1.5 text-sm"
                       value={eff.op}
                       onChange={(e) => updateEffect(idx, { op: e.target.value as EffectOp })}
@@ -555,7 +555,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <input
+                    <input name="components-edgecontextmenu-558-input"
                       className="flex-1 bg-white border border-slate-200 rounded-md px-2 py-1.5 text-sm"
                       value={String(eff.value ?? '')}
                       onChange={(e) => {

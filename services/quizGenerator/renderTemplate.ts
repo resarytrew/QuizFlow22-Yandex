@@ -85,6 +85,11 @@ export interface RenderOptions {
    * Self-contained файл, который открывается в браузере без сервера.
    */
   readonly preview?: boolean;
+  /**
+   * Some templates, such as screenQuiz, provide their own playback runner and
+   * must not boot the generic quiz engine on top of it.
+   */
+  readonly injectEngine?: boolean;
 }
 
 export function renderTemplate(
@@ -181,7 +186,7 @@ export function renderTemplate(
     html = html.replace(SCRIPT_RE, () => engineScript);
   }
 
-  if (!hasScript) {
+  if (!hasScript && options.injectEngine !== false) {
     html = injectBeforeBodyClose(
       html,
       [`    <script>`, `      ${engineScript}`, `    </script>`].join("\n"),

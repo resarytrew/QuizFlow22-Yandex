@@ -11,6 +11,7 @@ interface HeaderFileMenuProps {
   onImportJson: () => void;
   onExportJson: () => void;
   onGenerateHtml: () => void;
+  onExportMp4: () => void;
   onClearCanvas: () => void;
 }
 
@@ -83,6 +84,7 @@ export function HeaderFileMenu({
   onImportJson,
   onExportJson,
   onGenerateHtml,
+  onExportMp4,
   onClearCanvas,
 }: HeaderFileMenuProps) {
   const runAndClose = (action: () => void) => {
@@ -159,6 +161,16 @@ export function HeaderFileMenu({
                 icon={
                   <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                }
+              />
+              <MenuAction
+                title="Видео MP4"
+                description="Записать шаблон «Экранная викторина»"
+                onClick={() => runAndClose(onExportMp4)}
+                icon={
+                  <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 6h7a3 3 0 013 3v6a3 3 0 01-3 3H5a3 3 0 01-3-3V9a3 3 0 013-3z" />
                   </svg>
                 }
               />

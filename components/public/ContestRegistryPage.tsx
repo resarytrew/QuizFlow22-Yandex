@@ -77,7 +77,7 @@ const ContestRegistryPage: React.FC = () => {
                 {/* Filters */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div className="relative w-full md:w-96">
-                        <input
+                        <input name="components-public-contestregistrypage-80-input"
                             type="text"
                             placeholder="Поиск по названию, автору или организации..."
                             value={searchQuery}
@@ -91,7 +91,7 @@ const ContestRegistryPage: React.FC = () => {
 
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <span className="text-sm font-semibold text-slate-600 whitespace-nowrap">Номинация:</span>
-                        <select 
+                        <select name="components-public-contestregistrypage-94-select" 
                             value={selectedNomination} 
                             onChange={(e) => setSelectedNomination(e.target.value)}
                             className="w-full md:w-auto py-2.5 px-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"

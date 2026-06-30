@@ -8,10 +8,10 @@ Markdown
 > перед выполнением любой задачи. При конфликте с другими инструкциями —
 > RULES.md имеет приоритет.
 
-**Версия:** 2.0
-**Последнее обновление:** 2026-06-10
+**Версия:** 2.1
+**Последнее обновление:** 2026-06-23
 **Платформа:** Поток (Поток) — визуальный конструктор ветвящихся квизов
-**Стек:** React 19 · TypeScript 5 · Zustand 5 · React Flow 11 · Vite 6 · Supabase · Deno Edge Functions · Yandex Cloud · ЮKassa
+**Стек:** React 19 · TypeScript 5 · Zustand 5 · React Flow 11 · Vite 6 · Supabase Auth · Yandex Cloud Functions · Yandex API Gateway · Yandex Object Storage/CDN · Yandex Lockbox · ЮKassa
 
 ---
 
@@ -108,20 +108,36 @@ Markdown
 │
 ├── types.ts # Все TypeScript типы проекта
 │
-├── supabase/ # Backend
-│ ├── migrations/ # SQL миграции
-│ └── functions/ # Deno Edge Functions (11 функций)
-│ ├── \_shared/ # Общие утилиты (crypto, cors, validators)
-│ ├── ai-proxy/
-│ ├── admin-api/
-│ ├── billing-/
-│ ├── save-quiz-/
-│ └── csp-report/
+├── supabase/ # Только Auth/JWT и исторические миграции; runtime-БД больше не здесь
+│ ├── migrations/ # Исторические SQL миграции Supabase, не источник новых runtime-схем
+│ └── functions/ # Legacy Deno Edge Functions, не использовать для новых runtime-фич
+│
+├── yc-functions/ # Runtime backend в Yandex Cloud
+│ ├── api-router/ # Единая HTTP-функция/роутер для API Gateway
+│ ├── api-admin/ # Admin/domain handlers, подключаемые роутером
+│ ├── api-billing/ # YooKassa checkout/webhook/entitlements
+│ ├── api-quizzes/ # CRUD квизов и публичные квизы
+│ ├── api-storage/ # Assets через Yandex Object Storage
+│ ├── api-support/ # Пользовательская поддержка
+│ ├── db/ # Доступ к Yandex Managed PostgreSQL
+│ ├── shared/ # Общие утилиты auth, cors, response, env, validation
+│ └── deploy/ # Скрипты сборки и деплоя Cloud Functions
 │
 ├── deploy/ # Деплой в Yandex Cloud
 └── .github/workflows/ # CI/CD
 
 ### 2.2 Ключевые архитектурные принципы
+
+#### Runtime backend после миграции на Yandex Cloud
+
+ПРАВИЛО: Supabase оставлен только для регистрации, авторизации и выдачи JWT.
+ПРАВИЛО: Все runtime-данные приложения — квизы, профили, подписки, платежи, промокоды, поддержка, результаты, AI rate limits и assets metadata — обслуживаются через Yandex Cloud.
+ПРАВИЛО: Клиентский код ходит в backend только через `VITE_API_URL`, который указывает на Yandex API Gateway `/api`.
+ПРАВИЛО: Из-за квоты `serverless.functions.count = 10` backend разворачивается как одна универсальная HTTP-функция с внутренним роутером, а не как набор мелких Cloud Functions.
+ПРАВИЛО: Новые API-действия добавлять в модульные handlers внутри `yc-functions/`, затем подключать их к `api-router`; не создавать отдельную Cloud Function без явного решения владельца.
+ПРАВИЛО: Секреты хранятся в Yandex Lockbox и попадают в функцию через deploy bindings; реальные значения нельзя печатать в логах, документации и git.
+ПРАВИЛО: Supabase JWT проверяется на сервере Yandex-функции; frontend-проверки не считаются авторизацией.
+ПРАВИЛО: Service-role ключ Supabase допустим только server-side для проверки Auth/JWT или специальных admin-сценариев, никогда в `VITE_*`.
 
 #### Сторы: правила взаимодействия
 
@@ -573,6 +589,11 @@ Bucket: potok-static
 SPA fallback: error page = index.html
 Cache: assets — immutable, index.html — no-cache
 CDN: Yandex CDN с TLS
+ПРАВИЛО: В Object Storage бакет может содержать не только frontend-статику, но и media/uploads, CDN access logs и служебные префиксы.
+ПРАВИЛО: НЕЛЬЗЯ запускать `aws s3 sync dist/ s3://$YC_BUCKET --delete` или любой root-level sync с `--delete`.
+ПРАВИЛО: `--delete` разрешён только для контролируемого frontend-префикса `s3://$YC_BUCKET/assets` при синхронизации `dist/assets`.
+ПРАВИЛО: Корневые файлы сборки (`index.html`, `play.html`, `__quiz_engine.js`, root `.css/.js/.svg/.png/.ico` и т.п.) загружать точечно через `aws s3 cp` без `--delete`.
+ПРАВИЛО: Перед изменением deploy-скриптов проверять, что они не удаляют чужие ключи бакета: media paths, timestamp/log paths, CDN logs, user uploads.
 9.2 Backend — Supabase Edge Functions
 Bash
 
@@ -588,8 +609,9 @@ text
 4. npm test
 5. npm run test:functions
 6. npm run build
-7. aws s3 sync → Yandex OS
-8. CDN cache purge (опц.)
+7. aws s3 sync dist/assets → s3://$YC_BUCKET/assets --delete
+8. aws s3 cp root files → s3://$YC_BUCKET/ без --delete
+9. CDN cache purge (опц.)
 
 `.github/workflows/ci.yml` запускает frontend tests и Edge Function tests
 на push/PR. `.github/workflows/deploy.yml` повторяет проверки перед загрузкой

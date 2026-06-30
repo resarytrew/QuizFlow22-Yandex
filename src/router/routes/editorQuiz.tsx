@@ -7,12 +7,41 @@ import {
 } from '@tanstack/react-router';
 import { Route as editorShellRoute } from './editorShell';
 import { useQuizDataStore } from '../../../store/useQuizDataStore';
+import { useCanvasStore } from '../../../store/useCanvasStore';
 import { api } from '../../../services/apiClient';
 
 export async function loadQuizForEditor(quizId: string) {
   try {
     return await api.getQuiz(quizId);
   } catch {
+    const quizState = useQuizDataStore.getState();
+    const cachedQuiz = quizState.userQuizzes.find(
+      (quiz) => quiz.id === quizId && quiz.quiz_data_loaded !== false,
+    );
+    if (cachedQuiz) return cachedQuiz;
+
+    if (quizState.currentQuizId === quizId) {
+      const canvasState = useCanvasStore.getState();
+      return {
+        id: quizId,
+        name: quizState.currentQuizName || 'Без названия',
+        visibility: quizState.currentQuizVisibility ?? 'public',
+        is_published: quizState.currentQuizVisibility === 'public',
+        is_favorite: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        quiz_data_loaded: true,
+        quiz_data: {
+          nodes: canvasState.nodes,
+          edges: canvasState.edges,
+          globalTimer: quizState.globalTimer,
+          designSettings: quizState.designSettings,
+          templateId: quizState.templateId,
+          currentQuizName: quizState.currentQuizName,
+        },
+      };
+    }
+
     throw notFound();
   }
 }

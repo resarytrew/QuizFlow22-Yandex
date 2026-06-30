@@ -68,6 +68,18 @@ describe("renderTemplate", () => {
     expect(result).toContain(`<script>\n      ${SAMPLE_SCRIPT}\n    </script>`);
   });
 
+  it("can skip generic engine injection for templates with their own runner", () => {
+    const result = renderTemplate(
+      TEMPLATE_NO_PLACEHOLDERS,
+      SAMPLE_JSON,
+      SAMPLE_SCRIPT,
+      { injectEngine: false },
+    );
+
+    expect(result).toContain('id="quiz-data"');
+    expect(result).not.toContain(SAMPLE_SCRIPT);
+  });
+
   it("injects exactly once when no placeholders", () => {
     const result = renderTemplate(
       TEMPLATE_NO_PLACEHOLDERS,

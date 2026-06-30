@@ -3,6 +3,7 @@ import { createActionButton } from "./common";
 import { getState } from "../state";
 import { parseText, sanitizeAssetUrl } from "../sanitize";
 import { saveResults } from "../persistence";
+import { getDesignSettings } from "../designState";
 
 export const renderDialogue: NodeRenderer = (node, controls, context) => {
   const data: any = node.data;
@@ -93,16 +94,33 @@ export const renderTimer: NodeRenderer = (node, controls, context) => {
 
 export const renderResult: NodeRenderer = (node, controls) => {
   const state = getState();
+  const resultDesign = getDesignSettings()?.result;
   saveResults((node.data.title as string | undefined) ?? "Финиш");
 
   const summary = document.createElement("div");
-  summary.className = "result-summary";
+  summary.className = [
+    "result-summary",
+    `result-preset-${resultDesign?.preset ?? "card"}`,
+    `result-score-${resultDesign?.scoreStyle ?? "badge"}`,
+  ].join(" ");
 
-  const score = createResultStat("Очки", String(state.score));
+  if (resultDesign?.showScore !== false) {
+    const score = createResultStat("Очки", String(state.score));
+    summary.appendChild(score);
+  }
   const steps = createResultStat("Экранов", String(state.path.length));
-  summary.append(score, steps);
+  summary.appendChild(steps);
 
   controls.appendChild(summary);
+  if (resultDesign?.showShare !== false && navigator.share) {
+    controls.appendChild(createActionButton("Поделиться", () => {
+      void navigator.share({
+        title: document.title || "Результат квиза",
+        text: `Мой результат: ${state.score}`,
+        url: location.href,
+      }).catch(() => undefined);
+    }));
+  }
   controls.appendChild(createActionButton("Начать заново", () => location.reload()));
 };
 

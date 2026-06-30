@@ -1,13 +1,10 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAppNavigation } from '@/src/router/useAppNavigation';
 import { Quiz, QuizVisibility } from '../types.ts';
 import { useQuizDataStore } from '../store/useQuizDataStore.ts';
-import PreviewModal from './modals/PreviewModal.tsx';
-import ShareModal from './modals/ShareModal.tsx';
 import QuizVisibilityModal from './modals/QuizVisibilityModal.tsx';
 import AnalyticsModal from './modals/AnalyticsModal.tsx';
-import { generateQuizHtmlProgrammatically } from '../services/quizGenerator';
 
 interface Props {
     quiz: Quiz;
@@ -15,91 +12,6 @@ interface Props {
     onToggleFavorite: (quizId: string) => void;
     onDelete: (quizId: string) => void;
 }
-
-const ActionsMenu = React.memo(({ quiz, menuRef, isMenuOpen, setIsMenuOpen, loadQuiz, setAnalyticsQuizId, duplicateQuiz, onDelete }: {
-    quiz: Quiz;
-    menuRef: React.RefObject<HTMLDivElement | null>;
-    isMenuOpen: boolean;
-    setIsMenuOpen: (open: boolean) => void;
-    loadQuiz: (quiz: Quiz) => void;
-    setAnalyticsQuizId: (id: string | null) => void;
-    duplicateQuiz: (id: string) => Promise<string | null>;
-    onDelete: (quizId: string) => void;
-}) => {
-    const ensureQuizLoaded = useQuizDataStore(s => s.ensureQuizLoaded);
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
-
-    const handleAction = (action: () => void) => (e: React.MouseEvent) => {
-        e.stopPropagation();
-        action();
-        setIsMenuOpen(false);
-    };
-
-    const openPreview = async () => {
-        setIsPreviewLoading(true);
-        const loadedQuiz = await ensureQuizLoaded(quiz.id);
-        setIsPreviewLoading(false);
-        if (loadedQuiz) setIsPreviewOpen(true);
-    };
-
-    return (
-        <>
-            <div ref={menuRef} className="relative">
-                <button
-                    onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
-                    className="p-2 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-full transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                </button>
-                {isMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200/75 py-1.5 z-10 animate-fade-in">
-                        <button onClick={handleAction(() => loadQuiz(quiz))} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>Редактировать</button>
-                        <button onClick={handleAction(() => setAnalyticsQuizId(quiz.id))} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Аналитика</button>
-                        <button onClick={handleAction(() => setIsVisibilityModalOpen(true))} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/><path d="M12 12v-4"/><path d="m16 16-2-2-2 2"/><path d="m8 16 2-2 2 2"/><path d="M12 12v4"/></svg>Настроить доступ</button>
-                        {resolveVisibility(quiz) !== 'private' && <button onClick={handleAction(() => setIsShareModalOpen(true))} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>Поделиться</button>}
-                        <button onClick={handleAction(() => duplicateQuiz(quiz.id))} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Дублировать</button>
-                        <button disabled={isPreviewLoading} onClick={handleAction(() => { void openPreview(); })} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-60 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>{isPreviewLoading ? 'Загрузка...' : 'Предпросмотр'}</button>
-                        <div className="my-1 h-px bg-gray-200/75"></div>
-                        <button onClick={handleAction(() => onDelete(quiz.id))} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Удалить</button>
-                    </div>
-                )}
-            </div>
-            {isPreviewOpen && (
-                 <PreviewModal
-                    isOpen={isPreviewOpen}
-                    onClose={() => setIsPreviewOpen(false)}
-                    htmlContent={generateQuizHtmlProgrammatically(
-                        quiz.quiz_data.nodes,
-                        quiz.quiz_data.edges,
-                        quiz.quiz_data.globalTimer,
-                        quiz.quiz_data.designSettings,
-                        quiz.id,
-                        quiz.quiz_data.templateId || 'default',
-                        quiz.name,
-                        { preview: true }
-                    )}
-                />
-            )}
-            {isShareModalOpen && (
-                <ShareModal
-                    isOpen={isShareModalOpen}
-                    onClose={() => setIsShareModalOpen(false)}
-                    quiz={quiz}
-                />
-            )}
-            {isVisibilityModalOpen && (
-                <QuizVisibilityModal
-                    isOpen={isVisibilityModalOpen}
-                    onClose={() => setIsVisibilityModalOpen(false)}
-                    quiz={quiz}
-                />
-            )}
-        </>
-    );
-});
 
 function resolveVisibility(quiz: Quiz): QuizVisibility {
     if (quiz.visibility === 'private' || quiz.visibility === 'unlisted' || quiz.visibility === 'public') {
@@ -112,13 +24,15 @@ function resolveVisibility(quiz: Quiz): QuizVisibility {
 }
 
 const VisibilityBadge: React.FC<{ visibility: QuizVisibility; compact?: boolean }> = ({ visibility, compact }) => {
+    const sizeClass = compact ? 'px-2 py-1 text-[9px]' : 'px-2.5 py-1 text-[10px]';
+
     if (visibility === 'public') {
         return (
             <span
-                className={`inline-flex items-center gap-1 ${compact ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} font-semibold rounded-full bg-emerald-100 text-emerald-700`}
+                className={`inline-flex items-center gap-1.5 rounded-md border border-emerald-200/80 bg-emerald-50/80 ${sizeClass} font-bold uppercase tracking-[0.14em] text-emerald-700`}
                 title="Квиз опубликован и доступен всем"
             >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 В галерее
             </span>
         );
@@ -126,10 +40,10 @@ const VisibilityBadge: React.FC<{ visibility: QuizVisibility; compact?: boolean 
     if (visibility === 'unlisted') {
         return (
             <span
-                className={`inline-flex items-center gap-1 ${compact ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} font-semibold rounded-full bg-indigo-100 text-indigo-700`}
+                className={`inline-flex items-center gap-1.5 rounded-md border border-amber-200/80 bg-amber-50/90 ${sizeClass} font-bold uppercase tracking-[0.14em] text-amber-800`}
                 title="Доступен только по прямой ссылке"
             >
-                <svg className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
                 По ссылке
@@ -138,10 +52,10 @@ const VisibilityBadge: React.FC<{ visibility: QuizVisibility; compact?: boolean 
     }
     return (
         <span
-            className={`inline-flex items-center gap-1 ${compact ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} font-semibold rounded-full bg-slate-100 text-slate-600`}
+            className={`inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-stone-100/80 ${sizeClass} font-bold uppercase tracking-[0.14em] text-stone-600`}
             title="Виден только вам"
         >
-            <svg className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className={compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2zm6-3V7a6 6 0 10-12 0v1H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V10a2 2 0 00-2-2h-1zM8 8a4 4 0 018 0v1H8V8z" />
             </svg>
             Только мне
@@ -149,13 +63,69 @@ const VisibilityBadge: React.FC<{ visibility: QuizVisibility; compact?: boolean 
     );
 };
 
+const ScenarioCover: React.FC = () => (
+    <div className="relative h-16 overflow-hidden rounded-[1rem_0.35rem_1rem_0.35rem] border border-stone-200 bg-[#f7f0e3] text-stone-900 shadow-inner">
+        <div
+            className="absolute inset-0 opacity-60"
+            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(120, 113, 108, 0.22) 1px, transparent 0)', backgroundSize: '14px 14px' }}
+        />
+        <div className="absolute -right-8 -top-10 h-24 w-24 rounded-full bg-amber-300/25 blur-2xl" />
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 180 64" fill="none" aria-hidden="true">
+            <path d="M18 47h42c18 0 19-27 41-27h61" stroke="rgba(87,83,78,0.28)" strokeWidth="2" strokeLinecap="round" />
+            <path d="M23 20h36c14 0 16 18 33 18h31" stroke="rgba(180,83,9,0.34)" strokeWidth="2" strokeLinecap="round" />
+            <path d="M116 38h39" stroke="rgba(87,83,78,0.22)" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="20" cy="47" r="3.5" fill="#b45309" />
+            <circle cx="101" cy="20" r="3.5" fill="#b45309" />
+            <circle cx="155" cy="38" r="3.5" fill="#292524" />
+        </svg>
+        <span className="absolute bottom-2 left-3 rounded-sm border border-stone-900/10 bg-[#fffaf0]/82 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-stone-600 backdrop-blur">
+            flow map
+        </span>
+    </div>
+);
+
+const ActionButton: React.FC<{
+    label: string;
+    icon: React.ReactNode;
+    tone?: 'default' | 'danger';
+    onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}> = ({ label, icon, tone = 'default', onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 ${
+            tone === 'danger'
+                ? 'border-red-200 bg-red-50 text-red-600 hover:border-red-300 hover:bg-red-100 focus-visible:ring-red-200'
+                : 'border-stone-200 bg-[#fffaf0]/70 text-stone-600 hover:border-amber-200 hover:bg-amber-50 hover:text-stone-950 focus-visible:ring-amber-300'
+        }`}
+    >
+        <span className={tone === 'danger' ? 'text-red-500' : 'text-amber-700'}>{icon}</span>
+        <span>{label}</span>
+    </button>
+);
+
+const AnalyticsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+);
+
+const AccessIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Z"/><path d="M12 12v-4"/><path d="m16 16-2-2-2 2"/><path d="m8 16 2-2 2 2"/><path d="M12 12v4"/></svg>
+);
+
+const DuplicateIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+);
+
+const DeleteIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+);
+
 const QuizCard: React.FC<Props> = ({ quiz, viewMode, onToggleFavorite, onDelete }) => {
     const nav = useAppNavigation();
     const duplicateQuiz = useQuizDataStore(s => s.duplicateQuiz);
     const analyticsQuizId = useQuizDataStore(s => s.analyticsQuizId);
     const setAnalyticsQuizId = useQuizDataStore(s => s.setAnalyticsQuizId);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+    const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
 
     const isAnalyticsOpen = analyticsQuizId === quiz.id;
 
@@ -164,95 +134,94 @@ const QuizCard: React.FC<Props> = ({ quiz, viewMode, onToggleFavorite, onDelete 
         day: 'numeric', month: 'long', year: 'numeric'
     });
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    const handleAction = (action: () => void | Promise<unknown>) => (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        void action();
+    };
 
-    const commonClasses = "bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:scale-[1.03] hover:border-indigo-200 cursor-pointer";
+    const commonClasses = "group relative rounded-[1.45rem_0.5rem_1.45rem_0.5rem] border border-stone-200/90 bg-[#fffaf0] shadow-[0_12px_36px_rgba(120,53,15,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-amber-300/70 hover:shadow-[0_22px_60px_rgba(120,53,15,0.13)] cursor-pointer";
+    const favoriteButtonClass = quiz.is_favorite
+        ? 'border-amber-200 bg-amber-100 text-amber-700'
+        : 'border-stone-200 bg-white/70 text-stone-400 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700';
+    const actions = (
+        <>
+            <ActionButton label="Аналитика" icon={<AnalyticsIcon />} onClick={handleAction(() => setAnalyticsQuizId(quiz.id))} />
+            <ActionButton label="Доступ" icon={<AccessIcon />} onClick={handleAction(() => setIsVisibilityModalOpen(true))} />
+            <ActionButton label="Дублировать" icon={<DuplicateIcon />} onClick={handleAction(() => duplicateQuiz(quiz.id))} />
+            <ActionButton label="Удалить" icon={<DeleteIcon />} tone="danger" onClick={handleAction(() => onDelete(quiz.id))} />
+        </>
+    );
 
     return (
         <>
             {viewMode === 'grid' ? (
-                <div className={commonClasses} onClick={() => nav.openQuizInEditor(quiz)}>
-                    <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className={`h-12 w-12 bg-gradient-to-br from-indigo-100 to-purple-200 rounded-lg flex items-center justify-center`}>
-                                <svg className="h-7 w-7 text-indigo-600" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4Z" fill="currentColor"/>
-                                    <path d="M12 6L12 12L16 14" stroke="#f8f9fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
+                <article className={`${commonClasses} flex flex-col justify-between`} onClick={() => nav.openQuizInEditor(quiz)}>
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <div className="p-5">
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                                <ScenarioCover />
                             </div>
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(quiz.id); }}
-                                className={`p-2 rounded-full transition-colors ${quiz.is_favorite ? 'text-orange-500 bg-orange-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                                className={`shrink-0 rounded-lg border p-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${favoriteButtonClass}`}
+                                aria-label="Переключить избранное"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={quiz.is_favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                             </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                             <h3 className="text-lg font-bold text-gray-900 truncate" title={quiz.name}>
+                        <div className="flex min-h-[5.8rem] flex-col">
+                            <div className="mb-3 flex items-center gap-2">
+                                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-stone-400">сценарий</span>
+                                <span className="h-px flex-1 bg-stone-200" />
+                            </div>
+                             <h3 className="line-clamp-2 text-balance font-serif text-[1.45rem] font-semibold leading-[1.02] tracking-[-0.035em] text-stone-950 transition-colors duration-300 group-hover:text-amber-800" title={quiz.name}>
                                 {quiz.name}
                             </h3>
-                            <VisibilityBadge visibility={resolveVisibility(quiz)} compact />
+                            <div className="mt-auto pt-4">
+                                <VisibilityBadge visibility={resolveVisibility(quiz)} compact />
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500 mt-2">Создан: {creationDate}</p>
-                        <p className="text-sm text-gray-500 mt-1">{nodeCount} узлов</p>
+                        <dl className="mt-5 grid grid-cols-[1fr_auto] gap-3 border-t border-stone-200 pt-4 text-sm">
+                            <div>
+                                <dt className="text-[9px] font-bold uppercase tracking-[0.18em] text-stone-400">создан</dt>
+                                <dd className="mt-1 font-medium text-stone-600">{creationDate}</dd>
+                            </div>
+                            <div className="text-right">
+                                <dt className="text-[9px] font-bold uppercase tracking-[0.18em] text-stone-400">узлы</dt>
+                                <dd className="mt-1 font-mono text-sm font-semibold tabular-nums text-stone-900">{nodeCount}</dd>
+                            </div>
+                        </dl>
                     </div>
-                    <div className="border-t border-gray-200/75 px-3 py-2 bg-gray-50/50 rounded-b-xl">
-                        <div className="flex items-center justify-end">
-                           <ActionsMenu 
-                                quiz={quiz}
-                                menuRef={menuRef}
-                                isMenuOpen={isMenuOpen}
-                                setIsMenuOpen={setIsMenuOpen}
-                                loadQuiz={nav.openQuizInEditor}
-                                setAnalyticsQuizId={setAnalyticsQuizId}
-                                duplicateQuiz={duplicateQuiz}
-                                onDelete={onDelete}
-                            />
+                    <div className="border-t border-stone-200 bg-[#fbf4e8]/70 px-3 py-3">
+                        <div className="grid grid-cols-2 gap-2">
+                            {actions}
                         </div>
                     </div>
-                </div>
+                </article>
             ) : (
-                <div className={`${commonClasses} !flex-row !items-center !p-6 gap-6`} onClick={() => nav.openQuizInEditor(quiz)}>
-                    <div className="h-16 w-16 bg-gradient-to-br from-indigo-100 to-purple-200 rounded-lg flex items-center justify-center shrink-0">
-                        <svg className="h-8 w-8 text-indigo-600" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4Z" fill="currentColor"/>
-                            <path d="M12 6L12 12L16 14" stroke="#f8f9fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                <article className={`${commonClasses} flex items-center gap-5 p-5`} onClick={() => nav.openQuizInEditor(quiz)}>
+                    <div className="w-44 shrink-0">
+                        <ScenarioCover />
                     </div>
-                    <div className="flex-grow min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                             <h3 className="text-lg font-bold text-gray-900 truncate" title={quiz.name}>{quiz.name}</h3>
+                    <div className="min-w-0 flex-grow">
+                        <div className="flex flex-wrap items-center gap-2">
+                             <h3 className="truncate font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950 transition-colors duration-300 group-hover:text-amber-800" title={quiz.name}>{quiz.name}</h3>
                              <VisibilityBadge visibility={resolveVisibility(quiz)} compact />
                         </div>
-                         <p className="text-sm text-gray-500 mt-1">Создан: {creationDate} &middot; {nodeCount} узлов</p>
+                         <p className="mt-2 text-sm font-medium text-stone-500">Создан: {creationDate} <span className="mx-2 text-stone-300">/</span> <span className="font-mono tabular-nums text-stone-700">{nodeCount}</span> узлов</p>
                     </div>
                      <button 
                         onClick={(e) => { e.stopPropagation(); onToggleFavorite(quiz.id); }}
-                        className={`p-2 rounded-full transition-colors ${quiz.is_favorite ? 'text-orange-500 bg-orange-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                        className={`rounded-lg border p-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${favoriteButtonClass}`}
+                        aria-label="Переключить избранное"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={quiz.is_favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                     </button>
-                    <div className="ml-auto">
-                        <ActionsMenu 
-                            quiz={quiz}
-                            menuRef={menuRef}
-                            isMenuOpen={isMenuOpen}
-                            setIsMenuOpen={setIsMenuOpen}
-                            loadQuiz={nav.openQuizInEditor}
-                            setAnalyticsQuizId={setAnalyticsQuizId}
-                            duplicateQuiz={duplicateQuiz}
-                            onDelete={onDelete}
-                        />
+                    <div className="ml-auto grid shrink-0 grid-cols-2 gap-2">
+                        {actions}
                     </div>
-                </div>
+                </article>
             )}
             
             {isAnalyticsOpen && (
@@ -261,6 +230,13 @@ const QuizCard: React.FC<Props> = ({ quiz, viewMode, onToggleFavorite, onDelete 
                     onClose={() => setAnalyticsQuizId(null)}
                     quizId={quiz.id}
                     quizName={quiz.name}
+                />
+            )}
+            {isVisibilityModalOpen && (
+                <QuizVisibilityModal
+                    isOpen={isVisibilityModalOpen}
+                    onClose={() => setIsVisibilityModalOpen(false)}
+                    quiz={quiz}
                 />
             )}
         </>

@@ -28,9 +28,9 @@ const defaultTemplate = `
             --border: rgba(39, 35, 28, 0.11);
             --border-strong: rgba(39, 35, 28, 0.18);
             --focus-ring: rgba(47, 93, 80, 0.22);
-            --shadow-soft: 0 24px 80px rgba(56, 47, 35, 0.12);
-            --shadow-control: 0 14px 34px rgba(47, 93, 80, 0.14);
-            --shadow-contact: 0 1px 1px rgba(56, 47, 35, 0.04), 0 18px 46px rgba(56, 47, 35, 0.1);
+            --shadow-soft: 0 10px 28px rgba(56, 47, 35, 0.07);
+            --shadow-control: 0 8px 20px rgba(47, 93, 80, 0.1);
+            --shadow-contact: 0 1px 1px rgba(56, 47, 35, 0.035), 0 10px 24px rgba(56, 47, 35, 0.07);
             --bezel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(39, 35, 28, 0.035);
 
             --motion-quick: 160ms;
@@ -62,6 +62,22 @@ const defaultTemplate = `
             --card-selected-text: #183b32;
             --card-radius: 28px;
             --answer-radius: 18px;
+            --content-width: 920px;
+            --card-padding: 32px;
+            --surface-opacity: 0.94;
+            --heading-weight: 650;
+            --body-weight: 450;
+            --heading-scale: 1;
+            --body-scale: 1;
+            --body-line-height: 1.55;
+            --letter-spacing: 0px;
+            --btn-height: 54px;
+            --btn-weight: 800;
+            --answer-border: var(--border);
+            --answer-selected-border: rgba(47, 93, 80, 0.42);
+            --answer-gap: 12px;
+            --progress-color: var(--accent);
+            --progress-track: rgba(29, 26, 22, 0.1);
         }
 
         *, *::before, *::after {
@@ -87,11 +103,15 @@ const defaultTemplate = `
                 radial-gradient(circle at 18% 0%, rgba(47, 93, 80, 0.04), transparent 34rem),
                 radial-gradient(circle at 90% 18%, rgba(185, 133, 43, 0.04), transparent 30rem);
             background-position: center;
-            background-size: cover;
+            background-size: var(--bg-size, cover);
             background-attachment: fixed;
             position: relative;
             isolation: isolate;
             line-height: 1.55;
+            font-size: calc(16px * var(--body-scale, 1));
+            font-weight: var(--body-weight, 450);
+            letter-spacing: var(--letter-spacing, 0px);
+            line-height: var(--body-line-height, 1.55);
             text-rendering: geometricPrecision;
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
@@ -245,19 +265,19 @@ const defaultTemplate = `
             height: 6px;
             overflow: hidden;
             border-radius: 999px;
-            background: rgba(29, 26, 22, 0.1);
+            background: var(--progress-track);
         }
 
         .top-progress-fill {
             width: 0%;
             height: 100%;
             border-radius: inherit;
-            background: var(--accent);
+            background: var(--progress-color);
             transition: width 520ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .quiz-main {
-            width: min(1180px, 100%);
+            width: min(calc(var(--content-width, 920px) + 260px), 100%);
             min-width: 0;
             margin: 0 auto;
             padding: 34px 0 48px;
@@ -279,10 +299,10 @@ const defaultTemplate = `
         .quiz-stage::before {
             content: "";
             position: absolute;
-            inset: -14px;
-            border-radius: calc(var(--card-radius) + 18px);
-            background: rgba(255, 254, 250, 0.22);
-            box-shadow: 0 32px 96px rgba(39, 35, 28, 0.12);
+            inset: 0;
+            border-radius: calc(var(--card-radius) + 10px);
+            background: rgba(255, 254, 250, 0.08);
+            box-shadow: none;
             pointer-events: none;
             z-index: 0;
         }
@@ -298,7 +318,7 @@ const defaultTemplate = `
                 linear-gradient(180deg, rgba(255, 254, 250, 0.94), rgba(255, 253, 248, 0.86)),
                 var(--surface-solid);
             box-shadow: var(--shadow-soft), var(--bezel-highlight);
-            padding: clamp(24px, 4.3vw, 58px);
+            padding: clamp(22px, 4vw, var(--card-padding, 58px));
             position: relative;
             overflow: hidden;
             z-index: 1;
@@ -354,8 +374,8 @@ const defaultTemplate = `
             margin: 0 0 16px;
             color: var(--heading-color);
             font-family: var(--display-family);
-            font-size: clamp(2rem, 4.2vw, 4.35rem);
-            font-weight: 650;
+            font-size: calc(clamp(2rem, 4.2vw, 4.35rem) * var(--heading-scale, 1));
+            font-weight: var(--heading-weight, 650);
             line-height: 0.96;
             letter-spacing: 0;
             overflow-wrap: anywhere;
@@ -422,7 +442,7 @@ const defaultTemplate = `
         }
 
         .btn {
-            min-height: 54px;
+            min-height: var(--btn-height, 54px);
             width: fit-content;
             position: relative;
             overflow: hidden;
@@ -438,7 +458,7 @@ const defaultTemplate = `
             box-shadow: var(--shadow-control);
             cursor: pointer;
             font-size: 0.98rem;
-            font-weight: 800;
+            font-weight: var(--btn-weight, 800);
             line-height: 1;
             transition:
                 transform var(--motion-base) var(--ease-spring),
@@ -500,9 +520,9 @@ const defaultTemplate = `
             display: grid;
             grid-template-columns: auto minmax(0, 1fr);
             align-items: center;
-            gap: 16px;
+            gap: var(--answer-gap, 16px);
             padding: 17px 18px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--answer-border);
             border-radius: var(--answer-radius);
             background: var(--card-bg);
             color: var(--card-text);
@@ -563,7 +583,7 @@ const defaultTemplate = `
 
         .option.selected,
         .option[aria-pressed="true"] {
-            border-color: rgba(47, 93, 80, 0.42);
+            border-color: var(--answer-selected-border);
             background: var(--card-selected-bg);
             color: var(--card-selected-text);
             box-shadow: 0 18px 38px rgba(47, 93, 80, 0.12);
@@ -1681,7 +1701,7 @@ const defaultTemplate = `
                 </section>
 
                 <aside class="quiz-hud" aria-label="Состояние квиза">
-                    <section class="hud-panel">
+                    <section class="hud-panel hud-achievements-panel">
                         <h3 class="hud-heading">
                             <span class="hud-heading-left"><span class="hud-dot gold"></span>Достижения</span>
                             <span id="ach-count">0</span>
@@ -1696,7 +1716,7 @@ const defaultTemplate = `
                         <div id="hud-variables-list" class="var-list"></div>
                     </section>
 
-                    <section class="hud-panel">
+                    <section class="hud-panel hud-stats-panel">
                         <h3 class="hud-heading">
                             <span class="hud-heading-left"><span class="hud-dot"></span>Статистика</span>
                         </h3>

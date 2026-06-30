@@ -69,7 +69,7 @@ const ContestDashboard: React.FC = () => {
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Search */}
                 <div className="mb-6 relative">
-                    <input 
+                    <input name="components-public-contestdashboard-72-input" 
                         type="text" 
                         placeholder="Поиск по названию или автору..." 
                         value={search}

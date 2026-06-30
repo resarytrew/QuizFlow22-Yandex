@@ -41,11 +41,11 @@ const LogoMark: React.FC = () => (
     className="flex items-center gap-3 shrink-0"
     aria-label="Поток — на главную"
   >
-    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 to-orange-500
-                    flex items-center justify-center text-black font-serif font-bold shadow-lg shadow-amber-500/20">
+    <div className="w-9 h-9 rounded-[1rem_0.35rem_1rem_0.35rem] border border-amber-200 bg-amber-50
+                    flex items-center justify-center text-amber-800 font-serif font-bold shadow-[0_10px_28px_rgba(180,83,9,0.10)]">
       П
     </div>
-    <span className="text-lg font-semibold tracking-tight text-white">Поток</span>
+    <span className="text-lg font-semibold tracking-tight text-stone-950">Поток</span>
   </Link>
 );
 
@@ -56,12 +56,12 @@ const TrustMark: React.FC<{ title: string; caption: string; icon: React.ReactNod
 }) => (
   <div className="flex items-start gap-3">
     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.85rem_0.3rem_0.85rem_0.3rem]
-                     border border-amber-300/15 bg-amber-300/[0.07] text-amber-300">
+                     border border-amber-200 bg-amber-50 text-amber-800">
       {icon}
     </span>
     <span>
-      <strong className="block text-sm font-semibold text-white">{title}</strong>
-      <span className="mt-0.5 block text-xs leading-relaxed text-white/35">{caption}</span>
+      <strong className="block text-sm font-semibold text-stone-950">{title}</strong>
+      <span className="mt-0.5 block text-xs leading-relaxed text-stone-500">{caption}</span>
     </span>
   </div>
 );
@@ -183,8 +183,8 @@ const BillingPage: React.FC = () => {
       <BillingPageBackground>
         <div className="min-h-[100dvh] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-2 border-white/10 border-t-amber-300 rounded-full animate-spin" />
-            <p className="text-sm text-white/40 font-medium">Загружаем тарифы…</p>
+            <div className="w-10 h-10 border-2 border-stone-200 border-t-amber-700 rounded-full animate-spin" />
+            <p className="text-sm text-stone-500 font-medium">Загружаем тарифы…</p>
           </div>
         </div>
       </BillingPageBackground>
@@ -201,15 +201,15 @@ const BillingPage: React.FC = () => {
         }}
         onConfirm={handleCheckoutConfirm}
       />
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#09090b]/75 backdrop-blur-2xl">
+      <header className="sticky top-0 z-20 border-b border-stone-900/10 bg-[#f8f7f2]/86 backdrop-blur-2xl">
         <div className="max-w-[1400px] mx-auto px-5 sm:px-6 py-4 flex items-center justify-between gap-4">
           <LogoMark />
           <Link
             to="/"
             aria-label="Назад на главную"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.035]
-                       px-3 py-2 text-sm text-white/45 transition-all hover:border-amber-300/20
-                       hover:bg-white/[0.07] hover:text-white focus-visible:outline-none
+            className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-[#fffaf0]
+                       px-3 py-2 text-sm text-stone-500 transition-all hover:border-amber-200
+                       hover:bg-amber-50 hover:text-stone-950 focus-visible:outline-none
                        focus-visible:ring-2 focus-visible:ring-amber-300"
           >
             <BackIcon /> Назад
@@ -227,28 +227,28 @@ const BillingPage: React.FC = () => {
           <div>
             <div className="mb-6 flex items-center gap-4">
               <span className="h-px w-10 bg-gradient-to-r from-transparent to-amber-300/70" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-300/75">
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-800">
                 Подписка Поток PRO
               </span>
             </div>
             <h1 className="max-w-[820px] text-balance font-serif text-[clamp(2.8rem,7vw,6.7rem)]
-                           font-semibold leading-[0.93] tracking-[-0.045em] text-white">
+                           font-semibold leading-[0.93] tracking-[-0.045em] text-stone-950">
               Больше свободы
-              <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-rose-400">
+              <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-amber-800 via-orange-700 to-red-700">
                 для сложных квизов
               </span>
             </h1>
-            <p className="mt-7 max-w-2xl text-base leading-relaxed text-white/48 md:text-lg">
+            <p className="mt-7 max-w-2xl text-base leading-relaxed text-stone-600 md:text-lg">
               Начните бесплатно или откройте все возможности редактора: больше квизов,
               красивые шаблоны, помощь с текстами и публикацию без лишних надписей.
             </p>
           </div>
 
-          <aside className="relative overflow-hidden rounded-[1.8rem_0.65rem_1.8rem_0.65rem] border border-white/[0.08]
-                            bg-white/[0.035] p-6 backdrop-blur-xl
-                            shadow-[0_24px_80px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-amber-300/10 blur-3xl" />
-            <p className="relative mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-white/35">
+          <aside className="relative overflow-hidden rounded-[1.8rem_0.65rem_1.8rem_0.65rem] border border-stone-200
+                            bg-[#fffaf0] p-6 backdrop-blur-xl
+                            shadow-[0_24px_80px_rgba(68,64,60,0.10),inset_0_1px_0_rgba(255,255,255,0.7)]">
+            <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full border border-amber-200/60 bg-amber-50/70" />
+            <p className="relative mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
               Лёгкая оплата
             </p>
             <div className="relative space-y-5">
@@ -270,17 +270,17 @@ const BillingPage: React.FC = () => {
 
         {ent.plan !== 'pro' && !promoOk && (
           <section className="mx-auto mb-12 max-w-[1180px]">
-            <div className="rounded-[2rem] border border-amber-300/10 bg-gradient-to-br from-amber-300/[0.04] to-transparent p-6 sm:p-8">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-300/65">
+            <div className="rounded-[2rem] border border-stone-200 bg-[#fffaf0] shadow-[0_18px_60px_rgba(68,64,60,0.08)] p-6 sm:p-8">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-800">
                 Есть промокод?
               </p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input
+                <input name="components-billingpage-278-input"
                   value={promoCode}
                   onChange={(e) => { setPromoCode(e.target.value.toUpperCase().slice(0, 20)); setPromoError(null); }}
                   placeholder="Введите код"
                   disabled={redeeming}
-                  className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/30 px-5 py-3.5 text-sm text-white outline-none transition focus:border-amber-300 focus:ring-4 focus:ring-amber-300/10 placeholder:text-white/35 disabled:opacity-50"
+                  className="min-w-0 flex-1 rounded-2xl border border-stone-200 bg-[#f8f7f2] px-5 py-3.5 text-sm text-stone-900 outline-none transition focus:border-amber-300 focus:ring-4 focus:ring-amber-300/10 placeholder:text-stone-500 disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -312,13 +312,13 @@ const BillingPage: React.FC = () => {
                       setRedeeming(false);
                     }
                   }}
-                  className="rounded-full bg-gradient-to-r from-amber-300 to-orange-400 px-6 py-3.5 text-sm font-bold text-black shadow-lg shadow-amber-500/25 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-stone-950 px-6 py-3.5 text-sm font-bold text-amber-50 shadow-[0_14px_34px_rgba(68,64,60,0.16)] transition hover:bg-stone-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {redeeming ? 'Активируем...' : 'Активировать'}
                 </button>
               </div>
               {promoError && (
-                <p className="mt-3 text-sm text-red-100">{promoError}</p>
+                <p className="mt-3 text-sm text-red-700">{promoError}</p>
               )}
             </div>
           </section>
@@ -326,11 +326,11 @@ const BillingPage: React.FC = () => {
 
         {promoOk && (
           <section className="mx-auto mb-12 max-w-[1180px]">
-            <div className="rounded-[2rem] border border-green-400/20 bg-gradient-to-br from-green-400/[0.06] to-transparent p-6 sm:p-8 text-center">
-              <p className="font-lora text-2xl font-bold text-green-200">PRO активирован!</p>
-              <p className="mt-2 text-sm text-white/55">Обновите страницу, чтобы увидеть изменения.</p>
+            <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 sm:p-8 text-center">
+              <p className="font-serif text-2xl font-bold text-emerald-900">PRO активирован!</p>
+              <p className="mt-2 text-sm text-stone-600">Обновите страницу, чтобы увидеть изменения.</p>
               <button type="button" onClick={() => { setPromoOk(false); window.location.reload(); }}
-                className="mt-4 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-black">
+                className="mt-4 rounded-xl bg-stone-950 px-6 py-2.5 text-sm font-bold text-amber-50">
                 Обновить
               </button>
             </div>
@@ -340,14 +340,14 @@ const BillingPage: React.FC = () => {
         <section aria-labelledby="billing-plans-heading" className="mx-auto max-w-[1180px]">
           <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-300/65">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-800">
                 Три варианта
               </p>
-              <h2 id="billing-plans-heading" className="font-serif text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              <h2 id="billing-plans-heading" className="font-serif text-3xl font-semibold tracking-[-0.035em] text-stone-950 md:text-4xl">
                 Выберите свой ритм
               </h2>
             </div>
-            <p className="max-w-md text-sm leading-relaxed text-white/35">
+            <p className="max-w-md text-sm leading-relaxed text-stone-500">
               Все цены окончательные. Доступ включается сразу после подтверждения платежа.
             </p>
           </div>
@@ -382,7 +382,7 @@ const BillingPage: React.FC = () => {
                 busy={busyPlanId === plan.id}
                 monthlyPriceKopecks={monthlyPriceKopecks}
                 onSubscribe={handleSubscribe}
-                theme="dark"
+                theme="light"
                 freeActionable={false}
               />
             );
@@ -392,11 +392,11 @@ const BillingPage: React.FC = () => {
 
         <PaymentHistoryList payments={payments} />
 
-        <footer className="mx-auto mt-14 max-w-[1180px] border-t border-white/[0.06] pt-7">
-          <div className="mb-8 grid gap-5 rounded-[1.6rem_0.55rem_1.6rem_0.55rem] border border-white/[0.08]
-                          bg-white/[0.025] p-5 sm:p-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <footer className="mx-auto mt-14 max-w-[1180px] border-t border-stone-900/10 pt-7">
+          <div className="mb-8 grid gap-5 rounded-[1.6rem_0.55rem_1.6rem_0.55rem] border border-stone-200
+                          bg-[#fffaf0] shadow-[0_18px_60px_rgba(68,64,60,0.07)] p-5 sm:p-6 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-300/65">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-800">
                 Юридические документы
               </p>
               <div className="mt-4 flex flex-col items-start gap-3">
@@ -406,8 +406,8 @@ const BillingPage: React.FC = () => {
                     href={document.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm font-semibold text-white/60 underline decoration-white/15 underline-offset-4
-                               transition-colors hover:text-amber-200 focus-visible:outline-none
+                    className="text-sm font-semibold text-stone-600 underline decoration-stone-300 underline-offset-4
+                               transition-colors hover:text-stone-950 focus-visible:outline-none
                                focus-visible:ring-2 focus-visible:ring-amber-300"
                   >
                     {document.label}
@@ -415,9 +415,9 @@ const BillingPage: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="rounded-[1.25rem_0.4rem_1.25rem_0.4rem] border border-rose-300/12 bg-rose-300/[0.045] p-4">
-              <p className="text-sm font-semibold text-white/72">Ответственное использование проекта</p>
-              <p className="mt-2 text-xs leading-relaxed text-white/38">
+            <div className="rounded-[1.25rem_0.4rem_1.25rem_0.4rem] border border-rose-200 bg-rose-50 p-4">
+              <p className="text-sm font-semibold text-stone-900">Ответственное использование проекта</p>
+              <p className="mt-2 text-xs leading-relaxed text-stone-600">
                 При существенном или повторном нарушении Правил проекта технический администратор
                 вправе ограничить или заблокировать аккаунт и прекратить доступ к подписке PRO.
                 Возврат денежных средств рассматривается согласно публичной оферте и законодательству РФ.
@@ -426,22 +426,22 @@ const BillingPage: React.FC = () => {
           </div>
           <div className="flex flex-col gap-6 text-xs leading-relaxed sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className="flex flex-col gap-2 text-white/35 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
-                <span className="font-semibold text-white/55">Некрытый Евгений Владимирович</span>
+              <div className="flex flex-col gap-2 text-stone-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+                <span className="font-semibold text-stone-700">Некрытый Евгений Владимирович</span>
                 <span>ИНН 560993778885</span>
                 <a
                   href="mailto:mykviz@yandex.ru"
-                  className="w-fit text-amber-300/70 transition-colors hover:text-amber-200
+                  className="w-fit text-amber-800 transition-colors hover:text-stone-950
                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                 >
                   mykviz@yandex.ru
                 </a>
               </div>
-              <p className="mt-3 text-white/25">
+              <p className="mt-3 text-stone-400">
                 Оплата через ЮKassa · Чеки формируются автоматически · Доступ активируется сразу
               </p>
             </div>
-            <p className="shrink-0 text-white/28 sm:text-right">© 2026 Поток</p>
+            <p className="shrink-0 text-stone-400 sm:text-right">© 2026 Поток</p>
           </div>
         </footer>
       </main>

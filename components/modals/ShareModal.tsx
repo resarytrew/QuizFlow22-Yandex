@@ -24,7 +24,7 @@ const InputWithCopy = ({ label, value, icon }: { label: string; value: string; i
                 {label}
             </label>
             <div className="relative">
-                <input 
+                <input name="components-modals-sharemodal-27-input" 
                     type="text" 
                     readOnly 
                     value={value}

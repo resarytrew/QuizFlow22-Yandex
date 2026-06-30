@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/apiClient';
 import { QuizResult, PathEvent, QuizSession } from '../../types.ts';
+import { useQuizDataStore } from '../../store/useQuizDataStore';
 
 interface Props {
   isOpen: boolean;
@@ -11,7 +12,8 @@ interface Props {
   quizName: string;
 }
 
-type TabType = 'leaderboard' | 'sessions' | 'questions' | 'details';
+type TabType = 'leaderboard' | 'funnel' | 'map' | 'leads' | 'sessions' | 'segments';
+type SegmentKey = 'all' | 'completed' | 'abandoned' | 'leads' | 'highScore' | 'lowScore' | 'longSessions' | 'withPath';
 
 const formatTime = (seconds: number): string => {
   if (!seconds || seconds <= 0) return '-';
@@ -23,13 +25,13 @@ const formatTime = (seconds: number): string => {
 
 const getStatusBadge = (status: string) => {
   const statusConfig = {
-    in_progress: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'В процессе' },
-    completed: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Завершен' },
-    abandoned: { bg: 'bg-red-100', text: 'text-red-700', label: 'Покинут' }
+    in_progress: { className: 'border-amber-200 bg-amber-50 text-amber-800', label: 'В процессе' },
+    completed: { className: 'border-emerald-200 bg-emerald-50 text-emerald-700', label: 'Завершен' },
+    abandoned: { className: 'border-red-200 bg-red-50 text-red-700', label: 'Покинут' }
   };
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.in_progress;
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
+    <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${config.className}`}>
       {config.label}
     </span>
   );
@@ -60,26 +62,15 @@ const StatCard = ({
   color?: 'indigo' | 'emerald' | 'blue' | 'purple' | 'orange';
   trend?: string;
 }) => {
-  const colorClasses = {
-    indigo: { gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-    emerald: { gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-    blue: { gradient: 'from-blue-500 to-cyan-600', bg: 'bg-blue-50', text: 'text-blue-600' },
-    purple: { gradient: 'from-purple-500 to-pink-600', bg: 'bg-purple-50', text: 'text-purple-600' },
-    orange: { gradient: 'from-orange-500 to-red-600', bg: 'bg-orange-50', text: 'text-orange-600' },
-  };
-
-  const colors = colorClasses[color];
-
   return (
-    <div className="group relative bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
-      <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-300`}></div>
-      
+    <div className="group relative overflow-hidden rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200/90 bg-[#fffaf0] p-5 shadow-[0_12px_36px_rgba(68,64,60,0.07)] transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300/70 hover:shadow-[0_22px_60px_rgba(68,64,60,0.12)]">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-semibold text-slate-500 mb-2 uppercase tracking-wide">{label}</p>
-          <p className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">{value}</p>
+          <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.22em] text-stone-400">{label}</p>
+          <p className="mb-2 font-serif text-4xl font-semibold tracking-[-0.04em] text-stone-950 tabular-nums">{value}</p>
           {trend && (
-            <span className="inline-flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+            <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
               <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
               </svg>
@@ -87,8 +78,8 @@ const StatCard = ({
             </span>
           )}
         </div>
-        <div className={`flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center shadow-lg transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-          <div className="text-white">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[0.95rem_0.35rem_0.95rem_0.35rem] border border-amber-200 bg-amber-50 text-amber-700">
+          <div>
             {icon}
           </div>
         </div>
@@ -422,13 +413,215 @@ const ResultsTable = ({ results }: { results: QuizResult[] }) => {
   );
 };
 
+const getSessionLeadFields = (session: QuizSession) => {
+  const fields: Record<string, string> = {};
+  const variables = session.variables || {};
+
+  Object.entries(variables).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    const normalizedKey = key.toLowerCase();
+    const isLeadLike =
+      /name|имя|email|mail|почт|phone|тел|contact|контакт|company|компан|budget|бюджет|service|услуг|product|продукт/.test(
+        normalizedKey,
+      );
+    if (isLeadLike) fields[key] = String(value);
+  });
+
+  if (session.participant_name && session.participant_name !== 'Guest' && session.participant_name !== 'Гость') {
+    fields.name = session.participant_name;
+  }
+  if (session.participant_email) fields.email = session.participant_email;
+
+  return fields;
+};
+
+const hasLeadData = (session: QuizSession) => Object.keys(getSessionLeadFields(session)).length > 0;
+
+const getSessionLastNode = (session: QuizSession) => {
+  const path = session.path_data || [];
+  return path.length > 0 ? path[path.length - 1] : null;
+};
+
+const getSessionFinalTitle = (session: QuizSession) => {
+  const lastNode = getSessionLastNode(session);
+  return lastNode?.nodeType === 'resultNode' ? lastNode.nodeLabel : 'Без финала';
+};
+
+const getSegmentLabel = (key: SegmentKey) => {
+  const labels: Record<SegmentKey, string> = {
+    all: 'Все прохождения',
+    completed: 'Завершили',
+    abandoned: 'Покинули',
+    leads: 'Оставили контакты',
+    highScore: 'Высокий балл',
+    lowScore: 'Низкий балл',
+    longSessions: 'Долгие сессии',
+    withPath: 'Есть маршрут',
+  };
+  return labels[key];
+};
+
+const sessionMatchesSegment = (session: QuizSession, segment: SegmentKey) => {
+  switch (segment) {
+    case 'completed':
+      return session.status === 'completed';
+    case 'abandoned':
+      return session.status === 'abandoned' || session.status === 'in_progress';
+    case 'leads':
+      return hasLeadData(session);
+    case 'highScore':
+      return (session.score || 0) >= 80;
+    case 'lowScore':
+      return (session.score || 0) > 0 && (session.score || 0) < 50;
+    case 'longSessions':
+      return (session.time_spent_seconds || 0) >= 180;
+    case 'withPath':
+      return (session.path_data || []).length > 0;
+    default:
+      return true;
+  }
+};
+
+const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: any[], quizEdges: any[]) => {
+  const total = sessions.length || 1;
+  const nodeMap = new Map<string, {
+    id: string;
+    label: string;
+    type: string;
+    reached: number;
+    exits: number;
+    totalSeconds: number;
+  }>();
+  const edgeMap = new Map<string, {
+    id: string;
+    source: string;
+    target: string;
+    label: string;
+    count: number;
+  }>();
+  const orderedNodeIds: string[] = [];
+
+  quizNodes.forEach((node: any) => {
+    nodeMap.set(node.id, {
+      id: node.id,
+      label: node.data?.label || node.data?.title || node.id,
+      type: node.type || 'node',
+      reached: 0,
+      exits: 0,
+      totalSeconds: 0,
+    });
+  });
+
+  quizEdges.forEach((edge: any) => {
+    edgeMap.set(edge.id, {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label || edge.data?.label || '',
+      count: 0,
+    });
+  });
+
+  sessions.forEach((session) => {
+    const path = session.path_data || [];
+    const reachedInSession = new Set<string>();
+
+    path.forEach((event, index) => {
+      if (!event?.nodeId) return;
+      if (!nodeMap.has(event.nodeId)) {
+        nodeMap.set(event.nodeId, {
+          id: event.nodeId,
+          label: event.nodeLabel || event.nodeId,
+          type: event.nodeType || 'node',
+          reached: 0,
+          exits: 0,
+          totalSeconds: 0,
+        });
+      }
+      if (!orderedNodeIds.includes(event.nodeId)) orderedNodeIds.push(event.nodeId);
+      reachedInSession.add(event.nodeId);
+
+      const next = path[index + 1];
+      if (next?.timestamp && event.timestamp) {
+        const spent = Math.round((new Date(next.timestamp).getTime() - new Date(event.timestamp).getTime()) / 1000);
+        if (spent > 0 && spent < 3600) {
+          const stat = nodeMap.get(event.nodeId)!;
+          stat.totalSeconds += spent;
+        }
+      }
+
+      if (next?.nodeId) {
+        const knownEdge = quizEdges.find((edge: any) => edge.source === event.nodeId && edge.target === next.nodeId);
+        const edgeId = knownEdge?.id || `${event.nodeId}->${next.nodeId}`;
+        if (!edgeMap.has(edgeId)) {
+          edgeMap.set(edgeId, {
+            id: edgeId,
+            source: event.nodeId,
+            target: next.nodeId,
+            label: knownEdge?.label || knownEdge?.data?.label || '',
+            count: 0,
+          });
+        }
+        edgeMap.get(edgeId)!.count += 1;
+      }
+    });
+
+    reachedInSession.forEach((nodeId) => {
+      const stat = nodeMap.get(nodeId);
+      if (stat) stat.reached += 1;
+    });
+
+    const last = getSessionLastNode(session);
+    if (last && session.status !== 'completed') {
+      const stat = nodeMap.get(last.nodeId);
+      if (stat) stat.exits += 1;
+    }
+  });
+
+  const flowNodes = Array.from(nodeMap.values())
+    .filter((node) => node.reached > 0 || quizNodes.some((quizNode: any) => quizNode.id === node.id))
+    .sort((a, b) => {
+      const ai = orderedNodeIds.indexOf(a.id);
+      const bi = orderedNodeIds.indexOf(b.id);
+      if (ai === -1 && bi === -1) return b.reached - a.reached;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+
+  const funnel = flowNodes
+    .filter((node) => node.reached > 0)
+    .map((node) => ({
+      ...node,
+      reachRate: Math.round((node.reached / total) * 100),
+      exitRate: node.reached > 0 ? Math.round((node.exits / node.reached) * 100) : 0,
+      avgSeconds: node.reached > 0 ? Math.round(node.totalSeconds / node.reached) : 0,
+    }));
+
+  const edges = Array.from(edgeMap.values())
+    .filter((edge) => edge.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  return { funnel, nodes: flowNodes, edges };
+};
+
 const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) => {
   const [sessions, setSessions] = useState<QuizSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('leaderboard');
+  const [activeTab, setActiveTab] = useState<TabType>('funnel');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSegment, setActiveSegment] = useState<SegmentKey>('all');
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const userQuizzes = useQuizDataStore((s) => s.userQuizzes);
+  const ensureQuizLoaded = useQuizDataStore((s) => s.ensureQuizLoaded);
+  const currentQuiz = useMemo(
+    () => userQuizzes.find((quiz) => quiz.id === quizId),
+    [quizId, userQuizzes],
+  );
+  const quizNodes = currentQuiz?.quiz_data?.nodes || [];
+  const quizEdges = currentQuiz?.quiz_data?.edges || [];
 
   useEffect(() => {
     if (isOpen) {
@@ -562,11 +755,27 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
           time_spent_seconds: r.time_spent_seconds || 0
         }));
         
-        // Merge, avoiding duplicates
-        const existingIds = new Set(allSessions.map(s => s.id));
-        legacySessions.forEach(s => {
-          if (!existingIds.has(s.id)) {
-            allSessions.push(s);
+        const bySessionId = new Map(allSessions.map(s => [s.id, s]));
+        legacySessions.forEach((legacySession, index) => {
+          const sourceResult = resultsData[index];
+          const existing = sourceResult.session_id ? bySessionId.get(sourceResult.session_id) : null;
+
+          if (existing) {
+            existing.status = 'completed';
+            existing.score = legacySession.score;
+            existing.participant_name = legacySession.participant_name || existing.participant_name;
+            existing.participant_email = legacySession.participant_email || existing.participant_email;
+            existing.variables = { ...(existing.variables || {}), ...(legacySession.variables || {}) };
+            existing.achievements = legacySession.achievements?.length ? legacySession.achievements : existing.achievements;
+            existing.path_data = legacySession.path_data?.length ? legacySession.path_data : existing.path_data;
+            existing.completed_at = legacySession.completed_at;
+            existing.time_spent_seconds = legacySession.time_spent_seconds || existing.time_spent_seconds;
+            return;
+          }
+
+          if (!bySessionId.has(legacySession.id)) {
+            bySessionId.set(legacySession.id, legacySession);
+            allSessions.push(legacySession);
           }
         });
       }
@@ -584,6 +793,9 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
   useEffect(() => {
     if (!isOpen) return;
     fetchResults();
+    if (!currentQuiz || currentQuiz.quiz_data_loaded === false) {
+      void ensureQuizLoaded(quizId).catch(() => undefined);
+    }
   }, [isOpen, quizId]);
 
   const stats = useMemo(() => {
@@ -623,9 +835,22 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
   }, [sessions]);
 
   const leaderboard = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return [...sessions]
       .filter(s => s.status === 'completed')
-      .filter(s => !searchQuery || getDisplayName(s).toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((session) => {
+        if (!query) return true;
+        return [
+          getDisplayName(session),
+          session.participant_email,
+          getSessionFinalTitle(session),
+          ...Object.values(getSessionLeadFields(session)),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      })
       .sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         return (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0);
@@ -703,17 +928,70 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
   }, [sessions]);
 
   const filteredSessions = useMemo(() => {
-    if (!searchQuery) return sessions;
-    return sessions.filter(s => getDisplayName(s).toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [sessions, searchQuery]);
+    const query = searchQuery.trim().toLowerCase();
+    return sessions.filter((session) => {
+      if (!sessionMatchesSegment(session, activeSegment)) return false;
+      if (!query) return true;
+
+      const leadFields = getSessionLeadFields(session);
+      const searchable = [
+        getDisplayName(session),
+        session.participant_email,
+        getSessionFinalTitle(session),
+        ...Object.values(leadFields),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchable.includes(query);
+    });
+  }, [activeSegment, sessions, searchQuery]);
+
+  const selectedSession = useMemo(
+    () => filteredSessions.find((session) => session.id === selectedSessionId) || filteredSessions[0] || null,
+    [filteredSessions, selectedSessionId],
+  );
+
+  const leadSessions = useMemo(
+    () => filteredSessions.filter(hasLeadData),
+    [filteredSessions],
+  );
+
+  const segmentCards = useMemo(() => {
+    const keys: SegmentKey[] = ['all', 'completed', 'abandoned', 'leads', 'highScore', 'lowScore', 'longSessions', 'withPath'];
+    return keys.map((key) => ({
+      key,
+      label: getSegmentLabel(key),
+      count: sessions.filter((session) => sessionMatchesSegment(session, key)).length,
+    }));
+  }, [sessions]);
+
+  const analyticsModel = useMemo(
+    () => buildAnalyticsModel(filteredSessions, quizNodes, quizEdges),
+    [filteredSessions, quizEdges, quizNodes],
+  );
+
+  const finalBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    filteredSessions.forEach((session) => {
+      const finalTitle = getSessionFinalTitle(session);
+      counts.set(finalTitle, (counts.get(finalTitle) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredSessions]);
 
   if (!isOpen) return null;
 
   const tabs = [
-    { key: 'leaderboard', label: 'Лидерборд', icon: '🏆' },
-    { key: 'sessions', label: 'Все сессии', icon: '📋' },
-    { key: 'questions', label: 'Анализ вопросов', icon: '📝' },
-    { key: 'details', label: 'Детали', icon: '📊' },
+    { key: 'leaderboard', label: 'Лидеры', icon: '#' },
+    { key: 'funnel', label: 'Воронка', icon: '↘' },
+    { key: 'map', label: 'Карта сценария', icon: '◎' },
+    { key: 'leads', label: 'Лиды и формы', icon: '◼' },
+    { key: 'sessions', label: 'Прохождения', icon: '≡' },
+    { key: 'segments', label: 'Сегменты', icon: '◇' },
   ] as const;
 
   const modalContent = (
@@ -721,54 +999,64 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
       className="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
-      {/* Backdrop with blur */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
+      <div className="absolute inset-0 bg-stone-950/45 backdrop-blur-md"></div>
       
       {/* Modal */}
       <div
-        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col animate-scale-in border border-slate-200/50"
+        className="relative flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-[2rem_0.75rem_2rem_0.75rem] border border-stone-200/90 bg-[#f8f7f2] shadow-[0_36px_120px_rgba(68,64,60,0.22)] animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white rounded-t-3xl shrink-0">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            backgroundImage: [
+              'linear-gradient(rgba(68,64,60,0.045) 1px, transparent 1px)',
+              'linear-gradient(90deg, rgba(68,64,60,0.045) 1px, transparent 1px)',
+            ].join(', '),
+            backgroundSize: '44px 44px',
+          }}
+        />
+        <div className="relative flex items-center justify-between border-b border-stone-900/10 bg-[#fffaf0]/82 px-8 py-6 backdrop-blur shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem_0.35rem_1rem_0.35rem] border border-amber-200 bg-amber-50 text-amber-700">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 00-2-2m0 0h2a2 2 0 012-2v-2a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">Аналитика квиза</h2>
-              <p className="text-sm text-slate-500 truncate max-w-md" title={quizName}>"{quizName}"</p>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-stone-400">метрики сценария</p>
+              <h2 className="font-serif text-3xl font-semibold tracking-[-0.035em] text-stone-950">Аналитика</h2>
+              <p className="mt-1 max-w-md truncate text-sm font-medium text-stone-500" title={quizName}>{quizName}</p>
             </div>
           </div>
           <div className="flex gap-3">
-             <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer transition-colors">
-               <input 
+             <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-[#fffaf0] px-3 py-2 text-sm font-semibold text-stone-600 transition-colors hover:border-amber-200 hover:text-stone-900">
+               <input name="components-modals-analyticsmodal-1035-input" 
                  type="checkbox" 
                  checked={autoRefresh} 
                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                 className="w-4 h-4 rounded text-indigo-600"
-               />
-               <span className="text-sm text-slate-700">Автообновление</span>
-             </label>
-             <button
-                onClick={exportToCSV}
-                className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-xl font-medium transition-colors flex items-center gap-2"
-             >
+                  className="h-4 w-4 rounded border-stone-300 text-amber-600"
+                />
+                <span>Автообновление</span>
+              </label>
+              <button
+                 onClick={exportToCSV}
+                 className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 CSV
              </button>
-             <button
-                onClick={fetchResults}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors flex items-center gap-2"
-             >
+              <button
+                 onClick={fetchResults}
+                 className="flex items-center gap-2 rounded-xl border border-stone-200 bg-[#fffaf0] px-4 py-2 text-sm font-bold text-stone-600 transition-colors hover:border-amber-200 hover:text-stone-950"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                 Обновить
              </button>
             <button 
                 onClick={onClose} 
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 transition-all duration-200 hover:bg-stone-100 hover:text-stone-700"
             >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -778,14 +1066,14 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
         </div>
         
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="relative flex-1 overflow-y-auto px-8 py-6">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-full gap-4">
               <div className="relative">
-                <div className="w-16 h-16 border-4 border-indigo-200 rounded-full"></div>
-                <div className="w-16 h-16 border-4 border-t-indigo-600 rounded-full animate-spin absolute top-0 left-0"></div>
+                <div className="h-16 w-16 rounded-full border-4 border-stone-200"></div>
+                <div className="absolute left-0 top-0 h-16 w-16 animate-spin rounded-full border-4 border-transparent border-t-amber-600"></div>
               </div>
-              <p className="text-slate-600 font-medium">Загрузка данных аналитики...</p>
+              <p className="font-medium text-stone-600">Загрузка данных аналитики...</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 animate-fade-in">
@@ -803,33 +1091,33 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
           ) : sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-6 animate-fade-in">
               <div className="relative">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-[1.4rem_0.45rem_1.4rem_0.45rem] border border-stone-200 bg-[#fffaf0]">
                   <svg className="w-12 h-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 00-2-2m0 0h2a2 2 0 012-2v-2a2 2 0 012-2h2a2 2 0 012 2v10a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-lg bg-yellow-400 flex items-center justify-center animate-bounce">
+                <div className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700">
                   <svg className="w-5 h-5 text-yellow-900" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                 </div>
               </div>
               <div className="text-center max-w-md">
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Статистика пока пуста</h3>
-                <p className="text-slate-600 mb-6">
+                <h3 className="mb-2 font-serif text-3xl font-semibold tracking-[-0.035em] text-stone-950">Статистика пока пуста</h3>
+                <p className="mb-6 text-stone-600">
                     Поделитесь ссылкой на квиз и пройдите его, чтобы данные появились здесь.
                     <br/><span className="text-sm text-slate-400">Убедитесь, что вы прошли квиз до экрана "Результат".</span>
                 </p>
                 <div className="flex gap-3 justify-center">
                     <button 
                     onClick={onClose}
-                    className="px-6 py-3 bg-white border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all duration-200"
+                    className="rounded-xl border border-stone-200 bg-[#fffaf0] px-6 py-3 font-semibold text-stone-700 transition-all duration-200 hover:bg-stone-50"
                     >
                     Закрыть
                     </button>
                     <button 
                     onClick={fetchResults}
-                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="rounded-xl bg-stone-950 px-6 py-3 font-semibold text-amber-50 transition-colors duration-200 hover:bg-stone-800"
                     >
                     Обновить данные
                     </button>
@@ -904,15 +1192,15 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
 
               {/* Tabs */}
               <div className="flex items-center gap-4">
-                <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+                <div className="flex w-fit gap-1 rounded-xl border border-stone-200 bg-[#fffaf0] p-1">
                   {tabs.map(tab => (
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
                         activeTab === tab.key
-                          ? 'bg-white text-indigo-600 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-amber-300 text-black shadow-[0_10px_30px_rgba(251,191,36,0.16)]'
+                          : 'text-stone-500 hover:bg-stone-100 hover:text-stone-900'
                       }`}
                     >
                       <span className="mr-2">{tab.icon}</span>
@@ -926,231 +1214,248 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  <input
+                  <input name="components-modals-analyticsmodal-1217-input"
                     type="text"
                     placeholder="Поиск по имени..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full rounded-xl border border-stone-200 bg-[#fffaf0] py-2 pl-10 pr-4 text-sm font-medium text-stone-900 placeholder:text-stone-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/25"
                   />
                 </div>
               </div>
 
               {/* Tab Content */}
               {activeTab === 'leaderboard' && (
-                <div className="bg-white rounded-2xl border-2 border-slate-200/60 overflow-hidden">
-                  <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200/50">
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <span className="text-2xl">🏆</span>
-                      Таблица лидеров
-                      <span className="ml-auto text-sm text-slate-500 font-normal">
-                        {leaderboard.length} завершённых
-                      </span>
-                    </h3>
+                <div className="overflow-hidden rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200/90 bg-[#fffaf0]">
+                  <div className="border-b border-stone-200 bg-[#fbf4e8]/70 px-6 py-4">
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Лидеры</h3>
+                        <p className="mt-1 text-sm text-stone-500">Итоговые баллы участников для викторин, тестов и образовательных квизов.</p>
+                      </div>
+                      <div className="rounded-xl border border-stone-200 bg-white/70 px-4 py-2 text-right">
+                        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">Завершили</div>
+                        <div className="font-serif text-2xl font-semibold text-stone-950">{leaderboard.length}</div>
+                      </div>
+                    </div>
                   </div>
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b-2 border-slate-200/60">
-                      <tr>
-                        <th className="p-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wide w-16">Место</th>
-                        <th className="p-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wide">Участник</th>
-                        <th className="p-4 text-right font-bold text-slate-700 uppercase text-xs tracking-wide">Баллы</th>
-                        <th className="p-4 text-right font-bold text-slate-700 uppercase text-xs tracking-wide">Время</th>
-                        <th className="p-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wide">Дата</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {leaderboard.map((session, index) => (
-                        <tr key={session.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-4">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
-                              index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                              index === 1 ? 'bg-slate-100 text-slate-600' :
-                              index === 2 ? 'bg-orange-50 text-orange-700' :
-                              'bg-slate-50 text-slate-500'
-                            }`}>
-                              {index + 1}
+
+                  {leaderboard.length === 0 ? (
+                    <div className="p-8 text-sm text-stone-500">Пока нет завершённых прохождений с итоговым баллом.</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="border-b border-stone-200 bg-white/55">
+                          <tr>
+                            <th className="w-20 px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Место</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Участник</th>
+                            <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Баллы</th>
+                            <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Время</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Финал</th>
+                            <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Дата</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200/80">
+                          {leaderboard.map((session, index) => (
+                            <tr key={session.id} className="transition hover:bg-white/65">
+                              <td className="px-5 py-4">
+                                <div className={`flex h-9 w-9 items-center justify-center rounded-[0.9rem_0.3rem_0.9rem_0.3rem] border text-sm font-bold ${
+                                  index === 0 ? 'border-amber-300 bg-amber-100 text-amber-800' :
+                                  index === 1 ? 'border-stone-300 bg-stone-100 text-stone-700' :
+                                  index === 2 ? 'border-orange-200 bg-orange-50 text-orange-700' :
+                                  'border-stone-200 bg-white/75 text-stone-500'
+                                }`}>
+                                  {index + 1}
+                                </div>
+                              </td>
+                              <td className="px-5 py-4">
+                                <div className="font-semibold text-stone-950">{getDisplayName(session)}</div>
+                                {session.participant_email && (
+                                  <div className="mt-1 text-xs text-stone-500">{session.participant_email}</div>
+                                )}
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                <span className="font-serif text-2xl font-semibold tabular-nums text-stone-950">{session.score || 0}</span>
+                              </td>
+                              <td className="px-5 py-4 text-right font-medium tabular-nums text-stone-600">
+                                {formatTime(session.time_spent_seconds || 0)}
+                              </td>
+                              <td className="max-w-[260px] px-5 py-4">
+                                <span className="line-clamp-2 font-medium text-stone-700">{getSessionFinalTitle(session)}</span>
+                              </td>
+                              <td className="px-5 py-4 text-stone-500">
+                                {new Date(session.created_at).toLocaleString('ru-RU', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'funnel' && (
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+                  <div className="overflow-hidden rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200/90 bg-[#fffaf0]">
+                    <div className="border-b border-stone-200 bg-[#fbf4e8]/70 px-6 py-4">
+                      <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Воронка прохождения</h3>
+                      <p className="mt-1 text-sm text-stone-500">Показывает, где участники доходят, задерживаются и выходят.</p>
+                    </div>
+                    <div className="divide-y divide-stone-200/80">
+                      {analyticsModel.funnel.length === 0 ? (
+                        <div className="p-8 text-sm text-stone-500">Пока нет маршрутов прохождения.</div>
+                      ) : analyticsModel.funnel.map((node, index) => (
+                        <div key={node.id} className="p-5">
+                          <div className="mb-3 flex items-start justify-between gap-4">
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Шаг {index + 1} · {node.type}</div>
+                              <div className="mt-1 font-serif text-xl font-semibold text-stone-950">{node.label}</div>
                             </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                                {(getDisplayName(session)).charAt(0).toUpperCase()}
-                              </div>
-                              <span className="font-semibold text-slate-900">{getDisplayName(session)}</span>
+                            <div className="text-right">
+                              <div className="font-serif text-3xl font-semibold text-stone-950">{node.reachRate}%</div>
+                              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400">{node.reached} визитов</div>
                             </div>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-base font-bold bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200">
-                              {session.score}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="text-slate-600 font-medium">{formatTime(session.time_spent_seconds || 0)}</span>
-                          </td>
-                          <td className="p-4 text-slate-500">
-                            {new Date(session.created_at).toLocaleString('ru-RU', {
-                              day: '2-digit',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </td>
-                        </tr>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-stone-200">
+                            <div className="h-full rounded-full bg-gradient-to-r from-stone-800 to-amber-500" style={{ width: Math.min(100, node.reachRate) + '%' }} />
+                          </div>
+                          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                            <div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b>{node.exits}</b><span className="ml-1 text-stone-500">выходов</span></div>
+                            <div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b>{node.exitRate}%</b><span className="ml-1 text-stone-500">drop-off</span></div>
+                            <div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b>{formatTime(node.avgSeconds)}</b><span className="ml-1 text-stone-500">ср. время</span></div>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5">
+                      <h4 className="font-serif text-xl font-semibold text-stone-950">Финалы</h4>
+                      <div className="mt-4 space-y-3">
+                        {finalBreakdown.length === 0 ? <p className="text-sm text-stone-500">Нет финалов.</p> : finalBreakdown.map(item => (
+                          <div key={item.label}>
+                            <div className="mb-1 flex justify-between text-sm"><span className="font-semibold text-stone-800">{item.label}</span><span className="text-stone-500">{item.count}</span></div>
+                            <div className="h-2 rounded-full bg-stone-200"><div className="h-full rounded-full bg-amber-500" style={{ width: Math.min(100, Math.round((item.count / Math.max(1, filteredSessions.length)) * 100)) + '%' }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-white/70 p-5">
+                      <h4 className="font-serif text-xl font-semibold text-stone-950">Сегмент</h4>
+                      <p className="mt-2 text-sm text-stone-500">{getSegmentLabel(activeSegment)} · {filteredSessions.length} прохождений</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'map' && (
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                  <div className="relative min-h-[520px] overflow-hidden rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200/90 bg-[#fffaf0] p-6">
+                    <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(68,64,60,0.28) 1px, transparent 0)', backgroundSize: '26px 26px' }} />
+                    <div className="relative grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {analyticsModel.nodes.length === 0 ? (
+                        <div className="text-sm text-stone-500">Недостаточно данных для карты.</div>
+                      ) : analyticsModel.nodes.map((node) => {
+                        const intensity = Math.min(100, Math.round((node.reached / Math.max(1, filteredSessions.length)) * 100));
+                        return (
+                          <div key={node.id} className="rounded-[1.1rem_0.4rem_1.1rem_0.4rem] border border-stone-300/80 bg-white/85 p-4 shadow-[0_16px_38px_rgba(68,64,60,0.08)]">
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-stone-400">{node.type}</div>
+                                <div className="mt-1 font-serif text-lg font-semibold text-stone-950">{node.label}</div>
+                              </div>
+                              <span className={'rounded-full px-2 py-1 text-[10px] font-bold ' + (node.exits > 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700')}>{node.exits > 0 ? node.exits + ' выход' : 'OK'}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="h-2 flex-1 rounded-full bg-stone-200"><div className="h-full rounded-full bg-stone-900" style={{ width: intensity + '%' }} /></div>
+                              <span className="text-xs font-bold text-stone-700">{node.reached}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5">
+                    <h4 className="font-serif text-xl font-semibold text-stone-950">Ветки</h4>
+                    <div className="mt-4 space-y-3">
+                      {analyticsModel.edges.length === 0 ? <p className="text-sm text-stone-500">Переходы ещё не зафиксированы.</p> : analyticsModel.edges.slice(0, 12).map(edge => (
+                        <div key={edge.id} className="rounded-xl border border-stone-200 bg-white/70 p-3">
+                          <div className="text-xs font-semibold text-stone-800">{edge.source} → {edge.target}</div>
+                          <div className="mt-2 flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-stone-200"><div className="h-full rounded-full bg-amber-500" style={{ width: Math.min(100, Math.round((edge.count / Math.max(1, filteredSessions.length)) * 100)) + '%' }} /></div><span className="text-xs font-bold text-stone-700">{edge.count}</span></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'leads' && (
+                <div className="overflow-hidden rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200/90 bg-[#fffaf0]">
+                  <div className="border-b border-stone-200 bg-[#fbf4e8]/70 px-6 py-4">
+                    <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Лиды и формы</h3>
+                    <p className="mt-1 text-sm text-stone-500">{leadSessions.length} прохождений с контактными или бизнес-данными</p>
+                  </div>
+                  <div className="divide-y divide-stone-200/80">
+                    {leadSessions.length === 0 ? (
+                      <div className="p-8 text-sm text-stone-500">Пока нет лидов или заполненных форм.</div>
+                    ) : leadSessions.map(session => {
+                      const fields = getSessionLeadFields(session);
+                      return (
+                        <div key={session.id} className="grid gap-4 p-5 lg:grid-cols-[240px_minmax(0,1fr)_180px]">
+                          <div><div className="font-semibold text-stone-950">{getDisplayName(session)}</div><div className="mt-1 text-xs text-stone-500">{new Date(session.created_at).toLocaleString('ru-RU')}</div></div>
+                          <div className="flex flex-wrap gap-2">{Object.entries(fields).map(([key, value]) => (<span key={key} className="rounded-lg border border-stone-200 bg-white/80 px-3 py-1.5 text-xs"><b>{key}:</b> {value}</span>))}</div>
+                          <div className="text-right"><div className="text-xs text-stone-500">Финал</div><div className="font-semibold text-stone-900">{getSessionFinalTitle(session)}</div></div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
               {activeTab === 'sessions' && (
-                <div className="bg-white rounded-2xl border-2 border-slate-200/60 overflow-hidden">
-                  <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200/50">
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <span className="text-2xl">📋</span>
-                      Все сессии
-                      <span className="ml-auto text-sm text-slate-500 font-normal">
-                        {sessions.length} сессий
-                      </span>
-                    </h3>
-                  </div>
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b-2 border-slate-200/60">
-                      <tr>
-                        <th className="p-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wide">Статус</th>
-                        <th className="p-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wide">Участник</th>
-                        <th className="p-4 text-right font-bold text-slate-700 uppercase text-xs tracking-wide">Баллы</th>
-                        <th className="p-4 text-right font-bold text-slate-700 uppercase text-xs tracking-wide">Время</th>
-                        <th className="p-4 text-left font-bold text-slate-700 uppercase text-xs tracking-wide">Дата</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {sessions.map(session => (
-                        <tr key={session.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-4">
-                            {getStatusBadge(session.status)}
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                                {(getDisplayName(session)).charAt(0).toUpperCase()}
-                              </div>
-                              <span className="font-semibold text-slate-900">{getDisplayName(session)}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-base font-bold bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200">
-                              {session.score}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="text-slate-600 font-medium">{formatTime(session.time_spent_seconds || 0)}</span>
-                          </td>
-                          <td className="p-4 text-slate-500">
-                            {new Date(session.created_at).toLocaleString('ru-RU', {
-                              day: '2-digit',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </td>
-                        </tr>
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+                  <div className="overflow-hidden rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200/90 bg-[#fffaf0]">
+                    <div className="border-b border-stone-200 bg-[#fbf4e8]/70 px-6 py-4"><h3 className="font-serif text-2xl font-semibold text-stone-950">Индивидуальные прохождения</h3></div>
+                    <div className="max-h-[560px] overflow-y-auto divide-y divide-stone-200/80">
+                      {filteredSessions.length === 0 ? (
+                        <div className="p-8 text-sm text-stone-500">Нет прохождений в выбранном сегменте.</div>
+                      ) : filteredSessions.map(session => (
+                        <button key={session.id} type="button" onClick={() => setSelectedSessionId(session.id)} className={'block w-full p-4 text-left transition ' + (selectedSession?.id === session.id ? 'bg-amber-50' : 'hover:bg-white/70')}>
+                          <div className="flex items-center justify-between gap-4">
+                            <div><div className="font-semibold text-stone-950">{getDisplayName(session)}</div><div className="mt-1 text-xs text-stone-500">{new Date(session.created_at).toLocaleString('ru-RU')}</div></div>
+                            <div className="flex items-center gap-3">{getStatusBadge(session.status)}<span className="font-bold text-stone-900">{session.score || 0}</span></div>
+                          </div>
+                        </button>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {activeTab === 'questions' && questionAnalysis.questions.length > 0 && (
-                <div className="bg-white rounded-2xl border-2 border-slate-200/60 overflow-hidden">
-                  <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200/50">
-                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <span className="text-2xl">📝</span>
-                      Анализ вопросов
-                      <span className="ml-auto text-sm text-slate-500 font-normal">
-                        {questionAnalysis.questions.length} вопросов · среднее время: {questionAnalysis.averageTime}сек
-                      </span>
-                    </h3>
+                    </div>
                   </div>
-                  <div className="max-h-[500px] overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 border-b-2 border-slate-200/60 sticky top-0">
-                        <tr>
-                          <th className="p-3 text-left font-bold text-slate-700 text-xs">#</th>
-                          <th className="p-3 text-left font-bold text-slate-700 text-xs">Вопрос</th>
-                          <th className="p-3 text-center font-bold text-slate-700 text-xs">Ответов</th>
-                          <th className="p-3 text-center font-bold text-slate-700 text-xs">Верно</th>
-                          <th className="p-3 text-center font-bold text-slate-700 text-xs">Неверно</th>
-                          <th className="p-3 text-center font-bold text-slate-700 text-xs">% верных</th>
-                          <th className="p-3 text-center font-bold text-slate-700 text-xs">Среднее время</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {questionAnalysis.questions.map((q, idx) => (
-                          <tr key={q.nodeId} className="hover:bg-slate-50">
-                            <td className="p-3 text-slate-500">{idx + 1}</td>
-                            <td className="p-3">
-                              <span className="font-medium text-slate-900 line-clamp-2" title={q.label}>{q.label}</span>
-                            </td>
-                            <td className="p-3 text-center text-slate-600">{q.attempts}</td>
-                            <td className="p-3 text-center">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">{q.correct}</span>
-                            </td>
-                            <td className="p-3 text-center">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{q.incorrect}</span>
-                            </td>
-                            <td className="p-3 text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className={`h-full ${q.accuracy >= 70 ? 'bg-emerald-500' : q.accuracy >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                    style={{ width: `${q.accuracy}%` }}
-                                  />
-                                </div>
-                                <span className={`text-xs font-bold ${q.accuracy >= 70 ? 'text-emerald-600' : q.accuracy >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>{q.accuracy}%</span>
-                              </div>
-                            </td>
-                            <td className="p-3 text-center text-slate-600">{q.avgTime}сек</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'details' && sessions.length > 0 && (
-                <div className="bg-white rounded-2xl border-2 border-slate-200/60 p-6">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4">Детализация результатов</h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {sessions.slice(0, 10).map(session => (
-                      <div key={session.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            {getStatusBadge(session.status)}
-                            <span className="font-semibold text-slate-900">{getDisplayName(session)}</span>
-                          </div>
-                          <span className="font-bold text-indigo-600">{session.score} баллов</span>
-                        </div>
-                        {session.variables && Object.keys(session.variables).length > 0 && (
-                          <div className="text-sm text-slate-600 mb-2">
-                            <span className="font-medium">Переменные:</span>{' '}
-                            {Object.entries(session.variables).slice(0, 5).map(([k, v]) => (
-                              <span key={k} className="mr-2">{k}: {String(v)}</span>
-                            ))}
-                          </div>
-                        )}
-                        {session.achievements && session.achievements.length > 0 && (
-                          <div className="flex gap-1 flex-wrap">
-                            {session.achievements.map((ach: any, i: number) => (
-                              <span key={i} className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                🏆 {ach.title}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                  <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5">
+                    {selectedSession ? (
+                      <div>
+                        <div className="flex items-start justify-between gap-4"><div><h4 className="font-serif text-2xl font-semibold text-stone-950">{getDisplayName(selectedSession)}</h4><p className="mt-1 text-sm text-stone-500">{getSessionFinalTitle(selectedSession)}</p></div>{getStatusBadge(selectedSession.status)}</div>
+                        <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs"><div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b className="block text-lg text-stone-950">{selectedSession.score || 0}</b>баллы</div><div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b className="block text-lg text-stone-950">{formatTime(selectedSession.time_spent_seconds || 0)}</b>время</div><div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b className="block text-lg text-stone-950">{selectedSession.path_data?.length || 0}</b>шаги</div></div>
+                        <div className="mt-5 space-y-3">{(selectedSession.path_data || []).map((event, index) => (<div key={event.nodeId + '-' + index} className="rounded-xl border border-stone-200 bg-white/70 p-3"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">{event.nodeType}</div><div className="mt-1 font-semibold text-stone-900">{event.nodeLabel}</div>{event.details?.selectedAnswer && <div className="mt-2 text-xs text-stone-500">Ответ: {Array.isArray(event.details.selectedAnswer) ? event.details.selectedAnswer.join(', ') : String(event.details.selectedAnswer)}</div>}</div>))}</div>
                       </div>
-                    ))}
+                    ) : <p className="text-sm text-stone-500">Выберите прохождение.</p>}
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'segments' && (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {segmentCards.map(segment => (
+                    <button key={segment.key} type="button" onClick={() => setActiveSegment(segment.key)} className={'rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border p-5 text-left transition ' + (activeSegment === segment.key ? 'border-stone-900 bg-stone-950 text-amber-50' : 'border-stone-200 bg-[#fffaf0] text-stone-950 hover:border-amber-300')}>
+                      <div className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-60">сегмент</div>
+                      <div className="mt-2 font-serif text-xl font-semibold">{segment.label}</div>
+                      <div className="mt-4 text-3xl font-semibold">{segment.count}</div>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

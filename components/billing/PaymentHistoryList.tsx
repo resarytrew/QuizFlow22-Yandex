@@ -22,9 +22,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_TONE: Record<string, string> = {
-  succeeded: 'bg-emerald-400/10 text-emerald-300 border border-emerald-300/15',
-  canceled: 'bg-rose-400/10 text-rose-300 border border-rose-300/15',
-  refunded: 'bg-rose-400/10 text-rose-300 border border-rose-300/15',
+  succeeded: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  canceled: 'bg-rose-50 text-rose-700 border border-rose-200',
+  refunded: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 
 const formatDateTime = (iso: string): string =>
@@ -42,20 +42,20 @@ const ExternalLinkIcon: React.FC = () => (
 );
 
 const PaymentRow: React.FC<{ payment: Payment }> = ({ payment }) => {
-  const tone = STATUS_TONE[payment.status] ?? 'bg-amber-300/10 text-amber-300 border border-amber-300/15';
+  const tone = STATUS_TONE[payment.status] ?? 'bg-amber-50 text-amber-800 border border-amber-200';
   const label = STATUS_LABELS[payment.status] ?? payment.status;
   return (
-    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 px-5 py-4 hover:bg-white/[0.035] transition-colors">
+    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 px-5 py-4 hover:bg-amber-50/55 transition-colors">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-white/85 font-semibold" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <span className="text-stone-900 font-semibold" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {formatDateTime(payment.created_at)}
           </span>
-          <span className="text-white/15">·</span>
-          <span className="text-white/40 truncate">{payment.description ?? '—'}</span>
+          <span className="text-stone-300">·</span>
+          <span className="text-stone-500 truncate">{payment.description ?? '—'}</span>
         </div>
       </div>
-      <span className="text-sm font-semibold text-white tabular-nums shrink-0">
+      <span className="text-sm font-semibold text-stone-950 tabular-nums shrink-0">
         {formatPrice(payment.amount_kopecks)}
       </span>
       <span
@@ -69,13 +69,13 @@ const PaymentRow: React.FC<{ payment: Payment }> = ({ payment }) => {
             href={payment.receipt_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200 text-xs font-semibold"
+            className="inline-flex items-center gap-1 text-amber-800 hover:text-stone-950 text-xs font-semibold"
             title="Открыть чек"
           >
             Чек <ExternalLinkIcon />
           </a>
         ) : (
-          <span className="text-white/20 text-xs">—</span>
+          <span className="text-stone-300 text-xs">—</span>
         )}
       </div>
     </div>
@@ -87,14 +87,14 @@ const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({ payments }) => 
     <section className="max-w-[1180px] mx-auto">
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-300/65">Документы</p>
-          <h2 className="font-serif text-2xl font-semibold text-white">История платежей</h2>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-800">Документы</p>
+          <h2 className="font-serif text-2xl font-semibold text-stone-950">История платежей</h2>
         </div>
-        <p className="hidden sm:block text-xs text-white/30">Чеки открываются в новой вкладке</p>
+        <p className="hidden sm:block text-xs text-stone-400">Чеки открываются в новой вкладке</p>
       </div>
-      <div className="overflow-hidden rounded-[1.75rem_0.75rem_1.75rem_0.75rem] border border-white/[0.08]
-                      bg-white/[0.035] shadow-[0_24px_70px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]
-                      divide-y divide-white/[0.06] backdrop-blur-xl">
+      <div className="overflow-hidden rounded-[1.75rem_0.75rem_1.75rem_0.75rem] border border-stone-200
+                      bg-[#fffaf0] shadow-[0_20px_60px_rgba(68,64,60,0.08),inset_0_1px_0_rgba(255,255,255,0.70)]
+                      divide-y divide-stone-200/80 backdrop-blur-xl">
         {payments.length === 0 ? (
           <EmptyPayments />
         ) : (

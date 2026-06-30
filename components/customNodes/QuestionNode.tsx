@@ -119,7 +119,7 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
                 key={ans.id} 
                 className={`
                   group/answer relative flex items-center justify-between 
-                  ${colorScheme.bg} ${colorScheme.border} ${colorScheme.hover}
+                  ${ans.isCorrect ? 'bg-green-50/90 border-green-300/80 hover:bg-green-100/90' : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.hover}`}
                   p-3 rounded-xl border-2 
                   transition-all duration-300 ease-out
                   hover:shadow-md hover:-translate-y-0.5
@@ -140,6 +140,12 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
                 <div className={`flex-1 ${colorScheme.text} text-sm font-medium ml-2.5 truncate`} title={ans.text}>
                   {ans.text}
                 </div>
+
+                {ans.isCorrect && (
+                  <div className="mr-2 rounded-full bg-green-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    верно
+                  </div>
+                )}
 
                 {/* Connection Handle */}
                 <Handle

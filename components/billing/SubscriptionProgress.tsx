@@ -21,7 +21,7 @@ const SubscriptionProgress: React.FC<SubscriptionProgressProps> = ({ start, end 
   const isEnding = pct > 85;
   return (
     <div
-      className="mt-4 h-1.5 w-full rounded-full bg-white/[0.07] overflow-hidden"
+      className="mt-4 h-1.5 w-full rounded-full bg-stone-200 overflow-hidden"
       role="progressbar"
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}

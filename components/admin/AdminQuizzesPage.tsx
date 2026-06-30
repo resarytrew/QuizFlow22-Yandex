@@ -94,13 +94,13 @@ const AdminQuizzesPage: React.FC = () => {
           onSubmit={submitSearch}
           className="grid w-full max-w-3xl gap-3 rounded-[2rem] border border-white/10 bg-white/[0.06] p-2 backdrop-blur-xl md:grid-cols-[1fr_180px_auto]"
         >
-          <input
+          <input name="components-admin-adminquizzespage-97-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="ID квиза, ID аккаунта или название"
             className="min-w-0 rounded-full bg-transparent px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/35"
           />
-          <select
+          <select name="components-admin-adminquizzespage-103-select"
             value={visibility}
             onChange={(event) => {
               setVisibility(event.target.value as QuizVisibility | 'all');

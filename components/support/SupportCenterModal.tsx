@@ -350,7 +350,7 @@ const SupportCenterModal: React.FC<SupportCenterModalProps> = ({ isOpen, onClose
 
                 <label className="mt-5 grid gap-2 text-xs font-semibold text-slate-600">
                   Тема
-                  <input
+                  <input name="components-support-supportcentermodal-353-input"
                     value={subject}
                     onChange={(event) => setSubject(event.target.value)}
                     maxLength={120}
@@ -361,7 +361,7 @@ const SupportCenterModal: React.FC<SupportCenterModalProps> = ({ isOpen, onClose
 
                 <label className="mt-4 grid gap-2 text-xs font-semibold text-slate-600">
                   Что произошло?
-                  <textarea
+                  <textarea name="components-support-supportcentermodal-364-textarea"
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     maxLength={4000}
@@ -432,7 +432,7 @@ const SupportCenterModal: React.FC<SupportCenterModalProps> = ({ isOpen, onClose
                   </div>
                 ) : (
                   <div className="flex items-end gap-3">
-                    <textarea
+                    <textarea name="components-support-supportcentermodal-435-textarea"
                       value={reply}
                       onChange={(event) => setReply(event.target.value)}
                       rows={2}

@@ -74,7 +74,9 @@ export function qrImageSource(value: string): string {
 const AdminMfaPage: React.FC = () => {
   const navigate = useNavigate();
   const signOut = useAuthStore((s) => s.signOut);
+  const setSession = useAuthStore((s) => s.setSession);
   const resetAdmin = useAdminStore((s) => s.reset);
+  const refreshAdminSession = useAdminStore((s) => s.refreshSession);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
   const [code, setCode] = useState('');
@@ -129,7 +131,20 @@ const AdminMfaPage: React.FC = () => {
         code: normalizedCode,
       });
       if (result.error) throw result.error;
+      const refreshedSession = await supabase.auth.refreshSession();
+      if (refreshedSession.error) throw refreshedSession.error;
+      if (refreshedSession.data.session) {
+        setSession(refreshedSession.data.session);
+      } else {
+        const currentSession = await supabase.auth.getSession();
+        if (currentSession.error) throw currentSession.error;
+        setSession(currentSession.data.session);
+      }
       resetAdmin();
+      const nextStaff = await refreshAdminSession();
+      if (nextStaff.current_aal !== 'aal2') {
+        throw new Error('2FA confirmed, but the secure admin session was not refreshed yet. Please try again.');
+      }
       toast.success('Второй фактор подтверждён.');
       await navigate({ to: '/admin', replace: true });
     } catch (err) {
@@ -203,7 +218,7 @@ const AdminMfaPage: React.FC = () => {
                   <label className="mb-2 block text-sm font-semibold text-white/80">
                     Код из приложения
                   </label>
-                  <input
+                  <input name="components-admin-adminmfapage-221-input"
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     value={code}

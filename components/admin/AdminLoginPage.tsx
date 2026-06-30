@@ -244,7 +244,7 @@ const AdminLoginPage: React.FC = () => {
               <label className="mb-2 block text-sm font-semibold text-white/80">
                 Email сотрудника
               </label>
-              <input
+              <input name="components-admin-adminloginpage-247-input"
                 type="email"
                 required
                 value={email}
@@ -258,7 +258,7 @@ const AdminLoginPage: React.FC = () => {
               <label className="mb-2 block text-sm font-semibold text-white/80">
                 Пароль
               </label>
-              <input
+              <input name="components-admin-adminloginpage-261-input"
                 type="password"
                 required
                 value={password}

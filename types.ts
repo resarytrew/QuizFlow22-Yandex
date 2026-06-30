@@ -7,7 +7,8 @@ export type QuizTemplateId =
   | "science"
   | "math"
   | "history"
-  | "newyear";
+  | "newyear"
+  | "screenQuiz";
 
 export enum CustomNodeType {
   Start = "startNode",
@@ -57,6 +58,7 @@ export interface BaseNodeData {
   buttonText?: string;
   soundSettings?: NodeSoundSettings;
   parentId?: string;
+  screenQuiz?: Partial<ScreenQuizSettings>;
 }
 
 export interface NodeSoundSettings {
@@ -64,9 +66,34 @@ export interface NodeSoundSettings {
   onButtonPress?: string;
 }
 
+export type ScreenQuizLayout = 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
+export type ScreenQuizTransitionEffect = 'swipe-reveal' | 'pixel-dissolve' | 'zoom-in-reveal' | 'glitch-cut';
+
+export interface ScreenQuizSettings {
+  backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel';
+  backgroundImageUrl?: string;
+  backgroundColor?: string;
+  accentColor?: string;
+  secondaryColor?: string;
+  panelColor?: string;
+  answerColor?: string;
+  inkColor?: string;
+  correctColor?: string;
+  borderWidth?: number;
+  radius?: number;
+  decorIntensity?: number;
+  motion?: 'premium' | 'calm' | 'off';
+  transitionEffect?: ScreenQuizTransitionEffect;
+  layout?: ScreenQuizLayout;
+  timerSeconds?: number;
+  showTimer?: boolean;
+}
+
 export interface Answer {
   id: string;
   text: string;
+  imageUrl?: string;
+  isCorrect?: boolean;
 }
 
 export interface QuestionNodeData extends BaseNodeData {
@@ -74,6 +101,7 @@ export interface QuestionNodeData extends BaseNodeData {
   answers?: Answer[];
   timer?: number;
   title?: string;
+  correctAnswer?: string;
 }
 
 export interface MultipleChoiceNodeData extends BaseNodeData {
@@ -274,16 +302,79 @@ export interface GlobalTimer {
 }
 
 export interface DesignSettings {
+  brand?: {
+    logoUrl?: string;
+    brandName?: string;
+    primaryColor?: string;
+    accentColor?: string;
+    neutralColor?: string;
+    experiencePreset?: 'conversational' | 'leadForm' | 'calculator' | 'assessment' | 'editorial' | 'minimal';
+  };
   background: {
     color: string;
     imageUrl: string;
     overlayColor: string;
     overlayOpacity: number;
+    mode?: 'solid' | 'gradient' | 'image';
+    gradientFrom?: string;
+    gradientTo?: string;
+    imageFit?: 'cover' | 'contain' | 'repeat';
+    texture?: 'none' | 'grain' | 'grid' | 'paper';
   };
   typography: {
     fontFamily: string;
+    displayFontFamily?: string;
     headingColor: string;
     bodyTextColor: string;
+    headingWeight?: number;
+    bodyWeight?: number;
+    headingScale?: number;
+    bodyScale?: number;
+    lineHeight?: number;
+    letterSpacing?: number;
+    headingLineHeight?: number;
+    paragraphWidth?: number;
+  };
+  layout?: {
+    preset?: 'classic' | 'split' | 'focus' | 'editorial' | 'compact' | 'conversational' | 'calculator' | 'assessment';
+    interfacePreset?: 'studio' | 'immersive' | 'form' | 'exam' | 'kiosk' | 'magazine' | 'product' | 'minimal' | 'workshop' | 'report';
+    contentWidth?: number;
+    cardRadius?: number;
+    cardPadding?: number;
+    cardOpacity?: number;
+    mediaPosition?: 'top' | 'left' | 'right' | 'background';
+    surfaceStyle?: 'solid' | 'paper' | 'outline' | 'glass' | 'minimal';
+    questionAlign?: 'left' | 'center';
+    verticalAlign?: 'top' | 'center';
+    density?: 'compact' | 'balanced' | 'relaxed';
+    chrome?: 'full' | 'compact' | 'none';
+    blocks?: {
+      topbar?: boolean;
+      brand?: boolean;
+      logo?: boolean;
+      title?: boolean;
+      progress?: boolean;
+      timer?: boolean;
+      description?: boolean;
+      media?: boolean;
+      achievements?: boolean;
+      variables?: boolean;
+      stats?: boolean;
+      resultStats?: boolean;
+      backgroundDecor?: boolean;
+    };
+  };
+  questionCard?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    textColor?: string;
+    radius?: number;
+    padding?: number;
+    shadow?: 'none' | 'soft' | 'strong';
+    mediaPosition?: 'top' | 'left' | 'right' | 'background';
+    mediaWidth?: number;
+    mediaRadius?: number;
+    mediaFit?: 'cover' | 'contain';
   };
   buttons: {
     backgroundColor: string;
@@ -291,6 +382,12 @@ export interface DesignSettings {
     hoverBackgroundColor: string;
     hoverTextColor: string;
     borderRadius: number;
+    style?: 'solid' | 'outline' | 'ghost' | 'soft' | 'premium';
+    height?: number;
+    shadow?: 'none' | 'soft' | 'strong';
+    fontWeight?: number;
+    width?: 'auto' | 'full';
+    textTransform?: 'none' | 'uppercase';
   };
   answerCards: {
     backgroundColor: string;
@@ -300,7 +397,39 @@ export interface DesignSettings {
     selectedBackgroundColor: string;
     selectedTextColor: string;
     borderRadius: number;
+    style?: 'card' | 'list' | 'tiles' | 'minimal';
+    borderColor?: string;
+    selectedBorderColor?: string;
+    spacing?: number;
+    markerStyle?: 'none' | 'letters' | 'numbers';
+    columns?: 1 | 2 | 3;
+    minHeight?: number;
+    mediaAspectRatio?: 'auto' | '16/9' | '4/3' | '1/1';
   };
+  progress?: {
+    style?: 'bar' | 'steps' | 'ring' | 'hidden';
+    position?: 'top' | 'bottom' | 'inside';
+    color?: string;
+    trackColor?: string;
+    showPercent?: boolean;
+    showStepLabel?: boolean;
+    height?: number;
+  };
+  result?: {
+    preset?: 'card' | 'certificate' | 'report' | 'landing';
+    backgroundColor?: string;
+    textColor?: string;
+    accentColor?: string;
+    showScore?: boolean;
+    showShare?: boolean;
+    scoreStyle?: 'badge' | 'ring' | 'stat';
+  };
+  advanced?: {
+    customCss?: string;
+    reducedMotion?: boolean;
+    highContrast?: boolean;
+  };
+  screenQuiz?: ScreenQuizSettings;
   sound: {
     volume: number;
     backgroundMusic?: string;
@@ -466,6 +595,7 @@ export interface QuizData {
   currentQuizName?: string;
   description?: string;
   cover_image_url?: string;
+  keywords?: string[];
   passport?: ProjectPassport;
 }
 

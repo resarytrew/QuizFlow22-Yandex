@@ -27,6 +27,7 @@ import { useEditorMenus } from './hooks/useEditorMenus';
 import { useCanvasLayout, useCanvasResize, useCenterOnSelected } from './hooks/useCanvasLayout';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useEditorAutosave } from './hooks/useEditorAutosave';
 import { EditorMenus } from './EditorOverlays';
 import { LockBanner } from './LockBanner';
 
@@ -68,6 +69,7 @@ const QuizEditor: React.FC = () => {
   const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
   const { screenToFlowPosition, getNode, fitView, setCenter } = useReactFlow();
+  useEditorAutosave();
 
   // React Flow warns when nodeTypes/edgeTypes change identity between
   // renders. The module-level exports are stable, but Vite's Fast Refresh

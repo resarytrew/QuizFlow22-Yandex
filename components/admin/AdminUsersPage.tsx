@@ -90,7 +90,7 @@ const GrantProModal: React.FC<{
             <label className="mb-2 block text-sm font-semibold text-white/80">
               Причина (опционально)
             </label>
-            <textarea
+            <textarea name="components-admin-adminuserspage-93-textarea"
               value={reason}
               onChange={(e) => setReason(e.target.value.slice(0, 500))}
               placeholder="Например: компенсация за сбой, промо-акция"
@@ -211,7 +211,7 @@ const AdminUsersPage: React.FC = () => {
           onSubmit={submitSearch}
           className="flex w-full max-w-xl gap-3 rounded-full border border-white/10 bg-white/[0.06] p-2 backdrop-blur-xl"
         >
-          <input
+          <input name="components-admin-adminuserspage-214-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="ID аккаунта или имя"

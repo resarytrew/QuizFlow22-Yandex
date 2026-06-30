@@ -30,7 +30,7 @@ const CheckboxGroup = ({ options, selected, onChange, readOnly }: { options: str
     <div className="space-y-2">
         {options.map(opt => (
             <label key={opt} className={`flex items-center gap-2 ${readOnly ? 'cursor-default' : 'cursor-pointer'}`}>
-                <input 
+                <input name="components-modals-quizpassportmodal-33-input" 
                     type="checkbox" 
                     checked={selected.includes(opt)}
                     disabled={readOnly}
@@ -382,23 +382,23 @@ ${data.testingResults}
                             <SectionTitle>Титульный лист</SectionTitle>
                             <div>
                                 <FieldLabel>Полное наименование образовательной организации</FieldLabel>
-                                <input className="w-full p-2 border rounded" value={data.organization} onChange={e => updateField('organization', e.target.value)} placeholder="ФГКОУ ..." {...InputProps} />
+                                <input name="components-modals-quizpassportmodal-385-input" className="w-full p-2 border rounded" value={data.organization} onChange={e => updateField('organization', e.target.value)} placeholder="ФГКОУ ..." {...InputProps} />
                             </div>
                             <div>
                                 <FieldLabel>Название проекта</FieldLabel>
-                                <input className="w-full p-2 border rounded bg-gray-50" value={data.projectName} readOnly />
+                                <input name="components-modals-quizpassportmodal-389-input" className="w-full p-2 border rounded bg-gray-50" value={data.projectName} readOnly />
                             </div>
                             <div>
                                 <FieldLabel>Номинация</FieldLabel>
-                                <input className="w-full p-2 border rounded" value={data.nomination} onChange={e => updateField('nomination', e.target.value)} {...InputProps} />
+                                <input name="components-modals-quizpassportmodal-393-input" className="w-full p-2 border rounded" value={data.nomination} onChange={e => updateField('nomination', e.target.value)} {...InputProps} />
                             </div>
                             <div>
                                 <FieldLabel>Авторы (ФИО, должности)</FieldLabel>
-                                <textarea className="w-full p-2 border rounded" rows={4} value={data.authors} onChange={e => updateField('authors', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-397-textarea" className="w-full p-2 border rounded" rows={4} value={data.authors} onChange={e => updateField('authors', e.target.value)} {...InputProps} />
                             </div>
                             <div>
                                 <FieldLabel>Год</FieldLabel>
-                                <input className="w-full p-2 border rounded" value={data.year} onChange={e => updateField('year', e.target.value)} {...InputProps} />
+                                <input name="components-modals-quizpassportmodal-401-input" className="w-full p-2 border rounded" value={data.year} onChange={e => updateField('year', e.target.value)} {...InputProps} />
                             </div>
                         </div>
                     )}
@@ -415,17 +415,17 @@ ${data.testingResults}
                                     onChange={val => updateField('productType', val)}
                                     readOnly={readOnly}
                                 />
-                                <input className="w-full mt-2 p-2 border rounded text-sm" placeholder="Иное..." value={data.productTypeOther} onChange={e => updateField('productTypeOther', e.target.value)} {...InputProps} />
+                                <input name="components-modals-quizpassportmodal-418-input" className="w-full mt-2 p-2 border rounded text-sm" placeholder="Иное..." value={data.productTypeOther} onChange={e => updateField('productTypeOther', e.target.value)} {...InputProps} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <FieldLabel>Предметная область</FieldLabel>
-                                    <input className="w-full p-2 border rounded" value={data.subject} onChange={e => updateField('subject', e.target.value)} {...InputProps} />
+                                    <input name="components-modals-quizpassportmodal-424-input" className="w-full p-2 border rounded" value={data.subject} onChange={e => updateField('subject', e.target.value)} {...InputProps} />
                                 </div>
                                 <div>
                                     <FieldLabel>Тема/раздел</FieldLabel>
-                                    <input className="w-full p-2 border rounded" value={data.topic} onChange={e => updateField('topic', e.target.value)} {...InputProps} />
+                                    <input name="components-modals-quizpassportmodal-428-input" className="w-full p-2 border rounded" value={data.topic} onChange={e => updateField('topic', e.target.value)} {...InputProps} />
                                 </div>
                             </div>
 
@@ -441,15 +441,15 @@ ${data.testingResults}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mb-3">
-                                    <input className="p-2 border rounded" placeholder="Класс/курс" value={data.classGrade} onChange={e => updateField('classGrade', e.target.value)} {...InputProps} />
+                                    <input name="components-modals-quizpassportmodal-444-input" className="p-2 border rounded" placeholder="Класс/курс" value={data.classGrade} onChange={e => updateField('classGrade', e.target.value)} {...InputProps} />
                                     <div className="flex items-center gap-2">
-                                        <input className="w-16 p-2 border rounded text-center" placeholder="От" value={data.ageGroupFrom} onChange={e => updateField('ageGroupFrom', e.target.value)} {...InputProps} />
+                                        <input name="components-modals-quizpassportmodal-446-input" className="w-16 p-2 border rounded text-center" placeholder="От" value={data.ageGroupFrom} onChange={e => updateField('ageGroupFrom', e.target.value)} {...InputProps} />
                                         <span>—</span>
-                                        <input className="w-16 p-2 border rounded text-center" placeholder="До" value={data.ageGroupTo} onChange={e => updateField('ageGroupTo', e.target.value)} {...InputProps} />
+                                        <input name="components-modals-quizpassportmodal-448-input" className="w-16 p-2 border rounded text-center" placeholder="До" value={data.ageGroupTo} onChange={e => updateField('ageGroupTo', e.target.value)} {...InputProps} />
                                         <span>лет</span>
                                     </div>
                                 </div>
-                                <textarea className="w-full p-2 border rounded" placeholder="Особенности аудитории..." rows={2} value={data.audienceFeatures} onChange={e => updateField('audienceFeatures', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-452-textarea" className="w-full p-2 border rounded" placeholder="Особенности аудитории..." rows={2} value={data.audienceFeatures} onChange={e => updateField('audienceFeatures', e.target.value)} {...InputProps} />
                             </div>
 
                             <div>
@@ -461,9 +461,9 @@ ${data.testingResults}
                                     readOnly={readOnly}
                                 />
                                 {data.placeInProcess.includes('Урочная деятельность') && (
-                                     <input className="w-full mt-2 p-2 border rounded text-sm" placeholder="Этап урока..." value={data.lessonStage} onChange={e => updateField('lessonStage', e.target.value)} {...InputProps} />
+                                     <input name="components-modals-quizpassportmodal-464-input" className="w-full mt-2 p-2 border rounded text-sm" placeholder="Этап урока..." value={data.lessonStage} onChange={e => updateField('lessonStage', e.target.value)} {...InputProps} />
                                 )}
-                                <input className="w-full mt-2 p-2 border rounded text-sm" placeholder="Иное..." value={data.placeOther} onChange={e => updateField('placeOther', e.target.value)} {...InputProps} />
+                                <input name="components-modals-quizpassportmodal-466-input" className="w-full mt-2 p-2 border rounded text-sm" placeholder="Иное..." value={data.placeOther} onChange={e => updateField('placeOther', e.target.value)} {...InputProps} />
                             </div>
                         </div>
                     )}
@@ -475,18 +475,18 @@ ${data.testingResults}
                             <div>
                                 <FieldLabel>2.1 Актуальность проекта (150-300 слов)</FieldLabel>
                                 <p className="text-xs text-gray-500 mb-1">Обоснование значимости, какую проблему решает, в чем преимущество интерактивного формата.</p>
-                                <textarea className="w-full p-3 border rounded h-32" value={data.relevance} onChange={e => updateField('relevance', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-478-textarea" className="w-full p-3 border rounded h-32" value={data.relevance} onChange={e => updateField('relevance', e.target.value)} {...InputProps} />
                             </div>
 
                             <div>
                                 <FieldLabel>2.2 Цель проекта</FieldLabel>
                                 <p className="text-xs text-gray-500 mb-1">Конкретный результат (сформировать, развить, обеспечить).</p>
-                                <textarea className="w-full p-3 border rounded h-20" value={data.goal} onChange={e => updateField('goal', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-484-textarea" className="w-full p-3 border rounded h-20" value={data.goal} onChange={e => updateField('goal', e.target.value)} {...InputProps} />
                             </div>
 
                             <div>
                                 <FieldLabel>2.3 Задачи проекта</FieldLabel>
-                                <textarea className="w-full p-3 border rounded h-32" placeholder="1. ... 2. ..." value={data.tasks} onChange={e => updateField('tasks', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-489-textarea" className="w-full p-3 border rounded h-32" placeholder="1. ... 2. ..." value={data.tasks} onChange={e => updateField('tasks', e.target.value)} {...InputProps} />
                             </div>
 
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
@@ -494,23 +494,23 @@ ${data.testingResults}
                                 <div className="space-y-3">
                                     <div>
                                         <span className="text-sm font-bold text-blue-800">Предметные:</span>
-                                        <textarea className="w-full p-2 border rounded mt-1 text-sm" rows={3} value={data.subjectResults} onChange={e => updateField('subjectResults', e.target.value)} {...InputProps} />
+                                        <textarea name="components-modals-quizpassportmodal-497-textarea" className="w-full p-2 border rounded mt-1 text-sm" rows={3} value={data.subjectResults} onChange={e => updateField('subjectResults', e.target.value)} {...InputProps} />
                                     </div>
                                     <div>
                                         <span className="text-sm font-bold text-blue-800">Познавательные УУД:</span>
-                                        <textarea className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.cognitiveSkills} onChange={e => updateField('cognitiveSkills', e.target.value)} {...InputProps} />
+                                        <textarea name="components-modals-quizpassportmodal-501-textarea" className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.cognitiveSkills} onChange={e => updateField('cognitiveSkills', e.target.value)} {...InputProps} />
                                     </div>
                                     <div>
                                         <span className="text-sm font-bold text-blue-800">Регулятивные УУД:</span>
-                                        <textarea className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.regulatorySkills} onChange={e => updateField('regulatorySkills', e.target.value)} {...InputProps} />
+                                        <textarea name="components-modals-quizpassportmodal-505-textarea" className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.regulatorySkills} onChange={e => updateField('regulatorySkills', e.target.value)} {...InputProps} />
                                     </div>
                                     <div>
                                         <span className="text-sm font-bold text-blue-800">Коммуникативные УУД:</span>
-                                        <textarea className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.communicativeSkills} onChange={e => updateField('communicativeSkills', e.target.value)} {...InputProps} />
+                                        <textarea name="components-modals-quizpassportmodal-509-textarea" className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.communicativeSkills} onChange={e => updateField('communicativeSkills', e.target.value)} {...InputProps} />
                                     </div>
                                      <div>
                                         <span className="text-sm font-bold text-blue-800">Личностные:</span>
-                                        <textarea className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.personalResults} onChange={e => updateField('personalResults', e.target.value)} {...InputProps} />
+                                        <textarea name="components-modals-quizpassportmodal-513-textarea" className="w-full p-2 border rounded mt-1 text-sm" rows={2} value={data.personalResults} onChange={e => updateField('personalResults', e.target.value)} {...InputProps} />
                                     </div>
                                 </div>
                             </div>
@@ -524,19 +524,19 @@ ${data.testingResults}
                              <div>
                                 <FieldLabel>3.1 Краткое описание сценария (300-500 слов)</FieldLabel>
                                 <p className="text-xs text-gray-500 mb-1">Общая логика, исходная ситуация, ключевые точки, концовки.</p>
-                                <textarea className="w-full p-3 border rounded h-48" value={data.scenarioDescription} onChange={e => updateField('scenarioDescription', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-527-textarea" className="w-full p-3 border rounded h-48" value={data.scenarioDescription} onChange={e => updateField('scenarioDescription', e.target.value)} {...InputProps} />
                             </div>
 
                             <div>
                                 <FieldLabel>3.3 Механика взаимодействия</FieldLabel>
                                 <p className="text-xs text-gray-500 mb-1">Типы выборов, обратная связь, условия переходов.</p>
-                                <textarea className="w-full p-3 border rounded h-32" value={data.mechanicsInteraction} onChange={e => updateField('mechanicsInteraction', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-533-textarea" className="w-full p-3 border rounded h-32" value={data.mechanicsInteraction} onChange={e => updateField('mechanicsInteraction', e.target.value)} {...InputProps} />
                             </div>
 
                              <div>
                                 <FieldLabel>3.4 Система оценивания</FieldLabel>
                                 <p className="text-xs text-gray-500 mb-1">Критерии, баллы, условия победы.</p>
-                                <textarea className="w-full p-3 border rounded h-32" value={data.evaluationSystem} onChange={e => updateField('evaluationSystem', e.target.value)} {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-539-textarea" className="w-full p-3 border rounded h-32" value={data.evaluationSystem} onChange={e => updateField('evaluationSystem', e.target.value)} {...InputProps} />
                             </div>
                         </div>
                     )}
@@ -547,17 +547,17 @@ ${data.testingResults}
                              <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">Некоторые поля заполнены автоматически на основе текущего квиза.</p>
                              
                              <div className="grid grid-cols-2 gap-4">
-                                <div><FieldLabel>Количество узлов</FieldLabel><input className="w-full p-2 border rounded bg-gray-50" readOnly value={data.nodeCount} /></div>
-                                <div><FieldLabel>Количество концовок</FieldLabel><input className="w-full p-2 border rounded bg-gray-50" readOnly value={data.endingsCount} /></div>
-                                <div><FieldLabel>Точек ветвления (примерно)</FieldLabel><input className="w-full p-2 border rounded" value={data.branchCount} onChange={e => updateField('branchCount', e.target.value)} {...InputProps} /></div>
+                                <div><FieldLabel>Количество узлов</FieldLabel><input name="components-modals-quizpassportmodal-550-input" className="w-full p-2 border rounded bg-gray-50" readOnly value={data.nodeCount} /></div>
+                                <div><FieldLabel>Количество концовок</FieldLabel><input name="components-modals-quizpassportmodal-551-input" className="w-full p-2 border rounded bg-gray-50" readOnly value={data.endingsCount} /></div>
+                                <div><FieldLabel>Точек ветвления (примерно)</FieldLabel><input name="components-modals-quizpassportmodal-552-input" className="w-full p-2 border rounded" value={data.branchCount} onChange={e => updateField('branchCount', e.target.value)} {...InputProps} /></div>
                              </div>
 
                              <div>
                                 <FieldLabel>Время прохождения (мин)</FieldLabel>
                                 <div className="flex gap-4">
-                                    <input className="w-20 p-2 border rounded text-center" placeholder="Мин" value={data.minTime} onChange={e => updateField('minTime', e.target.value)} {...InputProps} />
-                                    <input className="w-20 p-2 border rounded text-center" placeholder="Макс" value={data.maxTime} onChange={e => updateField('maxTime', e.target.value)} {...InputProps} />
-                                    <input className="w-20 p-2 border rounded text-center" placeholder="Среднее" value={data.avgTime} onChange={e => updateField('avgTime', e.target.value)} {...InputProps} />
+                                    <input name="components-modals-quizpassportmodal-558-input" className="w-20 p-2 border rounded text-center" placeholder="Мин" value={data.minTime} onChange={e => updateField('minTime', e.target.value)} {...InputProps} />
+                                    <input name="components-modals-quizpassportmodal-559-input" className="w-20 p-2 border rounded text-center" placeholder="Макс" value={data.maxTime} onChange={e => updateField('maxTime', e.target.value)} {...InputProps} />
+                                    <input name="components-modals-quizpassportmodal-560-input" className="w-20 p-2 border rounded text-center" placeholder="Среднее" value={data.avgTime} onChange={e => updateField('avgTime', e.target.value)} {...InputProps} />
                                 </div>
                              </div>
                         </div>
@@ -569,7 +569,7 @@ ${data.testingResults}
                              
                              <div>
                                  <FieldLabel>5.1 ИИ-инструменты</FieldLabel>
-                                 <textarea className="w-full p-2 border rounded" value={data.aiTools} onChange={e => updateField('aiTools', e.target.value)} {...InputProps} />
+                                 <textarea name="components-modals-quizpassportmodal-572-textarea" className="w-full p-2 border rounded" value={data.aiTools} onChange={e => updateField('aiTools', e.target.value)} {...InputProps} />
                              </div>
 
                              <div>
@@ -585,7 +585,7 @@ ${data.testingResults}
                              <div>
                                  <FieldLabel>5.3 Верификация контента</FieldLabel>
                                  <p className="text-xs text-gray-500 mb-1">Как вы проверяли и правили то, что выдал ИИ.</p>
-                                 <textarea className="w-full p-3 border rounded h-32" value={data.aiVerification} onChange={e => updateField('aiVerification', e.target.value)} {...InputProps} />
+                                 <textarea name="components-modals-quizpassportmodal-588-textarea" className="w-full p-3 border rounded h-32" value={data.aiVerification} onChange={e => updateField('aiVerification', e.target.value)} {...InputProps} />
                              </div>
                         </div>
                     )}
@@ -593,11 +593,11 @@ ${data.testingResults}
                     {activeTab === 'method' && (
                          <div className="space-y-6 max-w-4xl">
                             <SectionTitle>6. Методические рекомендации</SectionTitle>
-                            <div><FieldLabel>6.1 Рекомендации по использованию</FieldLabel><textarea className="w-full p-3 border rounded h-24" value={data.usageRecommendations} onChange={e => updateField('usageRecommendations', e.target.value)} {...InputProps} /></div>
-                            <div><FieldLabel>6.2 Тех. требования</FieldLabel><textarea className="w-full p-3 border rounded h-20" value={data.requirements} onChange={e => updateField('requirements', e.target.value)} {...InputProps} /></div>
-                            <div><FieldLabel>6.3 Инструкция ученику</FieldLabel><textarea className="w-full p-3 border rounded h-24" value={data.studentInstructions} onChange={e => updateField('studentInstructions', e.target.value)} {...InputProps} /></div>
-                            <div><FieldLabel>6.4 Анализ результатов</FieldLabel><textarea className="w-full p-3 border rounded h-24" value={data.analysisRecommendations} onChange={e => updateField('analysisRecommendations', e.target.value)} {...InputProps} /></div>
-                            <div><FieldLabel>6.5 Адаптация</FieldLabel><textarea className="w-full p-3 border rounded h-20" value={data.adaptationPossibilities} onChange={e => updateField('adaptationPossibilities', e.target.value)} {...InputProps} /></div>
+                            <div><FieldLabel>6.1 Рекомендации по использованию</FieldLabel><textarea name="components-modals-quizpassportmodal-596-textarea" className="w-full p-3 border rounded h-24" value={data.usageRecommendations} onChange={e => updateField('usageRecommendations', e.target.value)} {...InputProps} /></div>
+                            <div><FieldLabel>6.2 Тех. требования</FieldLabel><textarea name="components-modals-quizpassportmodal-597-textarea" className="w-full p-3 border rounded h-20" value={data.requirements} onChange={e => updateField('requirements', e.target.value)} {...InputProps} /></div>
+                            <div><FieldLabel>6.3 Инструкция ученику</FieldLabel><textarea name="components-modals-quizpassportmodal-598-textarea" className="w-full p-3 border rounded h-24" value={data.studentInstructions} onChange={e => updateField('studentInstructions', e.target.value)} {...InputProps} /></div>
+                            <div><FieldLabel>6.4 Анализ результатов</FieldLabel><textarea name="components-modals-quizpassportmodal-599-textarea" className="w-full p-3 border rounded h-24" value={data.analysisRecommendations} onChange={e => updateField('analysisRecommendations', e.target.value)} {...InputProps} /></div>
+                            <div><FieldLabel>6.5 Адаптация</FieldLabel><textarea name="components-modals-quizpassportmodal-600-textarea" className="w-full p-3 border rounded h-20" value={data.adaptationPossibilities} onChange={e => updateField('adaptationPossibilities', e.target.value)} {...InputProps} /></div>
                          </div>
                     )}
                     
@@ -605,9 +605,9 @@ ${data.testingResults}
                         <div className="space-y-6 max-w-3xl">
                             <SectionTitle>7. Апробация</SectionTitle>
                             <div className="grid grid-cols-3 gap-4">
-                                <div><FieldLabel>Дата</FieldLabel><input className="w-full p-2 border rounded" value={data.testingDate} onChange={e => updateField('testingDate', e.target.value)} {...InputProps} /></div>
-                                <div><FieldLabel>Участников</FieldLabel><input className="w-full p-2 border rounded" value={data.testingCount} onChange={e => updateField('testingCount', e.target.value)} {...InputProps} /></div>
-                                <div><FieldLabel>Класс</FieldLabel><input className="w-full p-2 border rounded" value={data.testingClass} onChange={e => updateField('testingClass', e.target.value)} {...InputProps} /></div>
+                                <div><FieldLabel>Дата</FieldLabel><input name="components-modals-quizpassportmodal-608-input" className="w-full p-2 border rounded" value={data.testingDate} onChange={e => updateField('testingDate', e.target.value)} {...InputProps} /></div>
+                                <div><FieldLabel>Участников</FieldLabel><input name="components-modals-quizpassportmodal-609-input" className="w-full p-2 border rounded" value={data.testingCount} onChange={e => updateField('testingCount', e.target.value)} {...InputProps} /></div>
+                                <div><FieldLabel>Класс</FieldLabel><input name="components-modals-quizpassportmodal-610-input" className="w-full p-2 border rounded" value={data.testingClass} onChange={e => updateField('testingClass', e.target.value)} {...InputProps} /></div>
                             </div>
                             <div>
                                 <FieldLabel>Форма</FieldLabel>
@@ -615,7 +615,7 @@ ${data.testingResults}
                             </div>
                             <div>
                                 <FieldLabel>7.2 Результаты апробации</FieldLabel>
-                                <textarea className="w-full p-3 border rounded h-32" value={data.testingResults} onChange={e => updateField('testingResults', e.target.value)} placeholder="Реакция, проблемы, корректировки..." {...InputProps} />
+                                <textarea name="components-modals-quizpassportmodal-618-textarea" className="w-full p-3 border rounded h-32" value={data.testingResults} onChange={e => updateField('testingResults', e.target.value)} placeholder="Реакция, проблемы, корректировки..." {...InputProps} />
                             </div>
                         </div>
                     )}
@@ -627,7 +627,7 @@ ${data.testingResults}
                                 <FieldLabel>Нормативные документы</FieldLabel>
                                 {data.normativeDocs.map((item, i) => (
                                      <div key={item.id || i} className="mb-2">
-                                        <input className="w-full p-2 border rounded" value={item.name} onChange={e => updateListField('normativeDocs', item.id, 'name', e.target.value)} {...InputProps} />
+                                        <input name="components-modals-quizpassportmodal-630-input" className="w-full p-2 border rounded" value={item.name} onChange={e => updateListField('normativeDocs', item.id, 'name', e.target.value)} {...InputProps} />
                                      </div>
                                 ))}
                                 {!readOnly && <button className="text-sm text-indigo-600" onClick={() => addListItem('normativeDocs', {id: Date.now().toString(), name: ''})}>+ Добавить</button>}
@@ -636,7 +636,7 @@ ${data.testingResults}
                                 <FieldLabel>Учебно-методические материалы</FieldLabel>
                                 {data.methodicalMaterials.map((item, i) => (
                                      <div key={item.id || i} className="mb-2">
-                                        <input className="w-full p-2 border rounded" value={item.name} onChange={e => updateListField('methodicalMaterials', item.id, 'name', e.target.value)} {...InputProps} />
+                                        <input name="components-modals-quizpassportmodal-639-input" className="w-full p-2 border rounded" value={item.name} onChange={e => updateListField('methodicalMaterials', item.id, 'name', e.target.value)} {...InputProps} />
                                      </div>
                                 ))}
                                 {!readOnly && <button className="text-sm text-indigo-600" onClick={() => addListItem('methodicalMaterials', {id: Date.now().toString(), name: ''})}>+ Добавить</button>}
@@ -646,8 +646,8 @@ ${data.testingResults}
                                 <div className="space-y-2">
                                     {data.internetResources.map((item) => (
                                         <div key={item.id} className="flex gap-2">
-                                             <input className="w-1/2 p-2 border rounded" placeholder="Название" value={item.name} onChange={e => updateListField('internetResources', item.id, 'name', e.target.value)} {...InputProps} />
-                                             <input className="w-1/2 p-2 border rounded" placeholder="URL" value={item.authorOrUrl} onChange={e => updateListField('internetResources', item.id, 'authorOrUrl', e.target.value)} {...InputProps} />
+                                             <input name="components-modals-quizpassportmodal-649-input" className="w-1/2 p-2 border rounded" placeholder="Название" value={item.name} onChange={e => updateListField('internetResources', item.id, 'name', e.target.value)} {...InputProps} />
+                                             <input name="components-modals-quizpassportmodal-650-input" className="w-1/2 p-2 border rounded" placeholder="URL" value={item.authorOrUrl} onChange={e => updateListField('internetResources', item.id, 'authorOrUrl', e.target.value)} {...InputProps} />
                                         </div>
                                     ))}
                                     {!readOnly && <button className="text-sm text-indigo-600" onClick={() => addListItem('internetResources', {id: Date.now().toString(), name: '', authorOrUrl: ''})}>+ Добавить</button>}
@@ -658,8 +658,8 @@ ${data.testingResults}
                                 <div className="space-y-2">
                                     {data.illustrationSources.map((item) => (
                                         <div key={item.id} className="flex gap-2">
-                                             <input className="w-1/2 p-2 border rounded" placeholder="Описание" value={item.name} onChange={e => updateListField('illustrationSources', item.id, 'name', e.target.value)} {...InputProps} />
-                                             <input className="w-1/2 p-2 border rounded" placeholder="Источник" value={item.authorOrUrl} onChange={e => updateListField('illustrationSources', item.id, 'authorOrUrl', e.target.value)} {...InputProps} />
+                                             <input name="components-modals-quizpassportmodal-661-input" className="w-1/2 p-2 border rounded" placeholder="Описание" value={item.name} onChange={e => updateListField('illustrationSources', item.id, 'name', e.target.value)} {...InputProps} />
+                                             <input name="components-modals-quizpassportmodal-662-input" className="w-1/2 p-2 border rounded" placeholder="Источник" value={item.authorOrUrl} onChange={e => updateListField('illustrationSources', item.id, 'authorOrUrl', e.target.value)} {...InputProps} />
                                         </div>
                                     ))}
                                     {!readOnly && <button className="text-sm text-indigo-600" onClick={() => addListItem('illustrationSources', {id: Date.now().toString(), name: '', authorOrUrl: ''})}>+ Добавить</button>}

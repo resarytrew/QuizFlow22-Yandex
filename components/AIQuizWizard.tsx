@@ -1956,7 +1956,7 @@ const TopicStage: FC<{
         <label className="block text-xs font-semibold tracking-wide uppercase text-slate-700 mb-2">
           Тема квиза <span className="text-slate-900">*</span>
         </label>
-        <input
+        <input name="components-aiquizwizard-1959-input"
           className="
             w-full
             bg-white/70 border border-slate-200/80
@@ -1980,7 +1980,7 @@ const TopicStage: FC<{
         <label className="block text-xs font-semibold tracking-wide uppercase text-slate-700 mb-2">
           Цель обучения
         </label>
-        <input
+        <input name="components-aiquizwizard-1983-input"
           className="
             w-full
             bg-white/70 border border-slate-200/80
@@ -2002,7 +2002,7 @@ const TopicStage: FC<{
         <label className="block text-xs font-semibold tracking-wide uppercase text-slate-700 mb-2">
           Целевая аудитория
         </label>
-        <input
+        <input name="components-aiquizwizard-2005-input"
           className="
             w-full
             bg-white/70 border border-slate-200/80
@@ -2056,7 +2056,7 @@ const TopicStage: FC<{
         <label className="block text-xs font-semibold tracking-wide uppercase text-slate-700 mb-2">
           Дополнительный контекст
         </label>
-        <textarea
+        <textarea name="components-aiquizwizard-2059-textarea"
           className="
             w-full
             bg-white/70 border border-slate-200/80
@@ -2218,7 +2218,7 @@ const SettingsStage: FC<{
         </div>
 
         <div className="relative">
-          <input
+          <input name="components-aiquizwizard-2221-input"
             type="range"
             min="3"
             max="30"
@@ -2566,7 +2566,7 @@ const EditorStage: FC<{
 
       <div className="flex-1 relative bg-white rounded-3xl border border-stone-200 overflow-hidden min-h-[400px]">
         {mode === 'edit' ? (
-          <textarea
+          <textarea name="components-aiquizwizard-2569-textarea"
             value={text}
             onChange={(e) => onTextChange(e.target.value)}
             className="w-full h-full bg-transparent text-stone-700 p-8 resize-none focus:outline-none 

@@ -259,7 +259,7 @@ const SaveAsModal: React.FC<Props> = ({
 
           {/* Remember choice */}
           <label className="flex items-center gap-2 pt-2 pl-1 cursor-pointer select-none">
-            <input
+            <input name="components-modals-saveasmodal-262-input"
               type="checkbox"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}

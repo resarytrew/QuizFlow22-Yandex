@@ -55,7 +55,7 @@ const CreatePromoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="mt-6 space-y-4">
           <div>
             <label className="mb-2 block text-sm font-semibold text-white/80">Код</label>
-            <input
+            <input name="components-admin-adminpromocodespage-58-input"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 20))}
               placeholder="НАПРИМЕР: PRO2026"
@@ -77,7 +77,7 @@ const CreatePromoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-white/80">Макс. использований (опционально)</label>
-            <input
+            <input name="components-admin-adminpromocodespage-80-input"
               type="number" min="1" value={maxUses}
               onChange={(e) => setMaxUses(e.target.value)}
               placeholder="Оставить пустым — без лимита"
@@ -145,7 +145,7 @@ const AdminPromocodesPage: React.FC = () => {
         </div>
         <div className="flex w-full max-w-2xl gap-3">
           <form onSubmit={submitSearch} className="flex flex-1 gap-2 rounded-full border border-white/10 bg-white/[0.06] p-2">
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по коду"
+            <input name="components-admin-adminpromocodespage-148-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по коду"
               className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none" />
             <button className="rounded-full bg-amber-300 px-5 py-2.5 text-sm font-bold text-black">Найти</button>
           </form>

@@ -8,6 +8,10 @@ import {
 import toast from 'react-hot-toast';
 import { useAppNavigation } from '../../src/router/useAppNavigation';
 import { generateQuizHtmlProgrammatically } from '../../services/quizGenerator';
+import {
+  estimateScreenQuizVideoDurationMs,
+  exportScreenQuizToMp4,
+} from '../../services/screenQuizVideoExport';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 import type { QuizVisibility } from '../../types';
@@ -27,6 +31,22 @@ interface UseHeaderControllerOptions {
   setCanvasLoading: (loading: boolean) => void;
   setNodes: ReturnType<typeof useCanvasStore.getState>['setNodes'];
   setEdges: ReturnType<typeof useCanvasStore.getState>['setEdges'];
+}
+
+export function buildScreenQuizMp4Html(): string {
+  const canvas = useCanvasStore.getState();
+  const quiz = useQuizDataStore.getState();
+
+  return generateQuizHtmlProgrammatically(
+    canvas.nodes,
+    canvas.edges,
+    quiz.globalTimer,
+    quiz.designSettings,
+    quiz.currentQuizId,
+    quiz.templateId,
+    quiz.currentQuizName,
+    { preview: true },
+  );
 }
 
 export function useHeaderController({
@@ -54,10 +74,10 @@ export function useHeaderController({
     setCanvasLoading(isPending);
   }, [isPending, setCanvasLoading]);
 
-  const generateHtml = (preview: boolean) => {
+  const buildQuizHtml = (preview: boolean) => {
     const canvas = useCanvasStore.getState();
     const quiz = useQuizDataStore.getState();
-    const html = generateQuizHtmlProgrammatically(
+    return generateQuizHtmlProgrammatically(
       canvas.nodes,
       canvas.edges,
       quiz.globalTimer,
@@ -67,7 +87,10 @@ export function useHeaderController({
       quiz.currentQuizName,
       preview ? { preview: true } : undefined,
     );
+  };
 
+  const generateHtml = (preview: boolean) => {
+    const html = buildQuizHtml(preview);
     setGeneratedHtml(html);
     if (preview) setIsPreviewModalOpen(true);
     else setIsHtmlModalOpen(true);
@@ -87,6 +110,31 @@ export function useHeaderController({
       }),
       currentQuizName,
     );
+  };
+
+  const handleExportMp4 = async () => {
+    const canvas = useCanvasStore.getState();
+    const quiz = useQuizDataStore.getState();
+
+    if (quiz.templateId !== 'screenQuiz') {
+      toast.error('Экспорт MP4 доступен только для шаблона «Экранная викторина».');
+      return;
+    }
+
+    const html = buildScreenQuizMp4Html();
+    const durationMs = estimateScreenQuizVideoDurationMs(canvas.nodes, quiz.designSettings);
+    const toastId = toast.loading('Готовлю MP4: выберите открывшееся окно в диалоге захвата экрана.');
+
+    try {
+      await exportScreenQuizToMp4({
+        htmlContent: html,
+        fileName: quiz.currentQuizName || currentQuizName,
+        durationMs,
+      });
+      toast.success('MP4 экспортирован', { id: toastId });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось экспортировать MP4.', { id: toastId });
+    }
   };
 
   const handleImportClick = () => {
@@ -185,6 +233,7 @@ export function useHeaderController({
     isSaving,
     handleGenerate: () => generateHtml(false),
     handlePreview: () => generateHtml(true),
+    handleExportMp4,
     handleExportJson,
     handleImportClick,
     handleFileChange,

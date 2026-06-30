@@ -8,6 +8,7 @@ import scienceTemplate from './science.ts';
 import mathTemplate from './math.ts';
 import historyTemplate from './history.ts';
 import newyearTemplate from './newyear.ts';
+import screenQuizTemplate from './screenQuiz.ts';
 import { QuizTemplateId } from '../../types.ts';
 
 interface TemplateInfo {
@@ -25,6 +26,7 @@ export const templates: Record<string, TemplateInfo> = {
     math: { name: 'Математический (Math OS)', template: mathTemplate },
     history: { name: 'Исторический (Иван IV)', template: historyTemplate },
     newyear: { name: 'Новогодний (Операция НГ)', template: newyearTemplate },
+    screenQuiz: { name: 'Экранная викторина', template: screenQuizTemplate },
 };
 
 export const getTemplateById = (id: QuizTemplateId = 'default'): string => {

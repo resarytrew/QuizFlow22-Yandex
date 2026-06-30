@@ -18,7 +18,7 @@ const Input = ({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInputEle
                     {icon}
                 </div>
             )}
-            <input 
+            <input name="components-modals-publishquizmodal-21-input" 
                 className={`w-full bg-white border-2 border-slate-200/80 rounded-xl py-3 ${icon ? 'pl-10 pr-4' : 'px-4'} text-sm text-slate-900 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none hover:border-slate-300`} 
                 {...props} 
             />
@@ -29,7 +29,7 @@ const Input = ({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInputEle
 const Textarea = ({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) => (
     <div>
         <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
-        <textarea 
+        <textarea name="components-modals-publishquizmodal-32-textarea" 
             className="w-full bg-white border-2 border-slate-200/80 rounded-xl py-3 px-4 text-sm text-slate-900 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none hover:border-slate-300 resize-none" 
             {...props} 
         />
@@ -154,7 +154,7 @@ const PublishQuizModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                                     </div>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
-                                    <input 
+                                    <input name="components-modals-publishquizmodal-157-input" 
                                         type="checkbox" 
                                         className="sr-only peer" 
                                         checked={isPublished} 

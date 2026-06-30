@@ -1,6 +1,7 @@
-import type { DesignSettings, QuizNode } from './types';
+import type { QuizNode } from './types';
 import { escapeHtml, parseText, sanitizeAssetUrl } from './sanitize';
 import { playSound } from './media';
+import { getDesignSettings } from './designState';
 import {
   cleanupAllMedia,
   getRutubeId,
@@ -11,12 +12,6 @@ import {
 } from './media';
 import { makeImageZoomable } from './lightbox';
 import { nodeRenderers, renderDefault } from './renderers';
-
-let designSettings: DesignSettings | undefined;
-
-export function setDesignSettings(ds: DesignSettings | undefined): void {
-  designSettings = ds;
-}
 
 export function renderError(message: string): void {
   const view = document.getElementById('quiz-view');
@@ -98,7 +93,7 @@ export function renderNode(node: QuizNode, navigation: RenderNavigation): void {
     },
     navigateTo: navigation.processNode,
     playSound(type, overrideUrl) {
-      playSound(type, designSettings, overrideUrl);
+      playSound(type, getDesignSettings(), overrideUrl);
     },
   });
 

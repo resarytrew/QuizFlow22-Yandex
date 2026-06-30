@@ -1,4 +1,4 @@
-import { verifyAuth, ensureUser } from '../_shared/auth';
+import { verifyAuth, ensureUser, type AuthUser } from '../_shared/auth';
 import { query, queryOne } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 import { requireAdminStaff, writeAdminAudit, hasPermission, type AdminStaffContext } from '../_shared/admin';
@@ -30,26 +30,36 @@ export async function handler(event: any) {
     if (httpMethod === 'GET') {
       switch (pathParameters?.action) {
         case 'session':
-          return await handleSession(ctx, user.email);
+          return await handleSession(ctx, user);
         case 'overview':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleOverview(ctx);
         case 'stats':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleStats();
         case 'dashboard':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleDashboard();
         case 'users':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleListUsers(event, ctx);
         case 'quizzes':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleListQuizzes(event, ctx);
         case 'support':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleListSupport(event, ctx);
         case 'reports':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleListReports(event, ctx);
         case 'finances':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleFinances(event, ctx);
         case 'promocodes':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handlePromocodes(event, ctx);
         case 'audit':
+          if (!isMfaSatisfied(user)) return mfaRequired();
           return await handleAuditLog(event);
         default:
           return notFound();
@@ -57,6 +67,8 @@ export async function handler(event: any) {
     }
 
     if (httpMethod === 'POST') {
+      if (!isMfaSatisfied(user)) return mfaRequired();
+
       switch (pathParameters?.action) {
         case 'update-user':
           return await handleUpdateUser(body, ctx, ip, userAgent);
@@ -155,25 +167,29 @@ async function handleDashboard() {
   });
 }
 
-async function staffSession(ctx: AdminStaffContext, email?: string | null) {
+function isMfaSatisfied(user: AuthUser): boolean {
+  return user.aal === 'aal2';
+}
+
+async function staffSession(ctx: AdminStaffContext, user?: Pick<AuthUser, 'email' | 'aal'> | null) {
   const profile = await queryOne(
     `SELECT account_code FROM public.profiles WHERE user_id = $1`,
     [ctx.userId],
   );
   return {
     user_id: ctx.userId,
-    email: email ?? null,
+    email: user?.email ?? null,
     role: ctx.role,
     permissions: ctx.permissions,
     account_code: Number(profile?.account_code || 0),
     idle_timeout_minutes: 30,
-    current_aal: 'aal2',
+    current_aal: user?.aal ?? 'aal1',
     ip_restricted: false,
   };
 }
 
-async function handleSession(ctx: AdminStaffContext, email?: string | null) {
-  return ok({ staff: await staffSession(ctx, email), mfa_required: false });
+async function handleSession(ctx: AdminStaffContext, user: AuthUser) {
+  return ok({ staff: await staffSession(ctx, user), mfa_required: !isMfaSatisfied(user) });
 }
 
 function listMeta(page: number, limit: number, total: number, q = '') {
@@ -961,6 +977,14 @@ function unauthorized() {
 
 function forbidden() {
   return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: 'Forbidden' }) };
+}
+
+function mfaRequired() {
+  return {
+    statusCode: 403,
+    headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ error: 'mfa_required' }),
+  };
 }
 
 function badRequest(message: string) {

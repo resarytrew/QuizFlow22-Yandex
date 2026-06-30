@@ -38,6 +38,7 @@ import { injectCsp } from "./csp";
 import { inlineTailwind } from "./inlineTailwind";
 import { buildFallbackHtml } from "./fallbackHtml";
 import { normalizeLegacyArgs } from "./normalizeInput";
+import { injectDesignCss } from "./designCss";
 
 import { quizEngineScript } from "../quizEngine";
 import { getTemplateById } from "../templates/index";
@@ -128,6 +129,7 @@ function generateUnsafe(
   // 6. Рендерим шаблон
   let html = renderTemplate(templateHtml, quizDataJson, engineScript, {
     preview: options.preview,
+    injectEngine: templateId !== "screenQuiz",
   });
 
   // 7. Post-processing: CSS + CSP.
@@ -145,6 +147,9 @@ function generateUnsafe(
   //    (он gracefully handles missing supabase / mathjs), и их
   //    присутствие в iframe только замусорит консоль CSP-ошибками.
   html = inlineTailwind(html);
+  if (templateId === DEFAULT_TEMPLATE_ID) {
+    html = injectDesignCss(html, input.designSettings);
+  }
   if (!options.preview) {
     html = injectCsp(html, getApiOrigin());
   }
