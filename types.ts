@@ -52,7 +52,7 @@ export interface BaseNodeData {
   title?: string;
   description?: string;
   imageUrl?: string;
-  videoUrl?: string; // RuTube video URL
+  videoUrl?: string; // Direct video URL or supported embed URL
   isRequiredWatch?: boolean; // Block navigation until video ends
   backgroundImageUrl?: string;
   buttonText?: string;
@@ -68,6 +68,7 @@ export interface NodeSoundSettings {
 
 export type ScreenQuizLayout = 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
 export type ScreenQuizTransitionEffect = 'swipe-reveal' | 'pixel-dissolve' | 'zoom-in-reveal' | 'glitch-cut';
+export type ScreenQuizIntroTiming = 'auto' | 'fast' | 'calm' | 'manual';
 
 export interface ScreenQuizSettings {
   backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel';
@@ -87,6 +88,13 @@ export interface ScreenQuizSettings {
   layout?: ScreenQuizLayout;
   timerSeconds?: number;
   showTimer?: boolean;
+  showStoryTimer?: boolean;
+  introEnabled?: boolean;
+  introTiming?: ScreenQuizIntroTiming;
+  introQuestionMs?: number;
+  introAnswerMs?: number;
+  introMediaMs?: number;
+  introGapMs?: number;
 }
 
 export interface Answer {

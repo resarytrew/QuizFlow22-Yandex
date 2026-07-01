@@ -85,7 +85,7 @@ describe('screenQuizVideoExport', () => {
           id: 'q1',
           type: 'questionNode',
           data: {
-            screenQuiz: { timerSeconds: 5, transitionEffect: 'glitch-cut' },
+            screenQuiz: { timerSeconds: 5, transitionEffect: 'glitch-cut', introEnabled: false },
             answers: [
               { id: 'true', text: 'Верно', isCorrect: true },
               { id: 'false', text: 'Неверно' },
@@ -103,9 +103,39 @@ describe('screenQuizVideoExport', () => {
           },
         },
       ],
-      { screenQuiz: { timerSeconds: 7, transitionEffect: 'pixel-dissolve' } },
+      { screenQuiz: { timerSeconds: 7, transitionEffect: 'pixel-dissolve', introEnabled: false } },
     );
 
     expect(duration).toBe(5_000 + 1_180 + 280 + 7_000 + 1_180 + 380 + 900);
+  });
+
+  it('includes screen quiz intro timing in exported video duration', () => {
+    const duration = estimateScreenQuizVideoDurationMs(
+      [
+        {
+          id: 'q1',
+          type: 'questionNode',
+          data: {
+            question: 'Read me',
+            answers: [
+              { id: 'a', text: 'A' },
+              { id: 'b', text: 'B', isCorrect: true },
+            ],
+          },
+        },
+      ],
+      {
+        screenQuiz: {
+          timerSeconds: 5,
+          introEnabled: true,
+          introTiming: 'manual',
+          introQuestionMs: 800,
+          introAnswerMs: 600,
+          introGapMs: 0,
+        },
+      },
+    );
+
+    expect(duration).toBe(800 + 600 + 600 + 5_000 + 1_180 + 340 + 900);
   });
 });

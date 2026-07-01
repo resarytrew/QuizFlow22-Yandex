@@ -11,7 +11,7 @@ interface Asset {
     name: string;
     key: string;
     url: string;
-    type: 'image' | 'audio';
+    type: 'image' | 'audio' | 'video';
     created_at: string;
     folder: string;
 }
@@ -19,7 +19,7 @@ interface Asset {
 interface Folder {
     name: string;
     path: string;
-    type: 'images' | 'audio' | 'quiz';
+    type: 'images' | 'audio' | 'video' | 'quiz';
     subfolders?: Folder[];
 }
 
@@ -124,6 +124,7 @@ const AssetManagerModal: React.FC = () => {
         const result: Folder[] = [
             { name: 'Изображения', path: 'images', type: 'images' },
             { name: 'Аудио', path: 'audio', type: 'audio' },
+            { name: 'Видео', path: 'video', type: 'video' },
         ];
         
         // Добавляем папки для каждого квиза
@@ -137,6 +138,7 @@ const AssetManagerModal: React.FC = () => {
                     subfolders: [
                         { name: 'Изображения', path: `${folderName}/images`, type: 'images' },
                         { name: 'Аудио', path: `${folderName}/audio`, type: 'audio' },
+                        { name: 'Видео', path: `${folderName}/video`, type: 'video' },
                     ]
                 });
             });
@@ -170,15 +172,18 @@ const AssetManagerModal: React.FC = () => {
         const file = event.target.files?.[0];
         if (!file || !session) return;
 
+        const lowerName = file.name.toLowerCase();
         const isImage = file.type.startsWith('image/');
-        const isAudio = file.type.startsWith('audio/') || file.name.endsWith('.mp3') || file.name.endsWith('.wav') || file.name.endsWith('.ogg');
+        const isAudio = file.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(lowerName);
+        const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|ogv|mov|m4v)$/i.test(lowerName);
 
-        if (!isImage && !isAudio) {
-            toast.error('Можно загружать только изображения или аудио');
+        if (!isImage && !isAudio && !isVideo) {
+            toast.error('Можно загружать только изображения, аудио или видео');
             return;
         }
-        if (file.size > 10 * 1024 * 1024) {
-            toast.error('Максимальный размер файла 10MB');
+        const maxSize = isVideo ? 200 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            toast.error(isVideo ? 'Максимальный размер видео 200MB' : 'Максимальный размер файла 10MB');
             return;
         }
 
@@ -193,7 +198,7 @@ const AssetManagerModal: React.FC = () => {
         const fileName = `${Date.now()}_${cleanName}.${fileExt}`;
         
         // Определяем путь для загрузки
-        const uploadPath = currentPath || (isImage ? 'images' : 'audio');
+        const uploadPath = currentPath || (isImage ? 'images' : isAudio ? 'audio' : 'video');
         const fullName = `${uploadPath}/${fileName}`;
         try {
             const { uploadUrl } = await api.getUploadUrl(fullName, file.type || 'application/octet-stream');
@@ -353,6 +358,10 @@ const AssetManagerModal: React.FC = () => {
                                         <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
                                         Аудио
                                     </button>
+                                    <button onClick={() => handleBulkMove('video')} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        Видео
+                                    </button>
                                     {userQuizzes?.map(quiz => {
                                         const folderName = transliterate(quiz.name).replace(/[^a-zA-Z0-9-_]/g, '_');
                                         return (
@@ -390,7 +399,7 @@ const AssetManagerModal: React.FC = () => {
                             className={`border-2 border-dashed border-indigo-300 rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all cursor-pointer hover:bg-indigo-50 hover:border-indigo-500 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                             onClick={() => fileInputRef.current?.click()}
                          >
-                             <input name="components-modals-assetmanagermodal-393-input" type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} accept="image/*,audio/*" />
+                             <input name="components-modals-assetmanagermodal-393-input" type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} accept="image/*,audio/*,video/*" />
                              <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-2">
                                  {isUploading ? (
                                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -399,7 +408,7 @@ const AssetManagerModal: React.FC = () => {
                                  )}
                              </div>
                              <p className="text-xs font-semibold text-indigo-900">{isUploading ? 'Загрузка...' : 'Загрузить'}</p>
-                             <p className="text-[10px] text-indigo-600 mt-1">до 10MB</p>
+                             <p className="text-[10px] text-indigo-600 mt-1">до 10MB, видео до 200MB</p>
                          </div>
                          
                          {/* Поиск */}
@@ -465,6 +474,8 @@ const AssetManagerModal: React.FC = () => {
                                                         >
                                                             {sub.type === 'images' ? (
                                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                            ) : sub.type === 'video' ? (
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                                             ) : (
                                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
                                                             )}
@@ -486,6 +497,10 @@ const AssetManagerModal: React.FC = () => {
                                             {folder.type === 'images' ? (
                                                 <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            ) : folder.type === 'video' ? (
+                                                <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                                 </svg>
                                             ) : (
                                                 <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -552,6 +567,16 @@ const AssetManagerModal: React.FC = () => {
                                                     <svg className="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
                                                     <audio src={asset.url} controls className="w-full h-8" onClick={e => e.stopPropagation()} />
                                                 </div>
+                                            ) : asset.type === 'video' ? (
+                                                <video
+                                                    src={asset.url}
+                                                    muted
+                                                    controls
+                                                    playsInline
+                                                    preload="metadata"
+                                                    className="w-full h-full object-cover bg-black"
+                                                    onClick={e => e.stopPropagation()}
+                                                />
                                             ) : (
                                                 <img src={asset.url} alt="asset" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                             )}

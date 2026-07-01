@@ -116,7 +116,7 @@ interface AssetItem {
   name: string;
   key: string;
   url: string;
-  type: 'image' | 'audio';
+  type: 'image' | 'audio' | 'video';
   created_at: string;
   folder: string;
 }

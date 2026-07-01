@@ -86,8 +86,9 @@ export function estimateScreenQuizVideoDurationMs(
     const answers = normalizeAnswers(data);
     const correctCount = answers.filter((answer) => isCorrectAnswer(answer, data)).length;
     const revealDelay = answers.length > 0 ? Math.min(1900, 1180 + Math.max(0, correctCount - 1) * 180) : 120;
+    const introDelay = getIntroMs(settings, data, answers, String(node.type || ''));
 
-    return sum + getTimerMs(settings) + revealDelay + getTransitionMs(settings);
+    return sum + introDelay + getTimerMs(settings) + revealDelay + getTransitionMs(settings);
   }, 0);
 
   return Math.max(4000, total + 900);
@@ -460,6 +461,54 @@ function isCorrectAnswer(answer: { id: string; text: string; isCorrect?: boolean
 
 function getTimerMs(settings: Record<string, unknown>): number {
   return clampNumber(settings.timerSeconds, 5, 180, 30) * 1000;
+}
+
+function getIntroMs(
+  settings: Record<string, unknown>,
+  data: Record<string, unknown>,
+  answers: ReadonlyArray<{ text: string }>,
+  nodeType: string,
+): number {
+  if (settings.introEnabled === false || settings.motion === 'off') return 0;
+  if (nodeType === 'infoNode' || nodeType === 'feedbackNode' || nodeType === 'resultNode') return 0;
+  if (answers.length === 0) return 0;
+
+  const gap = getIntroGapMs(settings);
+  const hasMedia = Boolean(data.imageUrl || data.mediaUrl || data.videoUrl);
+  const question = String(data.question || data.title || data.label || data.message || data.description || '');
+  const questionStepMs = hasMedia
+    ? Math.max(getIntroQuestionMs(settings, question), getIntroMediaMs(settings))
+    : getIntroQuestionMs(settings, question);
+  const answerMs = answers.reduce((sum, answer) => sum + getIntroAnswerMs(settings, answer.text) + gap, 0);
+  return questionStepMs + gap + answerMs;
+}
+
+function getIntroQuestionMs(settings: Record<string, unknown>, text: string): number {
+  if (settings.introTiming === 'manual') return clampNumber(settings.introQuestionMs, 800, 12000, 2800);
+  if (settings.introTiming === 'fast') return clampNumber(1100 + text.length * 28, 1500, 5200, 2200);
+  if (settings.introTiming === 'calm') return clampNumber(2400 + text.length * 58, 3300, 11000, 4200);
+  return clampNumber(1700 + text.length * 45, 2400, 9000, 3200);
+}
+
+function getIntroAnswerMs(settings: Record<string, unknown>, text: string): number {
+  if (settings.introTiming === 'manual') return clampNumber(settings.introAnswerMs, 600, 8000, 1800);
+  if (settings.introTiming === 'fast') return clampNumber(700 + text.length * 34, 950, 3000, 1500);
+  if (settings.introTiming === 'calm') return clampNumber(1300 + text.length * 68, 1900, 6500, 2600);
+  return clampNumber(900 + text.length * 55, 1300, 5200, 1900);
+}
+
+function getIntroMediaMs(settings: Record<string, unknown>): number {
+  if (settings.introTiming === 'manual') return clampNumber(settings.introMediaMs, 0, 5000, 900);
+  if (settings.introTiming === 'fast') return 450;
+  if (settings.introTiming === 'calm') return 1300;
+  return 800;
+}
+
+function getIntroGapMs(settings: Record<string, unknown>): number {
+  if (settings.introTiming === 'manual') return clampNumber(settings.introGapMs, 0, 1500, 280);
+  if (settings.introTiming === 'fast') return 160;
+  if (settings.introTiming === 'calm') return 360;
+  return 240;
 }
 
 function getTransitionMs(settings: Record<string, unknown>): number {

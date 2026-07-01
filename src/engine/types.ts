@@ -271,6 +271,7 @@ export interface VideoLockState {
 
 export type ScreenQuizLayout = 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
 export type ScreenQuizTransitionEffect = 'swipe-reveal' | 'pixel-dissolve' | 'zoom-in-reveal' | 'glitch-cut';
+export type ScreenQuizIntroTiming = 'auto' | 'fast' | 'calm' | 'manual';
 
 export interface ScreenQuizSettings {
   backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel';
@@ -290,4 +291,11 @@ export interface ScreenQuizSettings {
   layout?: ScreenQuizLayout;
   timerSeconds?: number;
   showTimer?: boolean;
+  showStoryTimer?: boolean;
+  introEnabled?: boolean;
+  introTiming?: ScreenQuizIntroTiming;
+  introQuestionMs?: number;
+  introAnswerMs?: number;
+  introMediaMs?: number;
+  introGapMs?: number;
 }

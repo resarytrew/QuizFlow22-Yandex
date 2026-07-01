@@ -236,6 +236,94 @@ describe('screenQuiz template', () => {
     dom.window.close();
   });
 
+  it('renders media library videos as muted autoplay media cards', () => {
+    const nodes = [
+      {
+        id: 'question-video',
+        type: 'questionNode',
+        position: { x: 0, y: 100 },
+        data: {
+          question: 'Посмотрите видео и выберите ответ',
+          videoUrl: 'https://cdn.example.com/media/question.mp4',
+          imageUrl: 'https://cdn.example.com/media/poster.jpg',
+          answers: [
+            { id: 'a', text: 'Первый', isCorrect: true },
+            { id: 'b', text: 'Второй' },
+          ],
+        },
+      },
+    ];
+
+    const html = generateQuizHtmlProgrammatically(
+      nodes, [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      { screenQuiz: { layout: 'media-right', introEnabled: false } },
+      'screen-quiz-native-video-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/',
+      pretendToBeVisual: true,
+    });
+
+    const mediaCard = dom.window.document.querySelector('.sq-media-card');
+    const video = dom.window.document.querySelector('.sq-media-card video') as HTMLVideoElement | null;
+    expect(mediaCard?.classList.contains('is-video')).toBe(true);
+    expect(video?.getAttribute('src')).toBe('https://cdn.example.com/media/question.mp4');
+    expect(video?.getAttribute('poster')).toBe('https://cdn.example.com/media/poster.jpg');
+    expect(video?.hasAttribute('muted')).toBe(true);
+    expect(video?.hasAttribute('autoplay')).toBe(true);
+    expect(video?.hasAttribute('playsinline')).toBe(true);
+    expect(video?.controls).toBe(true);
+    expect(dom.window.document.querySelector('.sq-media-card img')).toBeNull();
+    dom.window.close();
+  });
+
+  it('renders story videos with the native muted player', () => {
+    const nodes = [
+      {
+        id: 'info-video',
+        type: 'infoNode',
+        position: { x: 0, y: 100 },
+        data: {
+          title: 'Видео-пояснение',
+          description: 'Посмотрите короткий фрагмент перед следующим вопросом.',
+          videoUrl: 'https://cdn.example.com/media/info.webm',
+          imageUrl: 'https://cdn.example.com/media/info-poster.jpg',
+        },
+      },
+    ];
+
+    const html = generateQuizHtmlProgrammatically(
+      nodes, [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      { screenQuiz: { introEnabled: false } },
+      'screen-quiz-story-native-video-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/',
+      pretendToBeVisual: true,
+    });
+
+    const storyMedia = dom.window.document.querySelector('.sq-story-media');
+    const video = dom.window.document.querySelector('.sq-story-media video') as HTMLVideoElement | null;
+    expect(storyMedia?.classList.contains('is-video')).toBe(true);
+    expect(video?.getAttribute('src')).toBe('https://cdn.example.com/media/info.webm');
+    expect(video?.getAttribute('poster')).toBe('https://cdn.example.com/media/info-poster.jpg');
+    expect(video?.hasAttribute('muted')).toBe(true);
+    expect(video?.hasAttribute('autoplay')).toBe(true);
+    expect(video?.controls).toBe(true);
+    expect(dom.window.document.querySelector('.sq-story-media iframe')).toBeNull();
+    dom.window.close();
+  });
+
   it('applies the configured screen transition effect to the screen quiz shell', () => {
     const nodes = [
       {
@@ -292,7 +380,7 @@ describe('screenQuiz template', () => {
         data: {
           title: 'Answer breakdown',
           message: 'The correct answer is explained here.',
-          videoUrl: 'https://rutube.ru/video/abc123def/',
+          videoUrl: 'https://cdn.example.com/media/feedback.mp4',
         },
       },
     ];
@@ -314,15 +402,17 @@ describe('screenQuiz template', () => {
 
     expect(infoDom.window.document.querySelector('.sq-content')?.classList.contains('story-scene')).toBe(true);
     expect(infoDom.window.document.querySelector('.sq-info-card')).not.toBeNull();
+    expect(infoDom.window.document.querySelector('.sq-info-card .sq-story-label')).toBeNull();
     expect(infoDom.window.document.querySelector('.sq-info-card .sq-story-title')).toBeNull();
     expect(infoDom.window.document.querySelectorAll('.sq-story-point')).toHaveLength(3);
     expect(infoDom.window.document.querySelector('.sq-story-media img')?.getAttribute('src')).toBe('https://example.com/rules.png');
+    expect(infoDom.window.document.querySelector('.sq-timer')).not.toBeNull();
     infoDom.window.close();
 
     const feedbackHtml = generateQuizHtmlProgrammatically(
       [nodes[1]], [],
       { enabled: false, duration: 0, onTimeoutNodeId: null },
-      { screenQuiz: { timerSeconds: 5 } },
+      { screenQuiz: { timerSeconds: 5, showStoryTimer: false } },
       'screen-quiz-feedback-story-test',
       'screenQuiz',
       'Screen Quiz'
@@ -336,9 +426,16 @@ describe('screenQuiz template', () => {
 
     expect(feedbackDom.window.document.querySelector('.sq-feedback-card')).not.toBeNull();
     expect(feedbackDom.window.document.querySelector('.sq-feedback-mark')).toBeNull();
+    expect(feedbackDom.window.document.querySelector('.sq-feedback-card .sq-story-label')).toBeNull();
     expect(feedbackDom.window.document.querySelector('.sq-feedback-card .sq-story-title')).toBeNull();
     expect(feedbackDom.window.document.querySelector('.sq-story-body')?.textContent).toContain('The correct answer is explained here.');
-    expect(feedbackDom.window.document.querySelector('.sq-story-media iframe')?.getAttribute('src')).toBe('https://rutube.ru/play/embed/abc123def');
+    const feedbackVideo = feedbackDom.window.document.querySelector('.sq-story-media video') as HTMLVideoElement | null;
+    expect(feedbackVideo?.getAttribute('src')).toBe('https://cdn.example.com/media/feedback.mp4');
+    expect(feedbackVideo?.hasAttribute('muted')).toBe(true);
+    expect(feedbackVideo?.hasAttribute('autoplay')).toBe(true);
+    expect(feedbackVideo?.controls).toBe(true);
+    expect(feedbackDom.window.document.querySelector('.sq-story-media iframe')).toBeNull();
+    expect(feedbackDom.window.document.querySelector('.sq-timer')).toBeNull();
     feedbackDom.window.close();
   });
 
@@ -423,7 +520,7 @@ describe('screenQuiz template', () => {
     const html = generateQuizHtmlProgrammatically(
       nodes, [],
       { enabled: false, duration: 0, onTimeoutNodeId: null },
-      { screenQuiz: { timerSeconds: 5 } },
+      { screenQuiz: { timerSeconds: 5, introEnabled: false } },
       'screen-quiz-correct-answer-highlight-test',
       'screenQuiz',
       'Screen Quiz'
@@ -445,6 +542,75 @@ describe('screenQuiz template', () => {
     expect(options[1]?.classList.contains('correct')).toBe(true);
     dom.window.close();
   }, 8000);
+
+  it('reveals screen quiz question and answers before starting the timer', async () => {
+    const nodes = [
+      {
+        id: 'question-1',
+        type: 'questionNode',
+        position: { x: 0, y: 100 },
+        data: {
+          label: 'Вопрос 1',
+          question: 'Вопрос для диктора',
+          imageUrl: 'https://example.com/question.png',
+          answers: [
+            { id: 'a', text: 'Первый ответ' },
+            { id: 'b', text: 'Второй ответ', isCorrect: true },
+          ],
+        },
+      },
+    ];
+
+    const html = generateQuizHtmlProgrammatically(
+      nodes, [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      {
+        screenQuiz: {
+          timerSeconds: 5,
+          introEnabled: true,
+          introTiming: 'manual',
+          introQuestionMs: 800,
+          introAnswerMs: 600,
+          introMediaMs: 1200,
+          introGapMs: 0,
+        },
+      },
+      'screen-quiz-intro-before-timer-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/',
+      pretendToBeVisual: true,
+    });
+
+    const scene = dom.window.document.querySelector('#sq-scene') as HTMLElement;
+    const questionCard = dom.window.document.querySelector('.sq-question-card');
+    const mediaCard = dom.window.document.querySelector('.sq-media-card');
+    const options = dom.window.document.querySelectorAll('.sq-option');
+    expect(scene.getAttribute('data-playback-phase')).toBe('intro');
+    expect(options[1]?.classList.contains('correct')).toBe(false);
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    expect(questionCard?.classList.contains('is-intro-visible')).toBe(true);
+    expect(mediaCard?.classList.contains('is-intro-visible')).toBe(true);
+    expect(options[0]?.classList.contains('is-intro-visible')).toBe(false);
+
+    await new Promise((resolve) => setTimeout(resolve, 5200));
+
+    expect(scene.getAttribute('data-playback-phase')).toBe('countdown');
+    expect(options[1]?.classList.contains('correct')).toBe(false);
+
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+
+    expect(scene.getAttribute('data-playback-phase')).toBe('reveal');
+    expect(options[0]?.classList.contains('wrong')).toBe(true);
+    expect(options[1]?.classList.contains('correct')).toBe(true);
+    dom.window.close();
+  }, 9000);
 
   it('keeps screen quiz playback on visible screens and skips logic nodes', async () => {
     const nodes = [
@@ -495,7 +661,7 @@ describe('screenQuiz template', () => {
         { id: 'edge-question-score', source: 'question-1', sourceHandle: 'true', target: 'score-1' },
       ],
       { enabled: false, duration: 0, onTimeoutNodeId: null },
-      { screenQuiz: { timerSeconds: 5 } },
+      { screenQuiz: { timerSeconds: 5, introEnabled: false } },
       'screen-quiz-skip-logic-test',
       'screenQuiz',
       'Screen Quiz'
@@ -541,7 +707,7 @@ describe('screenQuiz template', () => {
     const html = generateQuizHtmlProgrammatically(
       nodes, [],
       { enabled: false, duration: 0, onTimeoutNodeId: null },
-      { screenQuiz: { layout: 'question-only', timerSeconds: 30 } },
+      { screenQuiz: { layout: 'question-only', timerSeconds: 30, introEnabled: false } },
       'screen-quiz-multiple-choice-test',
       'screenQuiz',
       'Screen Quiz'

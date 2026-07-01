@@ -79,9 +79,10 @@ function publicUrl(key: string): string {
   return `${PUBLIC_BASE_URL}/${encodeURI(key).replace(/%2F/g, '/')}`;
 }
 
-function detectType(key: string, contentType?: string): 'image' | 'audio' {
+function detectType(key: string, contentType?: string): 'image' | 'audio' | 'video' {
   const lower = key.toLowerCase();
   if (contentType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(lower)) return 'audio';
+  if (contentType?.startsWith('video/') || /\.(mp4|webm|ogv|ogg|mov|m4v)$/i.test(lower)) return 'video';
   return 'image';
 }
 

@@ -470,6 +470,13 @@ const screenQuizDefaults: Required<ScreenQuizSettings> = {
   layout: 'auto',
   timerSeconds: 30,
   showTimer: true,
+  showStoryTimer: true,
+  introEnabled: true,
+  introTiming: 'auto',
+  introQuestionMs: 2800,
+  introAnswerMs: 1800,
+  introMediaMs: 900,
+  introGapMs: 280,
 };
 
 const DesignPanel: React.FC = () => {
@@ -628,7 +635,28 @@ const DesignPanel: React.FC = () => {
           <Field label="Толщина контура"><RangeInput min={4} max={18} step={1} suffix="px" value={screenQuiz.borderWidth} onChange={(value) => updateScreenQuiz({ borderWidth: value })} /></Field>
           <Field label="Скругление"><RangeInput min={24} max={80} step={1} suffix="px" value={screenQuiz.radius} onChange={(value) => updateScreenQuiz({ radius: value })} /></Field>
           <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Показывать таймер</span><Toggle checked={screenQuiz.showTimer} onChange={(value) => updateScreenQuiz({ showTimer: value })} /></div>
+          <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Таймер на Информации и Фидбэке</span><Toggle checked={screenQuiz.showStoryTimer} onChange={(value) => updateScreenQuiz({ showStoryTimer: value })} /></div>
           <Field label="Длительность таймера"><RangeInput min={5} max={180} step={5} suffix=" сек" value={screenQuiz.timerSeconds} onChange={(value) => updateScreenQuiz({ timerSeconds: value })} /></Field>
+        </Section>
+
+        <Section title="Озвучивание перед таймером" note="Вопрос, ответы и медиа появляются по очереди, чтобы ведущий успел их прочитать. Таймер стартует после этой фазы.">
+          <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Включить вступление</span><Toggle checked={screenQuiz.introEnabled} onChange={(value) => updateScreenQuiz({ introEnabled: value })} /></div>
+          <Field label="Темп">
+            <Select value={screenQuiz.introTiming} onChange={(e) => updateScreenQuiz({ introTiming: e.target.value as ScreenQuizSettings['introTiming'] })}>
+              <option value="auto">Авто по длине текста</option>
+              <option value="fast">Быстро</option>
+              <option value="calm">Спокойно</option>
+              <option value="manual">Ручные интервалы</option>
+            </Select>
+          </Field>
+          {screenQuiz.introTiming === 'manual' && (
+            <>
+              <Field label="Вопрос"><RangeInput min={800} max={12000} step={100} suffix=" мс" value={screenQuiz.introQuestionMs} onChange={(value) => updateScreenQuiz({ introQuestionMs: value })} /></Field>
+              <Field label="Вариант ответа"><RangeInput min={600} max={8000} step={100} suffix=" мс" value={screenQuiz.introAnswerMs} onChange={(value) => updateScreenQuiz({ introAnswerMs: value })} /></Field>
+              <Field label="Медиа"><RangeInput min={0} max={5000} step={100} suffix=" мс" value={screenQuiz.introMediaMs} onChange={(value) => updateScreenQuiz({ introMediaMs: value })} /></Field>
+              <Field label="Пауза"><RangeInput min={0} max={1500} step={20} suffix=" мс" value={screenQuiz.introGapMs} onChange={(value) => updateScreenQuiz({ introGapMs: value })} /></Field>
+            </>
+          )}
         </Section>
       </div>
     );

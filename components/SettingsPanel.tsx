@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import { CustomNodeType, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizLayout } from '../types.ts';
+import { CustomNodeType, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout } from '../types.ts';
 import DesignPanel from './DesignPanel.tsx';
 import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
@@ -712,7 +712,7 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={4} />
                 <UrlInput label="URL изображения (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} placeholder="https://example.com/image.png" />
-                <VideoUrlInput label="Видео (RuTube)" value={data.videoUrl || ''} isRequired={data.isRequiredWatch} onRequiredChange={(val) => update(id, { isRequiredWatch: val })} onChange={e => update(id, { videoUrl: e.target.value })} />
+                <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
             </SettingsSection>
             <SettingsSection title="Фон узла">
                 <UrlInput
@@ -838,6 +838,26 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                     onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
                     placeholder="Наследовать"
                 />
+                <Select
+                    label="Показ перед таймером"
+                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Включить</option>
+                    <option value="hide">Выключить</option>
+                </Select>
+                <Select
+                    label="Темп озвучивания"
+                    value={screenQuiz.introTiming || 'inherit'}
+                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто</option>
+                    <option value="fast">Быстро</option>
+                    <option value="calm">Спокойно</option>
+                    <option value="manual">Ручной</option>
+                </Select>
             </SettingsSection>
             <SettingsSection title="Таймер">
                 <HelperText>Если время выйдет, произойдет переход по красной точке выхода внизу узла.</HelperText>
@@ -958,12 +978,11 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                     onChange={e => update(id, { imageUrl: e.target.value })}
                     placeholder="https://example.com/image.png"
                 />
-                <VideoUrlInput 
-                    label="Видео (RuTube)" 
+                <UrlInput 
+                    label="Видеофайл из медиатеки" 
                     value={data.videoUrl || ''} 
-                    isRequired={data.isRequiredWatch} 
-                    onRequiredChange={(val) => update(id, { isRequiredWatch: val })} 
                     onChange={e => update(id, { videoUrl: e.target.value })} 
+                    placeholder="https://.../video.mp4"
                 />
             </SettingsSection>
 
@@ -1155,6 +1174,26 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                     onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
                     placeholder="Наследовать"
                 />
+                <Select
+                    label="Показ перед таймером"
+                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Включить</option>
+                    <option value="hide">Выключить</option>
+                </Select>
+                <Select
+                    label="Темп озвучивания"
+                    value={screenQuiz.introTiming || 'inherit'}
+                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто</option>
+                    <option value="fast">Быстро</option>
+                    <option value="calm">Спокойно</option>
+                    <option value="manual">Ручной</option>
+                </Select>
             </SettingsSection>
 
             {/* Кнопка */}
@@ -1189,6 +1228,17 @@ const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData
 
 const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: Function }) => {
     const { id, data } = node;
+    const screenQuiz = data.screenQuiz || {};
+    const updateScreenQuiz = (patch: Partial<NonNullable<InfoNodeData['screenQuiz']>>) => {
+        const next = { ...screenQuiz, ...patch };
+        Object.keys(next).forEach((key) => {
+            if (next[key as keyof typeof next] === undefined) {
+                delete next[key as keyof typeof next];
+            }
+        });
+        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
+    };
+
     return (
         <div className="space-y-8">
             <SettingsSection title="Настройки информационного блока">
@@ -1196,7 +1246,7 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                 <Textarea label="Описание" value={data.description || ''} onChange={e => update(id, { description: e.target.value })} rows={6} />
                 <MarkdownPreview text={data.description} />
                 <UrlInput label="Картинка" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} />
-                <VideoUrlInput label="Видео (RuTube)" value={data.videoUrl || ''} isRequired={data.isRequiredWatch} onRequiredChange={(val) => update(id, { isRequiredWatch: val })} onChange={e => update(id, { videoUrl: e.target.value })} />
+                <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
             </SettingsSection>
             <SettingsSection title="Фон узла">
@@ -1206,6 +1256,18 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                     onChange={e => update(id, { backgroundImageUrl: e.target.value })}
                     placeholder="Переопределить глобальный фон"
                 />
+            </SettingsSection>
+            <SettingsSection title="Экранная викторина">
+                <HelperText>Локальные настройки этого информационного экрана в шаблоне "Экранная викторина".</HelperText>
+                <Select
+                    label="Таймер на этом экране"
+                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Показать</option>
+                    <option value="hide">Скрыть</option>
+                </Select>
             </SettingsSection>
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
@@ -1403,14 +1465,37 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
 
 const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: Function }) => {
     const { id, data } = node;
+    const screenQuiz = data.screenQuiz || {};
+    const updateScreenQuiz = (patch: Partial<NonNullable<FeedbackNodeData['screenQuiz']>>) => {
+        const next = { ...screenQuiz, ...patch };
+        Object.keys(next).forEach((key) => {
+            if (next[key as keyof typeof next] === undefined) {
+                delete next[key as keyof typeof next];
+            }
+        });
+        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
+    };
+
     return (
         <div className="space-y-8">
             <SettingsSection title="Настройки сообщения">
                 <Input label="Заголовок (опционально)" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст сообщения" value={data.message || ''} onChange={e => update(id, { message: e.target.value })} rows={4} />
                 <UrlInput label="URL изображения (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} placeholder="https://example.com/image.png" />
-                <VideoUrlInput label="Видео (RuTube)" value={data.videoUrl || ''} isRequired={data.isRequiredWatch} onRequiredChange={(val) => update(id, { isRequiredWatch: val })} onChange={e => update(id, { videoUrl: e.target.value })} />
+                <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
+            </SettingsSection>
+            <SettingsSection title="Экранная викторина">
+                <HelperText>Локальные настройки этого экрана обратной связи в шаблоне "Экранная викторина".</HelperText>
+                <Select
+                    label="Таймер на этом экране"
+                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Показать</option>
+                    <option value="hide">Скрыть</option>
+                </Select>
             </SettingsSection>
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
