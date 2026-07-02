@@ -643,14 +643,16 @@ const shootConfetti = async () => {
       origin: { y: 0.6 },
       colors: ["#fbbf24", "#f97316", "#ec4899", "#8b5cf6"],
     });
-  } catch (e) {}
+  } catch (error) {
+    console.warn('[landing] confetti failed', error);
+  }
 };
 
 // ============================================
 // HERO SECTION — Асимметричная композиция
 // ============================================
 const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
-  const scrollProgress = useScrollProgress();
+  useScrollProgress();
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -1493,10 +1495,12 @@ export function getFeaturedQuizDescription(quiz: PublicQuiz): string {
   const nodes = quiz.quiz_data?.nodes ?? [];
   for (const node of nodes) {
     const data = node?.data;
-    const candidate = [data?.description, data?.question, data?.message].find(
-      (value) => typeof value === "string" && value.trim().length > 0,
-    );
-    if (candidate) return candidate.trim();
+    const fields = data as Record<string, unknown>;
+    for (const value of [fields.description, fields.question, fields.message]) {
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
   }
 
   return "";
@@ -1571,16 +1575,16 @@ export function getFeaturedPlayablePreview(quiz: PublicQuiz, limit = 10) {
   }
 
   const nodeById = new Map(
-    allNodes.map((node: any) => [String(node.id), node]),
+    allNodes.map((node) => [String(node.id), node]),
   );
-  const outgoing = new Map<string, any[]>();
+  const outgoing = new Map<string, typeof allEdges>();
   for (const edge of allEdges) {
     const source = String(edge.source);
     outgoing.set(source, [...(outgoing.get(source) ?? []), edge]);
   }
 
   const startNode =
-    allNodes.find((node: any) => node.type === "startNode") ?? allNodes[0];
+    allNodes.find((node) => node.type === "startNode") ?? allNodes[0];
   const queue = startNode ? [String(startNode.id)] : [];
   const selectedIds: string[] = [];
   const visited = new Set<string>();
@@ -1608,7 +1612,7 @@ export function getFeaturedPlayablePreview(quiz: PublicQuiz, limit = 10) {
   return {
     nodes: selectedIds.map((id) => nodeById.get(id)),
     edges: allEdges.filter(
-      (edge: any) =>
+      (edge) =>
         selectedSet.has(String(edge.source)) &&
         selectedSet.has(String(edge.target)),
     ),
@@ -1629,11 +1633,11 @@ export function getFeaturedPreviewNodes(
 ): FeaturedPreviewNode[] {
   return (quiz.quiz_data?.nodes ?? [])
     .slice(0, limit)
-    .map((node: any, index: number) => {
-      const data = node?.data ?? {};
+    .map((node, index) => {
+      const data = (node?.data ?? {}) as Record<string, unknown>;
       const title =
         cleanPreviewText(
-          data.title || data.label || data.question || data.characterName,
+        data.title || data.label || data.question || data.characterName,
         ) || `Этап ${index + 1}`;
       const excerpt = cleanPreviewText(
         data.description ||
@@ -1643,10 +1647,11 @@ export function getFeaturedPreviewNodes(
           data.buttonText,
       );
 
+      const type = String(node?.type ?? "infoNode");
       return {
         id: String(node?.id ?? index),
-        type: String(node?.type ?? "infoNode"),
-        typeLabel: FEATURED_NODE_TYPE_LABELS[node?.type] || "Этап",
+        type,
+        typeLabel: FEATURED_NODE_TYPE_LABELS[type] || "Этап",
         title,
         excerpt: excerpt === title ? "" : excerpt,
       };

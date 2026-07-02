@@ -45,13 +45,10 @@ const AssetManagerModal: React.FC = () => {
     const session = useAuthStore(s => s.session);
     const userQuizzes = useQuizDataStore(s => s.userQuizzes);
     const [assets, setAssets] = useState<Asset[]>([]);
-    const [folders, setFolders] = useState<Folder[]>([]);
     const [currentPath, setCurrentPath] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [showNewFolderInput, setShowNewFolderInput] = useState(false);
-    const [newFolderName, setNewFolderName] = useState('');
     const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isReturning, setIsReturning] = useState(false);
@@ -231,20 +228,6 @@ const AssetManagerModal: React.FC = () => {
         }
     };
 
-    const handleMove = async (asset: Asset, newFolder: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!session) return;
-
-        try {
-            await api.moveAsset(asset.key, newFolder);
-            toast.success('Файл перемещён');
-            fetchAssets(currentPath);
-        } catch (err) {
-            console.error('Move error:', err);
-            toast.error('Ошибка перемещения');
-        }
-    };
-
     const handleSelect = (url: string) => {
         if (onAssetSelect) {
             onAssetSelect(url);
@@ -253,19 +236,6 @@ const AssetManagerModal: React.FC = () => {
             navigator.clipboard.writeText(url);
             toast.success('Ссылка скопирована');
         }
-    };
-
-    const handleCreateFolder = async () => {
-        if (!newFolderName.trim()) return;
-        
-        const cleanName = transliterate(newFolderName.trim()).replace(/[^a-zA-Z0-9-_]/g, '_');
-        
-        if (!session) return;
-        await api.createAssetFolder(cleanName).catch(() => undefined);
-        
-        setShowNewFolderInput(false);
-        setNewFolderName('');
-        fetchAssets(currentPath);
     };
 
     const navigateToFolder = (path: string) => {

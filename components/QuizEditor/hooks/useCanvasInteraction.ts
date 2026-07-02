@@ -5,16 +5,14 @@ import { DEFAULT_W, DEFAULT_H } from '../constants';
 import { createNewNode } from '../createNewNode';
 import { readDraggedNodeType } from '../nodeDragData';
 
-type FlowNode<T = any> = Node<T>;
+type FlowNode<T = NodeData> = Node<T>;
 
 interface UseCanvasInteractionProps {
     reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
     isCanvasLocked: boolean;
     connectingFrom: { nodeId: string; handleId?: string | null } | null;
     quickAddMenu: { screen: { x: number; y: number }; local: { x: number; y: number } } | null;
-    visibleNodes: any[];
-    visibleEdges: any[];
-    edges: any[];
+    edges: Edge[];
     setMenu: React.Dispatch<React.SetStateAction<{ id: string; top: number; left: number } | null>>;
     setEdgeMenu: React.Dispatch<React.SetStateAction<{ id: string; top: number; left: number } | null>>;
     setQuickAddMenu: React.Dispatch<React.SetStateAction<{ screen: { x: number; y: number }; local: { x: number; y: number } } | null>>;
@@ -22,12 +20,10 @@ interface UseCanvasInteractionProps {
     setIsConnecting: React.Dispatch<React.SetStateAction<boolean>>;
     setSelectedNode: (node: FlowNode<NodeData> | null) => void;
     addNode: (node: FlowNode<NodeData>) => void;
-    deleteNode: (id: string) => void;
-    deleteEdge: (id: string) => void;
     onEditEdgeLabel: (edgeId: string, currentLabel: string) => void;
     onConnect: (connection: Connection) => void;
     screenToFlowPosition: (pos: { x: number; y: number }) => { x: number; y: number };
-    getNode: (id: string) => any;
+    getNode: (id: string) => FlowNode<NodeData> | undefined;
     setPreviewMode: (active: boolean, nodeId?: string) => void;
 }
 
@@ -36,8 +32,6 @@ export function useCanvasInteraction({
     isCanvasLocked,
     connectingFrom,
     quickAddMenu,
-    visibleNodes,
-    visibleEdges,
     edges,
     setMenu,
     setEdgeMenu,
@@ -46,8 +40,6 @@ export function useCanvasInteraction({
     setIsConnecting,
     setSelectedNode,
     addNode,
-    deleteNode,
-    deleteEdge,
     onEditEdgeLabel,
     onConnect,
     screenToFlowPosition,

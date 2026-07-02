@@ -1,12 +1,8 @@
-
+﻿
 import React from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
 import { useUIStore } from '../../store/useUIStore';
 import { GroupNodeData } from '../../types.ts';
-
-const { Handle, Position, NodeResizer } = ReactFlow as any;
-type NodeProps<T = any> = any;
-
 const COLOR_MAP: Record<string, { bg: string, border: string, text: string, headerBg: string, highlight: string }> = {
     slate: { bg: 'bg-slate-50/40', border: 'border-slate-300', text: 'text-slate-700', headerBg: 'bg-slate-200', highlight: 'ring-slate-400' },
     blue: { bg: 'bg-blue-50/40', border: 'border-blue-300', text: 'text-blue-700', headerBg: 'bg-blue-200', highlight: 'ring-blue-400' },

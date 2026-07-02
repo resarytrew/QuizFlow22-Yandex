@@ -485,9 +485,12 @@ Auth policy:
 5.2 Что проверять перед коммитом
 Bash
 
-npm run lint         # Сейчас tsc --noEmit; после настройки станет ESLint
+npm run typecheck    # TypeScript без emit
+npm run lint:eslint  # ESLint flat config для frontend-кода
+npm run lint         # typecheck + ESLint
 npm test             # Vitest
-npm run test:functions  # Deno (если менялись Edge Functions)
+npm run lint:functions  # TypeScript-проверка Yandex Functions
+npm run test:functions  # Bundle Yandex Functions
 npm run build
 5.3 Файлы которые НЕЛЬЗЯ коммитить
 text
@@ -604,18 +607,19 @@ text
 
 Обязательные шаги:
 1. npm ci
-2. npm run lint (сейчас TypeScript typecheck)
-3. npm run lint:functions
+2. npm run install:functions
+3. npm run lint (TypeScript typecheck + ESLint)
 4. npm test
-5. npm run test:functions
-6. npm run build
-7. aws s3 sync dist/assets → s3://$YC_BUCKET/assets --delete
-8. aws s3 cp root files → s3://$YC_BUCKET/ без --delete
-9. CDN cache purge (опц.)
+5. npm run lint:functions
+6. npm run test:functions
+7. npm run build
+8. aws s3 sync dist/assets → s3://$YC_BUCKET/assets --delete
+9. aws s3 cp root files → s3://$YC_BUCKET/ без --delete
+10. CDN cache purge (опц.)
 
-`.github/workflows/ci.yml` запускает frontend tests и Edge Function tests
-на push/PR. `.github/workflows/deploy.yml` повторяет проверки перед загрузкой
-артефактов, поэтому тесты являются обязательным deploy gate.
+`.github/workflows/ci.yml` запускает frontend tests и Yandex Functions
+typecheck/bundle на push/PR. `.github/workflows/deploy.yml` повторяет проверки
+перед загрузкой артефактов, поэтому тесты являются обязательным deploy gate.
 10. КОНТЕКСТ ДЛЯ ЗАДАЧ
 При добавлении нового типа ноды
 text
@@ -654,14 +658,14 @@ text
 5. SQL тесты в supabase/tests/
 6. supabase db push
 11. KNOWN ISSUES И ТЕХНИЧЕСКИЙ ДОЛГ
-Открытые проблемы (актуально на 2026-06-09)
+Открытые проблемы (актуально на 2026-07-02)
 text
-
-P2: ESLint конфиг отсутствует
-    (npm run lint есть, но правил нет)
 
 P2: structuredClone × 50 snapshots в истории → до 100MB RAM
     (нужен structural sharing через immer или delta-based history)
+
+P2: ESLint warnings baseline 419 → 331 → 0
+    (отдельная задача: ESLINT_WARNINGS_TASK.md; Phase 1 unused/prefer-const закрыта; дальше any → React hooks/refresh)
 
 P2: toast вызовы внутри сторов (side effect coupling)
     (нужно вынести в presentation layer)
@@ -778,6 +782,33 @@ text
 - Почему
 - Какие разделы обновлены
 ```
+
+### 2026-07-02 — Локальный и CI verify gate
+- Добавлен корневой `npm run verify`: устанавливает зависимости `yc-functions`, запускает frontend typecheck, Vitest, typecheck/bundle Yandex Functions и production build.
+- `lint:functions` теперь делегирует в `yc-functions`, где добавлен собственный `lint`.
+- CI для Yandex Functions запускает `npm run lint`/`npm run build` из `yc-functions`, а deploy перед проверками явно выполняет `npm run install:functions`.
+- Почему: чистый checkout и GitHub Actions больше не зависят от случайно существующего `yc-functions/node_modules`; локальная проверка кроссплатформенная и не требует shell-цепочки `&&`.
+- Обновлены разделы 9.3 и 14.
+
+### 2026-07-02 — ESLint gate
+- Добавлен `eslint.config.js` с recommended JS/TypeScript, React Hooks и React Refresh.
+- `npm run lint` теперь запускает `npm run typecheck && npm run lint:eslint`, поэтому ESLint входит в локальный и CI/deploy verify gate.
+- Закрыт known issue `ESLint конфиг отсутствует`; текущие ESLint warnings остаются видимым техдолгом, ошибки блокируют проверку.
+- Исправлены первые блокирующие ошибки ESLint в React hooks/control-flow и мелких выражениях.
+- Обновлены разделы 5.2, 9.3, 11 и 14.
+
+### 2026-07-02 — ESLint warnings burn-down task
+- Заведена отдельная задача `ESLINT_WARNINGS_TASK.md` на снижение ESLint warnings с baseline 419 до 0.
+- Зафиксирован порядок работ: сначала `no-unused-vars`/`prefer-const` (83 warnings), затем `no-explicit-any` (291), затем React Hooks/React Refresh (45).
+- Почему: предупреждения нужно гасить управляемыми партиями с тестами после каждой фазы, а не смешивать с первичным подключением ESLint.
+- Обновлены разделы 11 и 14.
+
+### 2026-07-02 — ESLint warnings Phase 1
+- Закрыта Phase 1 задачи `ESLINT_WARNINGS_TASK.md`: `no-unused-vars` 80 → 0 и `prefer-const` 3 → 0.
+- Общий ESLint warning baseline снижен 419 → 331; заодно исчезли 5 `no-explicit-any` warnings из удалённых мёртвых mock/generic-заглушек.
+- Проверки: `npm run lint` и `npm test` проходят.
+- Следующий этап: `no-explicit-any` 286 → 0.
+- Обновлены разделы 11 и 14.
 
 ### 2026-06-10 — Yandex auth entry
 - Включено обязательное подтверждение email в Supabase Auth.

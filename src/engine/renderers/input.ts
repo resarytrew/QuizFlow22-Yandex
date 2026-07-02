@@ -2,8 +2,40 @@ import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { getState, setVariable } from "../state";
 
+interface TextInputData {
+  placeholder?: string;
+  buttonText?: string;
+  acceptedAnswers?: unknown[];
+  keyword?: string;
+}
+
+interface CollectInfoField {
+  label?: string;
+  variableName: string;
+  type?: string;
+  required?: boolean;
+}
+
+interface CollectInfoData {
+  fields?: CollectInfoField[];
+  buttonText?: string;
+}
+
+interface AllocatorItem {
+  label?: string;
+  variableName: string;
+  defaultValue?: number;
+}
+
+interface AllocatorData {
+  maxTotal?: number;
+  requireExactTotal?: boolean;
+  items?: AllocatorItem[];
+  buttonText?: string;
+}
+
 export const renderTextInput: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as TextInputData;
   const input = document.createElement("input");
   input.className = "text-field";
   input.placeholder = data.placeholder ?? "Ваш ответ...";
@@ -22,9 +54,9 @@ export const renderTextInput: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderCollectInfo: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as CollectInfoData;
   const state = getState();
-  const inputs: Array<{ field: any; input: HTMLInputElement }> = [];
+  const inputs: Array<{ field: CollectInfoField; input: HTMLInputElement }> = [];
 
   for (const field of data.fields ?? []) {
     const label = document.createElement("label");
@@ -34,8 +66,9 @@ export const renderCollectInfo: NodeRenderer = (node, controls, context) => {
     title.className = "field-label";
     title.textContent = field.label ?? field.variableName ?? "";
     input.className = "text-field";
-    input.type = ["email", "number", "tel", "date"].includes(field.type)
-      ? field.type
+    const fieldType = field.type ?? "text";
+    input.type = ["email", "number", "tel", "date"].includes(fieldType)
+      ? fieldType
       : "text";
     input.required = Boolean(field.required);
     input.name = field.variableName ?? "";
@@ -55,7 +88,7 @@ export const renderCollectInfo: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderAllocator: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as AllocatorData;
   const state = getState();
   const values: Record<string, number> = {};
   const maxTotal = Number(data.maxTotal ?? 100);

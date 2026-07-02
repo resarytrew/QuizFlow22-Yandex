@@ -1,8 +1,8 @@
 // src/engine/__tests__/navigation.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, beforeEach } from 'vitest';
 import { buildIndexes } from '../indexing';
 import { processNode } from '../navigation';
-import { resetState, getState } from '../state';
+import { resetState } from '../state';
 
 describe('processNode', () => {
   beforeEach(() => resetState());

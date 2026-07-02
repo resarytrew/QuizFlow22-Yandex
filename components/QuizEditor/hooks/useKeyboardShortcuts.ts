@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
-import type { Node } from 'reactflow';
+import type { Edge, Node } from 'reactflow';
 import toast from 'react-hot-toast';
 import { CustomNodeType, NodeData } from '../../../types';
 
-type FlowNode<T = any> = Node<T>;
+type FlowNode<T = NodeData> = Node<T>;
 
 interface UseKeyboardShortcutsProps {
-    visibleNodes: any[];
-    visibleEdges: any[];
+    visibleNodes: FlowNode<NodeData>[];
+    visibleEdges: Edge[];
     isCanvasLocked: boolean;
     deleteNode: (id: string) => void;
     deleteEdge: (id: string) => void;
@@ -47,9 +47,9 @@ export function useKeyboardShortcuts({
                 if (e.key.toLowerCase() === 'c') {
                     if (isCanvasLocked) return;
                     e.preventDefault();
-                    const selected = visibleNodes.filter((n: any) => n.selected && n.type !== CustomNodeType.Start);
+                    const selected = visibleNodes.filter((n) => n.selected && n.type !== CustomNodeType.Start);
                     if (selected.length > 0) {
-                        clipboardRef.current = selected.map((n: any) => ({
+                        clipboardRef.current = selected.map((n) => ({
                             ...n,
                             data: JSON.parse(JSON.stringify(n.data)),
                         }));
@@ -61,7 +61,7 @@ export function useKeyboardShortcuts({
                     if (isCanvasLocked || clipboardRef.current.length === 0) return;
                     e.preventDefault();
                     const offset = { x: 40, y: 40 };
-                    clipboardRef.current.forEach((n: any, i: number) => {
+                    clipboardRef.current.forEach((n, i) => {
                         const newNode: FlowNode<NodeData> = {
                             ...n,
                             id: `${n.type}-${Date.now()}-${i}`,

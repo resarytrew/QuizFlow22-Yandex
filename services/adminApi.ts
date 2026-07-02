@@ -16,6 +16,7 @@ import type {
   AdminReportsParams,
   AdminReportsResponse,
   AdminSessionResponse,
+  AdminStaffSession,
   AdminSupportParams,
   AdminSupportResponse,
   AdminUpdateUserStatusPayload,
@@ -24,6 +25,9 @@ import type {
   AdminUsersResponse,
   SupportTicketMessage,
 } from '../types';
+
+type AdminSupportReplyResponse = { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
+type AdminPromocodeMutationResponse = { staff: AdminStaffSession; promocode: AdminPromocodeItem; generated_at: string };
 
 export class AdminApiError extends Error {
   readonly status: number;
@@ -68,7 +72,7 @@ export async function updateAdminSupportStatus(payload: { ticket_id: string; sta
   return api.updateAdminSupportStatus(payload);
 }
 
-export async function replyToAdminSupport(payload: { ticket_id: string; body: string }): Promise<{ staff: any; message: SupportTicketMessage; generated_at: string }> {
+export async function replyToAdminSupport(payload: { ticket_id: string; body: string }): Promise<AdminSupportReplyResponse> {
   return api.replyToAdminSupport(payload);
 }
 
@@ -84,11 +88,11 @@ export async function fetchAdminPromocodes(params?: AdminUsersParams): Promise<A
   return api.adminPromocodes(params);
 }
 
-export async function createAdminPromocode(payload: AdminPromocodeCreatePayload): Promise<{ staff: any; promocode: AdminPromocodeItem; generated_at: string }> {
+export async function createAdminPromocode(payload: AdminPromocodeCreatePayload): Promise<AdminPromocodeMutationResponse> {
   return api.createAdminPromocode(payload);
 }
 
-export async function toggleAdminPromocode(payload: AdminPromocodeTogglePayload): Promise<{ staff: any; promocode: AdminPromocodeItem; generated_at: string }> {
+export async function toggleAdminPromocode(payload: AdminPromocodeTogglePayload): Promise<AdminPromocodeMutationResponse> {
   return api.toggleAdminPromocode(payload);
 }
 

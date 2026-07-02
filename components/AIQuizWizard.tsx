@@ -7,7 +7,6 @@ import React, {
   useReducer,
   memo,
   FC,
-  ChangeEvent,
 } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -439,7 +438,7 @@ interface QuizNode {
   id: string;
   type: string;
   position: { x: number; y: number };
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   _originalId?: string;
 }
 
@@ -482,7 +481,7 @@ interface WizardState {
 type WizardAction =
   | { type: 'SET_STAGE'; payload: WizardStage }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'UPDATE_INPUT'; field: keyof WizardState['inputs']; value: any }
+  | { type: 'UPDATE_INPUT'; field: keyof WizardState['inputs']; value: WizardState['inputs'][keyof WizardState['inputs']] }
   | { type: 'SET_IDEAS'; payload: GeneratedIdea[] }
   | { type: 'SELECT_IDEA'; payload: GeneratedIdea }
   | { type: 'APPEND_TEXT'; field: 'conceptText' | 'architectureText' | 'mechanicsText'; value: string }
@@ -490,6 +489,8 @@ type WizardAction =
   | { type: 'RESET' };
 
 const STAGES: readonly WizardStage[] = ['topic', 'settings', 'ideas', 'concept', 'architecture', 'mechanics'];
+type WizardInputValue = WizardState['inputs'][keyof WizardState['inputs']];
+type GeneratedTextField = 'conceptText' | 'architectureText' | 'mechanicsText';
 
 const STAGE_LABELS: Record<WizardStage, string> = {
   topic: 'Вводные',
@@ -506,7 +507,10 @@ const STAGE_LABELS: Record<WizardStage, string> = {
 
 const clamp = (n: number, min: number, max: number): number => Math.max(min, Math.min(max, n));
 
-const indexedTextFromRecord = (record: Record<string, any>): string | null => {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const indexedTextFromRecord = (record: Record<string, unknown>): string | null => {
   const numericKeys = Object.keys(record)
     .filter(key => /^\d+$/.test(key))
     .sort((a, b) => Number(a) - Number(b));
@@ -517,7 +521,7 @@ const indexedTextFromRecord = (record: Record<string, any>): string | null => {
 const extractDataText = (data: unknown): string | null => {
   if (typeof data === 'string') return data.trim() || null;
   if (data && typeof data === 'object' && !Array.isArray(data)) {
-    return indexedTextFromRecord(data as Record<string, any>);
+    return indexedTextFromRecord(data as Record<string, unknown>);
   }
   return null;
 };
@@ -538,9 +542,9 @@ const parseInlineAnswers = (text: string): { question: string; answers: Array<{ 
   return answers.length >= 2 ? { question: question || text, answers } : null;
 };
 
-const coerceNodeData = (type: string, rawData: unknown): Record<string, any> => {
+const coerceNodeData = (type: string, rawData: unknown): Record<string, unknown> => {
   const rawObject = rawData && typeof rawData === 'object' && !Array.isArray(rawData)
-    ? rawData as Record<string, any>
+    ? rawData as Record<string, unknown>
     : null;
   const text = extractDataText(rawData);
 
@@ -645,25 +649,29 @@ const normalizeEdges = (rawEdges: unknown[], nodes: QuizNode[]): QuizEdge[] => {
   const edges: QuizEdge[] = [];
   const seenEdges = new Set<string>();
 
-  (rawEdges as any[]).forEach((e, index) => {
+  (Array.isArray(rawEdges) ? rawEdges : []).forEach((e, index) => {
+    if (!isRecord(e)) return;
     if (!e?.source || !e?.target) return;
     
-    const source = originalToNormalized.get(e.source) || e.source;
-    const target = originalToNormalized.get(e.target) || e.target;
+    const sourceId = String(e.source);
+    const targetId = String(e.target);
+    const source = originalToNormalized.get(sourceId) || sourceId;
+    const target = originalToNormalized.get(targetId) || targetId;
     
     if (!nodeIds.has(source) || !nodeIds.has(target)) return;
     if (source === target) return;
     
-    const edgeKey = `${source}->${target}:${e.sourceHandle || ''}`;
+    const sourceHandle = typeof e.sourceHandle === 'string' ? e.sourceHandle : null;
+    const edgeKey = `${source}->${target}:${sourceHandle || ''}`;
     if (seenEdges.has(edgeKey)) return;
     seenEdges.add(edgeKey);
 
     edges.push({
-      id: e.id || `edge-${index}-${source}-${target}`,
+      id: typeof e.id === 'string' ? e.id : `edge-${index}-${source}-${target}`,
       source,
       target,
-      sourceHandle: e.sourceHandle ?? null,
-      data: e.data,
+      sourceHandle,
+      data: isRecord(e.data) ? e.data as QuizEdge['data'] : undefined,
     });
   });
 
@@ -874,14 +882,14 @@ const addMissingOutcomeEdges = (nodes: QuizNode[], edges: QuizEdge[]): QuizEdge[
 const normalizeNodeSemantics = (nodes: QuizNode[]): QuizNode[] => {
   return nodes.map((node) => {
     if (node.type === 'questionNode' && Array.isArray(node.data?.answers)) {
-      const correctAnswers = node.data.answers.filter((answer: any) => answer?.isCorrect === true);
+      const correctAnswers = node.data.answers.filter((answer) => isRecord(answer) && answer.isCorrect === true);
       if (correctAnswers.length > 1) {
         return {
           ...node,
           type: 'multipleChoiceNode',
           data: {
             ...node.data,
-            correctOptions: correctAnswers.map((answer: any) => String(answer.id)),
+            correctOptions: correctAnswers.map((answer) => String(answer.id)),
             minSelections: correctAnswers.length,
             maxSelections: correctAnswers.length,
           },
@@ -891,8 +899,8 @@ const normalizeNodeSemantics = (nodes: QuizNode[]): QuizNode[] => {
 
     if (node.type === 'matchingNode' && Array.isArray(node.data?.correctPairs)) {
       const normalizedPairs = node.data.correctPairs
-        .map((pair: any) => {
-          if (pair && typeof pair === 'object' && pair.leftId && pair.rightId) return pair;
+        .map((pair) => {
+          if (isRecord(pair) && pair.leftId && pair.rightId) return pair;
           if (typeof pair === 'string') {
             const [leftId, rightId] = pair.split(/[-:|>]/).map(part => part.trim()).filter(Boolean);
             if (leftId && rightId) return { leftId, rightId };
@@ -922,7 +930,7 @@ const addAssessmentEdgeEffects = (nodes: QuizNode[], edges: QuizEdge[]): QuizEdg
 
     if (source.type === 'questionNode') {
       const answer = Array.isArray(source.data?.answers)
-        ? source.data.answers.find((item: any) => String(item.id) === String(edge.sourceHandle))
+        ? source.data.answers.find((item) => isRecord(item) && String(item.id) === String(edge.sourceHandle))
         : null;
       if (!answer) return edge;
       if (answer.isCorrect === true) {
@@ -965,7 +973,7 @@ const makeNode = (
   baseId: string,
   type: string,
   position: { x: number; y: number },
-  data: Record<string, any>,
+  data: Record<string, unknown>,
 ): QuizNode => ({
   id: uniqueNodeId(nodes, baseId),
   type,
@@ -1169,7 +1177,7 @@ const ensureSecretBranch = (
 
   const secretAnswerId = 'secret_answer';
   const answers = Array.isArray(source.data.answers) ? source.data.answers : [];
-  if (!answers.some((answer: any) => answer.id === secretAnswerId)) {
+  if (!answers.some((answer) => isRecord(answer) && answer.id === secretAnswerId)) {
     source.data.answers = [
       ...answers,
       { id: secretAnswerId, text: 'Заметить скрытую закономерность' },
@@ -2100,7 +2108,7 @@ const TopicStage: FC<{
 
 const SettingsStage: FC<{
   inputs: WizardState['inputs'];
-  onUpdate: (field: keyof WizardState['inputs'], value: any) => void;
+  onUpdate: (field: keyof WizardState['inputs'], value: WizardInputValue) => void;
   onSubmit: () => void;
   onBack: () => void;
   isLoading: boolean;
@@ -2112,7 +2120,7 @@ const SettingsStage: FC<{
     if (current.includes(id)) {
       onUpdate('selectedOptions', current.filter(x => x !== id));
     } else {
-      let newOptions = current.filter(x => {
+      const newOptions = current.filter(x => {
         const existing = ALL_OPTIONS.find(o => o.id === x);
         return !existing?.incompatibleWith?.includes(id) && !option?.incompatibleWith?.includes(x);
       });
@@ -2758,18 +2766,28 @@ Quality criteria:
       );
 
       const jsonStr = extractFirstJsonObject(response) ?? response;
-      let parsed;
+      let parsed: unknown;
       
       try {
           parsed = JSON.parse(jsonStr);
-      } catch (e) {
-          console.error("JSON Parse Error", e);
+      } catch (error) {
+          console.error("JSON Parse Error", error);
           throw new Error("Invalid JSON received from AI");
       }
       
-      const rawIdeas = Array.isArray(parsed.ideas) ? parsed.ideas : [];
+      const rawIdeas: Array<Partial<GeneratedIdea>> = isRecord(parsed) && Array.isArray(parsed.ideas)
+        ? parsed.ideas.map((idea) => {
+            const record = isRecord(idea) ? idea : {};
+            return {
+              title: typeof record.title === 'string' ? record.title : undefined,
+              genre: typeof record.genre === 'string' ? record.genre : undefined,
+              description: typeof record.description === 'string' ? record.description : undefined,
+              hook: typeof record.hook === 'string' ? record.hook : undefined,
+            };
+          })
+        : [];
       
-      const ideas: GeneratedIdea[] = rawIdeas.slice(0, 6).map((idea: any) => ({
+      const ideas: GeneratedIdea[] = rawIdeas.slice(0, 6).map((idea) => ({
         title: idea.title || 'Без названия',
         genre: idea.genre || 'Общий',
         description: idea.description || '',
@@ -2797,7 +2815,7 @@ Quality criteria:
   ) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     const controller = createNew();
-    dispatch({ type: 'SET_TEXT', field: `${stageName}Text` as any, value: '' });
+    dispatch({ type: 'SET_TEXT', field: `${stageName}Text` as GeneratedTextField, value: '' });
     buffer.reset();
 
     try {
@@ -2932,7 +2950,7 @@ Generate ONLY valid JSON: {"nodes":[...],"edges":[...]}`;
       let response: string;
       try {
         response = await callOpenRouter(AI_MODEL_JSON, prompt, true, controller.signal);
-      } catch (e) {
+      } catch {
         console.warn('Retrying with simpler prompt...');
         const simplePrompt = `Create quiz JSON. Topic: ${inputs.topic}. ${inputs.questionCount} questions. 
 Format: {"nodes":[{"id":"start","type":"startNode","position":{"x":400,"y":50},"data":{"label":"Start"}}...],"edges":[...]}
@@ -2940,9 +2958,9 @@ Use Russian. Include resultNode at end.`;
         response = await callOpenRouter(AI_MODEL_JSON, simplePrompt, true, controller.signal);
       }
 
-      let data: { nodes: any[]; edges: any[] };
+      let data: { nodes: unknown[]; edges: unknown[] };
       try {
-        ({ data } = await parseJsonWithRepair<{ nodes: any[]; edges: any[] }>(response, controller.signal));
+        ({ data } = await parseJsonWithRepair<{ nodes: unknown[]; edges: unknown[] }>(response, controller.signal));
       } catch (parseError) {
         console.warn('Retrying final quiz generation after invalid JSON...', parseError);
         const compactQuestionCount = clamp(inputs.questionCount, 5, 12);
@@ -2978,15 +2996,15 @@ Rules:
 
         try {
           response = await callOpenRouter(AI_MODEL_JSON, compactPrompt, true, controller.signal);
-          ({ data } = await parseJsonWithRepair<{ nodes: any[]; edges: any[] }>(response, controller.signal));
+          ({ data } = await parseJsonWithRepair<{ nodes: unknown[]; edges: unknown[] }>(response, controller.signal));
         } catch (compactParseError) {
           console.warn('Using local fallback quiz after repeated invalid JSON...', compactParseError);
           data = createFallbackQuizData(inputs.topic, inputs.goal, inputs.audience, inputs.questionCount);
         }
       }
       
-      let rawNodes = Array.isArray(data?.nodes) ? data.nodes : [];
-      let rawEdges = Array.isArray(data?.edges) ? data.edges : [];
+      const rawNodes = Array.isArray(data?.nodes) ? data.nodes : [];
+      const rawEdges = Array.isArray(data?.edges) ? data.edges : [];
 
       if (!rawNodes.length) throw new Error('AI не вернул узлы');
 
@@ -3073,7 +3091,7 @@ Rules:
     closeWizard();
   }, [cancel, closeWizard]);
 
-  const handleUpdate = useCallback((field: keyof WizardState['inputs'], value: any) => {
+  const handleUpdate = useCallback((field: keyof WizardState['inputs'], value: WizardInputValue) => {
     dispatch({ type: 'UPDATE_INPUT', field, value });
   }, []);
 

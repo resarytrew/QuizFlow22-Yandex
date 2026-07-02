@@ -17,7 +17,7 @@ const RestoreAutosavePrompt: React.FC = () => {
         try {
             const savedDate = new Date(JSON.parse(savedDataString).timestamp);
             timeString = savedDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
+        } catch {
             // Could not parse date, do nothing
         }
     }

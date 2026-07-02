@@ -1,13 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import * as ReactFlowPkg from 'reactflow';
+import { useReactFlow, useViewport } from 'reactflow';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { ZOOM } from './constants';
 import { Icons } from './Icons';
 import { ToolbarButton } from './ToolbarButton';
 import { getMotionDuration } from './performanceMode';
-
-const { useReactFlow, useViewport } = ReactFlowPkg as any;
 
 interface BottomControlBarProps {
     onLayout: (dir: 'TB' | 'LR') => void;

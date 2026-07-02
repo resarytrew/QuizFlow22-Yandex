@@ -1,12 +1,8 @@
-
+﻿
 import React from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { BaseNodeData } from '../../types';
-
-const { Handle, Position } = ReactFlow as any;
-type NodeProps<T = any> = any;
-
 const StartNode: React.FC<NodeProps<BaseNodeData>> = ({ id }) => {
     const selectedNode = useCanvasStore(s => s.selectedNode);
     const isSelected = selectedNode?.id === id;

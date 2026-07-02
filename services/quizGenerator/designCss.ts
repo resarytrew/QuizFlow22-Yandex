@@ -74,10 +74,8 @@ export function buildDesignCss(designSettings: unknown): string {
   const bgSize = bgFit === "repeat" ? "320px" : cssString(bgFit);
   const overlayOpacity = Math.max(0, Math.min(1, num(background.overlayOpacity, 0)));
   const layoutPreset = cssString(text(layout.preset, "classic"));
-  const surfaceStyle = cssString(text(layout.surfaceStyle, "paper"));
   const questionAlign = text(layout.questionAlign, "left") === "center" ? "center" : "left";
   const verticalAlign = text(layout.verticalAlign, "center") === "top" ? "top" : "center";
-  const density = cssString(text(layout.density, "balanced"));
   const buttonWidth = text(buttons.width, "auto") === "full" ? "full" : "auto";
   const buttonTransform = text(buttons.textTransform, "none") === "uppercase" ? "uppercase" : "none";
   const answerColumns = Math.max(1, Math.min(3, Math.round(num(answers.columns, 1))));

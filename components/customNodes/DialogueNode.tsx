@@ -1,10 +1,9 @@
-
+﻿
 import React from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode.tsx';
 import { DialogueNodeData } from '../../types.ts';
 import { parseMarkdown } from '../../utils/parseText.ts';
-
-type NodeProps<T = any> = any;
 
 const MOOD_LABELS: Record<string, string> = {
   neutral: 'Нейтральный',

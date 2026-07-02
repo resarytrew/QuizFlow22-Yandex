@@ -1,11 +1,7 @@
-
+﻿
 import React, { useState } from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { TextInputNodeData } from '../../types.ts';
-
-const { Handle, Position } = ReactFlow as any;
-type NodeProps<T = any> = any;
-
 const TextInputNode: React.FC<NodeProps<TextInputNodeData>> = ({ data, selected }) => {
   const { question, imageUrl } = data;
   const [isZoomed, setIsZoomed] = useState(false);

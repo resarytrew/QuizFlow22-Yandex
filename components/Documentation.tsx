@@ -92,12 +92,12 @@ const AlertBlock: React.FC<{ content: string; variant?: 'info' | 'warning' | 'su
 };
 
 const markdownComponents = {
-  p: ({ node, ...props }: any) => <p className="mb-4" {...props} />,
-  strong: ({ node, ...props }: any) => <strong className="font-semibold text-slate-950" {...props} />,
-  code: ({ node, ...props }: any) => (
+  p: ({ node: _node, ...props }: React.ComponentProps<'p'> & { node?: unknown }) => <p className="mb-4" {...props} />,
+  strong: ({ node: _node, ...props }: React.ComponentProps<'strong'> & { node?: unknown }) => <strong className="font-semibold text-slate-950" {...props} />,
+  code: ({ node: _node, ...props }: React.ComponentProps<'code'> & { node?: unknown }) => (
     <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm text-indigo-700" {...props} />
   ),
-  a: ({ node, ...props }: any) => (
+  a: ({ node: _node, ...props }: React.ComponentProps<'a'> & { node?: unknown }) => (
     <a className="font-medium text-indigo-700 underline underline-offset-2 hover:text-indigo-900" {...props} />
   ),
 };
@@ -141,7 +141,7 @@ const ContentRenderer: React.FC<{ blocks: DocBlock[] }> = ({ blocks }) => (
                     remarkPlugins={[remarkGfm]}
                     components={{
                       ...markdownComponents,
-                      p: ({ node, ...props }: any) => <span {...props} />,
+                      p: ({ node: _node, ...props }: React.ComponentProps<'span'> & { node?: unknown }) => <span {...props} />,
                     }}
                   >
                     {item}

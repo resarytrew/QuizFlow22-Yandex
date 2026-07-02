@@ -1,11 +1,8 @@
 
 import React, { useMemo } from 'react';
-import * as ReactFlow from 'reactflow';
+import { useReactFlow, type Node } from 'reactflow';
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { CustomNodeType, NodeData, VariableNodeData, ConditionNodeData } from '../../types.ts';
-
-const { useReactFlow } = ReactFlow as any;
-type Node<T = any> = any;
 
 interface Props {
   isOpen: boolean;
@@ -66,7 +63,7 @@ const VariableManagerModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 duration: 500
             });
             // Highlight the node
-            setNodes((nds: Array<{ id: string; selected?: boolean; [key: string]: unknown }>) => nds.map(n => ({...n, selected: n.id === nodeId})));
+            setNodes((nds: Node<NodeData>[]) => nds.map(n => ({ ...n, selected: n.id === nodeId })));
             onClose();
         }
     };

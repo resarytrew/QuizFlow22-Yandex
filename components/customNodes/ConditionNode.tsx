@@ -1,11 +1,7 @@
-
+﻿
 import React from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { ConditionNodeData } from '../../types';
-
-const { Handle, Position } = ReactFlow as any;
-type NodeProps<T = any> = any;
-
 const operatorMap: Record<string, string> = {
     eq: '==',
     neq: '!=',

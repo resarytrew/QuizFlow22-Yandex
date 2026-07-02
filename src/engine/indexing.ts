@@ -25,10 +25,11 @@ export function buildIndexes(data: QuizData): void {
     if (!node?.id) continue;
     nodeById[node.id] = node;
 
+    const dataParentId = node.data.parentId;
     const parentId =
       node.parentId ??
-      (node as any).data?.parentId ??
-      (node as any).parentNode ??
+      (typeof dataParentId === "string" ? dataParentId : undefined) ??
+      node.parentNode ??
       null;
 
     if (parentId) {

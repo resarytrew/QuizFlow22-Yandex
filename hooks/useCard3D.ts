@@ -21,7 +21,6 @@ interface UseCard3DReturn {
 
 export function useCard3D(options: UseCard3DOptions = {}): UseCard3DReturn {
   const { maxTilt = 8, perspective = 800, disabled = false } = options;
-  const ref = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [spot, setSpot] = useState({ x: 50, y: 50 });

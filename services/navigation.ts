@@ -11,6 +11,7 @@ import {
   nodesByParent,
   normalizeHandle,
   type QuizEdge,
+  type QuizNode,
 } from "./indexing";
 import {
   getState,
@@ -48,6 +49,28 @@ const LOGIC_TYPES = new Set([
   "achievementNode",
   "progressionNode",
 ]);
+
+type RuntimeScalar = string | number;
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asRuntimeScalar(value: unknown): RuntimeScalar {
+  if (
+    typeof value === "string" ||
+    typeof value === "number"
+  ) {
+    return value;
+  }
+  return String(value ?? "");
+}
+
+function getEntrySound(data: Record<string, unknown>): string | undefined {
+  const settings = data.soundSettings;
+  if (!settings || typeof settings !== "object") return undefined;
+  return asString((settings as Record<string, unknown>).onEntry);
+}
 
 // ─── Circuit breaker ─────────────────────────────────────
 
@@ -105,10 +128,11 @@ export function resolveNextNode(
 
   // Подъём через родителя (для нод внутри groupNode)
   const node = nodeById[currentNodeId];
+  const dataParentId = asString(node?.data?.parentId);
   const parentId = node
     ? (node.parentId ??
-      (node.data?.parentId as string | undefined) ??
-      (node as any).parentNode ??
+      dataParentId ??
+      node.parentNode ??
       null)
     : null;
 
@@ -171,12 +195,12 @@ function processNodeUnsafe(nodeId: string): void {
   // UI-нода — рендерим и сбрасываем circuit-breaker
   _logicChainDepth = 0;
   renderNode(node);
-  playNodeEntrySound((node.data as any)?.soundSettings?.onEntry);
+  playNodeEntrySound(getEntrySound(node.data));
 }
 
 // ─── Logic execution ─────────────────────────────────────
 
-function executeLogic(node: { id: string; type: string; data: any }): void {
+function executeLogic(node: QuizNode): void {
   const d = node.data || {};
   let nextId: string | null = null;
 
@@ -189,19 +213,20 @@ function executeLogic(node: { id: string; type: string; data: any }): void {
       const raw = d.value;
       const v = Number(raw);
       if (Number.isNaN(v)) break;
-      updateScore(d.operation ?? "set", v);
+      updateScore(asString(d.operation) ?? "set", v);
       nextId = resolveNextNode(node.id, null);
       break;
     }
     case "variableNode": {
-      if (d.variableName) {
-        updateVariable(d.variableName, d.operation ?? "set", d.value);
+      const variableName = asString(d.variableName);
+      if (variableName) {
+        updateVariable(variableName, asString(d.operation) ?? "set", asRuntimeScalar(d.value));
       }
       nextId = resolveNextNode(node.id, null);
       break;
     }
     case "conditionNode": {
-      const varName = d.variable ?? "";
+      const varName = asString(d.variable) ?? "";
       const actual =
         varName === "score" ? getState().score : getState().variables[varName];
       const expected = d.conditionValue !== undefined ? d.conditionValue : d.value;
@@ -236,8 +261,9 @@ function executeLogic(node: { id: string; type: string; data: any }): void {
       break;
     }
     case "goToNode": {
-      if (d.targetNodeId && nodeById[d.targetNodeId]) {
-        nextId = d.targetNodeId;
+      const targetNodeId = asString(d.targetNodeId);
+      if (targetNodeId && nodeById[targetNodeId]) {
+        nextId = targetNodeId;
       } else {
         nextId = resolveNextNode(node.id, null);
       }

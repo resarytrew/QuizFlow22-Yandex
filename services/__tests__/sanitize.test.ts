@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   escapeHtml,
   sanitizeAssetUrl,
@@ -174,7 +174,7 @@ describe("sanitizeHtml", () => {
     const original = (globalThis as any).window?.DOMPurify;
     (globalThis as any).window = {
       DOMPurify: {
-        sanitize: (html: string, opts: any) => {
+        sanitize: (html: string, _opts: any) => {
           // Простая имитация: убрать script
           return html.replace(/<script[^>]*>.*?<\/script>/gi, "");
         },

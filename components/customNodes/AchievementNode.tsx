@@ -1,10 +1,8 @@
-
+﻿
 import React from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode.tsx';
 import { AchievementNodeData } from '../../types.ts';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const AchievementNode: React.FC<NodeProps<AchievementNodeData>> = (props) => {
   const { data } = props;

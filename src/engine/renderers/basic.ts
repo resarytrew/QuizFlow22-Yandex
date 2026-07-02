@@ -5,8 +5,20 @@ import { parseText, sanitizeAssetUrl } from "../sanitize";
 import { saveResults } from "../persistence";
 import { getDesignSettings } from "../designState";
 
+interface BasicNodeData {
+  buttonText?: string;
+  characterAvatar?: string;
+  characterName?: string;
+  characterRole?: string;
+  dialogueText?: string;
+  duration?: number;
+  action?: string;
+  onTimeoutNodeId?: string;
+  explanation?: string;
+}
+
 export const renderDialogue: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   const card = document.createElement("div");
   card.className = "dialogue-card";
 
@@ -53,7 +65,7 @@ export const renderDialogue: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderTimer: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   let seconds = Math.max(0, Number(data.duration ?? 0));
   let finished = false;
 
@@ -125,14 +137,14 @@ export const renderResult: NodeRenderer = (node, controls) => {
 };
 
 export const renderInfo: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   controls.appendChild(createActionButton(data.buttonText ?? "Далее", () => {
     context.continueFrom(node, null);
   }));
 };
 
 export const renderFeedback: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   if (data.explanation) {
     const bubble = document.createElement("div");
     bubble.className = "feedback-bubble md-content";
@@ -146,7 +158,7 @@ export const renderFeedback: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderDefault: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   controls.appendChild(createActionButton(data.buttonText ?? "Далее", () => {
     context.continueFrom(node, null);
   }));

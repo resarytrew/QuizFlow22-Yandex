@@ -1,15 +1,15 @@
 
 import React, { useMemo } from 'react';
+import type { Node } from 'reactflow';
 import { useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import { CustomNodeType, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout } from '../types.ts';
+import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout } from '../types.ts';
 import DesignPanel from './DesignPanel.tsx';
 import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
 
-// Mock Node type to avoid import error
-type Node<T = any> = any;
+type UpdateNodeData = (id: string, data: Partial<NodeData>) => void;
 
 type TrueFalseCorrectAnswer = 'true' | 'false';
 
@@ -20,14 +20,14 @@ const TRUE_FALSE_LABELS: Record<TrueFalseCorrectAnswer, string> = {
 
 const normalizeAnswerText = (value: string | undefined): string => String(value || '').trim().toLowerCase();
 
-function useDerivedNodes<T>(compute: (nodes: Node[]) => T, isEqual: (a: T, b: T) => boolean): T {
+function useDerivedNodes<T>(compute: (nodes: Node<NodeData>[]) => T, isEqual: (a: T, b: T) => boolean): T {
     const computeRef = React.useRef(compute);
     const isEqualRef = React.useRef(isEqual);
     computeRef.current = compute;
     isEqualRef.current = isEqual;
     const [value, setValue] = React.useState<T>(() => compute(useCanvasStore.getState().nodes));
     React.useEffect(() => {
-        return useCanvasStore.subscribe((state: any) => {
+        return useCanvasStore.subscribe((state) => {
             const next = computeRef.current(state.nodes);
             setValue(prev => isEqualRef.current(prev, next) ? prev : next);
         });
@@ -216,7 +216,7 @@ const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.
                     placeholder="https://rutube.ru/video/..." 
                     {...props} 
                     onChange={(e) => {
-                        props.onChange && props.onChange(e);
+                        props.onChange?.(e);
                     }}
                 />
                 {props.value && !isValidRutube(props.value as string) && (
@@ -243,7 +243,7 @@ const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.
 };
 
 // --- Node Sound Settings Component ---
-const NodeSoundSettingsSection = React.memo(({ node, update }: { node: any, update: Function }) => {
+const NodeSoundSettingsSection = React.memo(({ node, update }: { node: Node<NodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const soundSettings = data.soundSettings || {};
 
@@ -277,7 +277,7 @@ const NodeSoundSettingsSection = React.memo(({ node, update }: { node: any, upda
 
 // --- Settings Components ---
 
-const GroupSettings = React.memo(({ node, update }: { node: Node<GroupNodeData>, update: Function }) => {
+const GroupSettings = React.memo(({ node, update }: { node: Node<GroupNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     
     return (
@@ -331,7 +331,7 @@ const GroupSettings = React.memo(({ node, update }: { node: Node<GroupNodeData>,
     );
 });
 
-const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeData>, update: Function }) => {
+const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
 
     const availableVars = useDerivedNodes(
@@ -487,7 +487,7 @@ const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeDa
     );
 });
 
-const ProgressionSettings = React.memo(({ node, update }: { node: Node<ProgressionNodeData>, update: Function }) => {
+const ProgressionSettings = React.memo(({ node, update }: { node: Node<ProgressionNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { levelVar = 'rankLevel', nameVar = 'rankName' } = data;
     const rules: RankRule[] = data.rules ?? [];
@@ -583,7 +583,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                                         name={`rank-rule-requirement-type-${id}-${ruleIdx}-${reqIdx}`}
                                         className="text-xs border border-slate-200 rounded-lg p-2 w-24 bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500"
                                         value={req.type}
-                                        onChange={e => updateRequirement(ruleIdx, reqIdx, { type: e.target.value as any })}
+                                        onChange={e => updateRequirement(ruleIdx, reqIdx, { type: e.target.value as Requirement['type'] })}
                                     >
                                         <option value="minVar">Var &gt;=</option>
                                         <option value="maxVar">Var &lt;=</option>
@@ -624,7 +624,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
     );
 });
 
-const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNodeData>, update: Function }) => {
+const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '', timer } = data;
     const answers: Answer[] = data.answers ?? [];
@@ -702,7 +702,7 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
         if (e.target.checked) {
             update(id, { timer: 30 }); // Default to 30 seconds
         } else {
-            update(id, { timer: undefined, onTimerNodeId: undefined });
+            update(id, { timer: undefined });
         }
     };
 
@@ -890,7 +890,7 @@ function getColorForCount(count: number, max: number): string {
     return '#ef4444';                         // red-500
 }
 
-const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<MultipleChoiceNodeData>, update: Function }) => {
+const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<MultipleChoiceNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '' } = data;
     const answers: Answer[] = data.answers ?? [];
@@ -1210,7 +1210,7 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
         </div>
     );
 });
-const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData>, update: Function }) => {
+const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <div className="space-y-8">
@@ -1226,7 +1226,7 @@ const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData
     );
 });
 
-const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: Function }) => {
+const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const screenQuiz = data.screenQuiz || {};
     const updateScreenQuiz = (patch: Partial<NonNullable<InfoNodeData['screenQuiz']>>) => {
@@ -1274,7 +1274,7 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
     );
 });
 
-const AchievementSettings = React.memo(({ node, update }: { node: Node<AchievementNodeData>, update: Function }) => {
+const AchievementSettings = React.memo(({ node, update }: { node: Node<AchievementNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Настройки достижения">
@@ -1285,7 +1285,7 @@ const AchievementSettings = React.memo(({ node, update }: { node: Node<Achieveme
     );
 });
 
-const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>, update: Function }) => {
+const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Изменение очков">
@@ -1299,7 +1299,7 @@ const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>,
     );
 });
 
-const VariableSettings = React.memo(({ node, update }: { node: Node<VariableNodeData>, update: Function }) => {
+const VariableSettings = React.memo(({ node, update }: { node: Node<VariableNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Работа с переменной">
@@ -1316,7 +1316,7 @@ const VariableSettings = React.memo(({ node, update }: { node: Node<VariableNode
     );
 });
 
-const ConditionSettings = React.memo(({ node, update }: { node: Node<ConditionNodeData>, update: Function }) => {
+const ConditionSettings = React.memo(({ node, update }: { node: Node<ConditionNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Настройка условия">
@@ -1335,7 +1335,7 @@ const ConditionSettings = React.memo(({ node, update }: { node: Node<ConditionNo
     );
 });
 
-const GoToSettings = React.memo(({ node, update }: { node: Node<GoToNodeData>, update: Function }) => {
+const GoToSettings = React.memo(({ node, update }: { node: Node<GoToNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const nodeOptions = useDerivedNodes(
         (nodes) => nodes
@@ -1363,7 +1363,7 @@ const GoToSettings = React.memo(({ node, update }: { node: Node<GoToNodeData>, u
     );
 });
 
-const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>, update: Function }) => {
+const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const nodeOptions = useDerivedNodes(
         (nodes) => nodes
@@ -1411,7 +1411,7 @@ const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>,
     );
 });
 
-const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectInfoNodeData>, update: Function }) => {
+const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectInfoNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { title = '', description = '' } = data;
     const fields: FormField[] = data.fields ?? [];
@@ -1463,7 +1463,7 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
     );
 });
 
-const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: Function }) => {
+const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const screenQuiz = data.screenQuiz || {};
     const updateScreenQuiz = (patch: Partial<NonNullable<FeedbackNodeData['screenQuiz']>>) => {
@@ -1502,7 +1502,7 @@ const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNode
     );
 });
 
-const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNodeData>, update: Function }) => {
+const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '' } = data;
     const events: TimelineEvent[] = data.events ?? [];
@@ -1572,7 +1572,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
     );
 });
 
-const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNodeData>, update: Function }) => {
+const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '' } = data;
     const leftColumn: MatchColumnItem[] = data.leftColumn ?? [];
@@ -1580,20 +1580,25 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     const correctPairs: MatchPair[] = data.correctPairs ?? [];
 
     const handleColumnChange = (columnIndex: 'leftColumn' | 'rightColumn', itemIndex: number, prop: 'text' | 'imageUrl', value: string) => {
-        const newColumn = [...data[columnIndex]];
+        const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
+        const newColumn = [...column];
+        if (!newColumn[itemIndex]) return;
         newColumn[itemIndex] = { ...newColumn[itemIndex], [prop]: value };
         update(id, { [columnIndex]: newColumn });
     };
 
     const addColumnItem = (columnIndex: 'leftColumn' | 'rightColumn') => {
         const prefix = columnIndex === 'leftColumn' ? 'l' : 'r';
-        const newItem: MatchColumnItem = { id: `${prefix}-${Date.now()}`, text: `Элемент ${data[columnIndex].length + 1}`, imageUrl: '' };
-        update(id, { [columnIndex]: [...data[columnIndex], newItem] });
+        const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
+        const newItem: MatchColumnItem = { id: `${prefix}-${Date.now()}`, text: `Элемент ${column.length + 1}`, imageUrl: '' };
+        update(id, { [columnIndex]: [...column, newItem] });
     };
 
     const removeColumnItem = (columnIndex: 'leftColumn' | 'rightColumn', itemIndex: number) => {
-        const itemIdToRemove = data[columnIndex][itemIndex].id;
-        const newColumn = data[columnIndex].filter((_: MatchColumnItem, i: number) => i !== itemIndex);
+        const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
+        const itemIdToRemove = column[itemIndex]?.id;
+        if (!itemIdToRemove) return;
+        const newColumn = column.filter((_: MatchColumnItem, i: number) => i !== itemIndex);
         const newPairs = correctPairs.filter(p => p.leftId !== itemIdToRemove && p.rightId !== itemIdToRemove);
         update(id, { [columnIndex]: newColumn, correctPairs: newPairs });
     };
@@ -1634,7 +1639,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
                         <UrlInput
                             label="URL изображения (необязательно)"
                             value={item.imageUrl || ''}
-                            onChange={(e: any) => handleColumnChange(key, index, 'imageUrl', e.target.value)}
+                            onChange={(e) => handleColumnChange(key, index, 'imageUrl', e.target.value)}
                         />
                         <button onClick={() => removeColumnItem(key, index)} className="w-full text-xs text-red-600 hover:text-red-800 font-medium pt-3 border-t border-gray-200 text-left">Удалить элемент</button>
                     </div>
@@ -1686,7 +1691,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     );
 });
 
-const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNodeData>, update: Function }) => {
+const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <div className="space-y-8">
@@ -1705,7 +1710,7 @@ const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNo
     );
 });
 
-const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNodeData>, update: Function }) => {
+const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { maxTotal = 100 } = data;
     const items: AllocatorItem[] = data.items ?? [];
@@ -1722,7 +1727,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
 
     const removeItem = (idx: number) => update(id, { items: items.filter((_, i) => i !== idx) });
 
-    const updateItem = (idx: number, field: string, value: any) => {
+    const updateItem = (idx: number, field: keyof AllocatorItem, value: AllocatorItem[keyof AllocatorItem]) => {
         const newItems = [...items];
         newItems[idx] = { ...newItems[idx], [field]: value };
         update(id, { items: newItems });
@@ -1766,7 +1771,7 @@ const MOOD_OPTIONS = [
     { value: 'mysterious', label: 'Таинственный', emoji: '🤔', color: 'bg-purple-100 text-purple-700' },
 ];
 
-const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: any }> = React.memo(({ node, update }) => {
+const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: UpdateNodeData }> = React.memo(({ node, update }) => {
     const { data, id } = node;
     const currentMood = MOOD_OPTIONS.find(m => m.value === (data.mood || 'neutral')) || MOOD_OPTIONS[0];
 
@@ -1834,12 +1839,12 @@ const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: any }> 
             </SettingsSection>
 
             <SettingsSection title="Оформление">
-                <Select label="Настроение персонажа" value={data.mood || 'neutral'} onChange={e => update(id, { mood: e.target.value })}>
+                <Select label="Настроение персонажа" value={data.mood || 'neutral'} onChange={e => update(id, { mood: e.target.value as NonNullable<DialogueNodeData['mood']> })}>
                     {MOOD_OPTIONS.map(m => (
                         <option key={m.value} value={m.value}>{m.emoji} {m.label}</option>
                     ))}
                 </Select>
-                <Select label="Выравнивание текста" value={data.textAlign || 'left'} onChange={e => update(id, { textAlign: e.target.value })}>
+                <Select label="Выравнивание текста" value={data.textAlign || 'left'} onChange={e => update(id, { textAlign: e.target.value as NonNullable<DialogueNodeData['textAlign']> })}>
                     <option value="left">По левому краю</option>
                     <option value="center">По центру</option>
                 </Select>

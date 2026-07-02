@@ -1,4 +1,4 @@
-import type { QuizNode } from "./types";
+import type { NodeData, QuizNode } from "./types";
 import {
   addAchievement,
   getState,
@@ -19,7 +19,28 @@ declare global {
 
 export type ResolveNext = (nodeId: string, handle: string | null) => string | null;
 
-function evaluateCondition(data: any): boolean {
+interface ProgressionRequirement {
+  type: "minVar" | "maxVar" | "minScore" | "maxScore";
+  variable?: string;
+  value: number;
+}
+
+interface ProgressionRule {
+  level: number;
+  name?: string;
+  requireAll?: boolean;
+  requirements?: ProgressionRequirement[];
+}
+
+interface ProgressionData extends NodeData {
+  levelVar?: string;
+  nameVar?: string;
+  lockDegrade?: boolean;
+  onLevelUpHandle?: string;
+  rules?: ProgressionRule[];
+}
+
+function evaluateCondition(data: NodeData): boolean {
   const state = getState();
   const actual = data.variable === "score"
     ? state.score
@@ -47,9 +68,9 @@ function evaluateCondition(data: any): boolean {
   }
 }
 
-function executeFormula(data: any): void {
-  const expression = data.expression ?? data.formula;
-  const variable = data.variableName ?? data.resultVariable;
+function executeFormula(data: NodeData): void {
+  const expression = typeof data.expression === "string" ? data.expression : data.formula;
+  const variable = data.variableName ?? (typeof data.resultVariable === "string" ? data.resultVariable : undefined);
   if (!expression || !variable) return;
 
   try {
@@ -69,14 +90,14 @@ function executeFormula(data: any): void {
 
 function executeProgression(
   node: QuizNode,
-  data: any,
+  data: ProgressionData,
   resolveNext: ResolveNext,
 ): string | null {
   const state = getState();
   const currentLevel = Number(state.variables[data.levelVar ?? ""] ?? 0);
-  const rules = [...(data.rules ?? [])].sort((a: any, b: any) => b.level - a.level);
-  const matched = rules.find((rule: any) => {
-    const checks = (rule.requirements ?? []).map((requirement: any) => {
+  const rules = [...(data.rules ?? [])].sort((a, b) => b.level - a.level);
+  const matched = rules.find((rule) => {
+    const checks = (rule.requirements ?? []).map((requirement) => {
       const value = String(requirement.type).includes("Score")
         ? state.score
         : Number(state.variables[requirement.variable ?? ""] ?? 0);
@@ -101,7 +122,7 @@ function executeProgression(
 }
 
 export function executeLogic(node: QuizNode, resolveNext: ResolveNext): string | null {
-  const data: any = node.data;
+  const data = node.data;
   switch (node.type) {
     case "startNode":
       return resolveNext(node.id, null);
@@ -126,7 +147,7 @@ export function executeLogic(node: QuizNode, resolveNext: ResolveNext): string |
       }
       return resolveNext(node.id, null);
     case "progressionNode":
-      return executeProgression(node, data, resolveNext);
+      return executeProgression(node, data as ProgressionData, resolveNext);
     default:
       return resolveNext(node.id, null);
   }

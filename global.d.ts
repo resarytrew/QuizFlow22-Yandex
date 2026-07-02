@@ -15,7 +15,7 @@ interface ImportMeta {
 }
 
 declare module "clsx" {
-  function clsx(...args: any[]): string;
+  function clsx(...args: unknown[]): string;
   export { clsx };
   export default clsx;
 }

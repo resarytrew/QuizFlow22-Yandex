@@ -2,7 +2,7 @@ import { supabase } from "./supabaseClient";
 import { api } from "./apiClient";
 
 function resolveProxyUrl(): string {
-  const apiUrl = (import.meta as any).env && (import.meta as any).env.VITE_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL;
   if (typeof apiUrl === "string" && apiUrl.length > 0) {
     return `${apiUrl.replace(/\/$/, "")}/ai-proxy`;
   }
@@ -52,7 +52,7 @@ export async function chatCompletion(
   const payload = {
     model,
     prompt,
-    type: expectJson ? 'json' : 'text',
+    type: expectJson ? 'json' as const : 'text' as const,
     expectJson,
   };
 

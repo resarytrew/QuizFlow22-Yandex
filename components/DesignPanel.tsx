@@ -277,10 +277,6 @@ function safeHex(value: unknown, fallback = '#000000'): string {
   return typeof value === 'string' && HEX_RE.test(value) ? value : fallback;
 }
 
-function labelFor(tab: DesignTab): string {
-  return tabs.find((item) => item.id === tab)?.label || '';
-}
-
 const Section = ({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) => (
   <section className="rounded-[1.25rem_0.45rem_1.25rem_0.45rem] border border-stone-200/80 bg-[#fffdf8] p-4 shadow-[0_14px_36px_rgba(68,64,60,0.06)]">
     <div className="mb-4">
@@ -783,14 +779,14 @@ const DesignPanel: React.FC = () => {
             <Field label="Градиент до"><ColorInput value={ds.background.gradientTo || '#ebe5db'} onChange={(value) => updateSection('background', { gradientTo: value })} /></Field>
             <Field label="Изображение"><UrlInput value={ds.background.imageUrl} onChange={(value) => updateSection('background', { imageUrl: value, mode: value ? 'image' : ds.background.mode })} /></Field>
             <Field label="Поведение изображения">
-              <Select value={ds.background.imageFit || 'cover'} onChange={(e) => updateSection('background', { imageFit: e.target.value as any })}>
+              <Select value={ds.background.imageFit || 'cover'} onChange={(e) => updateSection('background', { imageFit: e.target.value as NonNullable<DesignSettings['background']>['imageFit'] })}>
                 <option value="cover">Заполнить</option>
                 <option value="contain">Вместить</option>
                 <option value="repeat">Паттерн</option>
               </Select>
             </Field>
             <Field label="Текстура">
-              <Select value={ds.background.texture || 'none'} onChange={(e) => updateSection('background', { texture: e.target.value as any })}>
+              <Select value={ds.background.texture || 'none'} onChange={(e) => updateSection('background', { texture: e.target.value as NonNullable<DesignSettings['background']>['texture'] })}>
                 <option value="none">Без текстуры</option>
                 <option value="grain">Лёгкое зерно</option>
                 <option value="grid">Сетка</option>
@@ -859,14 +855,14 @@ const DesignPanel: React.FC = () => {
                 <Field label="Рамка"><ColorInput value={ds.questionCard?.borderColor || '#dfd8cc'} onChange={(value) => updateSection('questionCard', { borderColor: value })} /></Field>
                 <Field label="Скругление"><RangeInput min={0} max={56} step={1} suffix="px" value={ds.questionCard?.radius ?? ds.layout?.cardRadius ?? 28} onChange={(value) => updateSection('questionCard', { radius: value })} /></Field>
                 <Field label="Внутренний отступ"><RangeInput min={16} max={80} step={2} suffix="px" value={ds.questionCard?.padding ?? ds.layout?.cardPadding ?? 32} onChange={(value) => updateSection('questionCard', { padding: value })} /></Field>
-                <Field label="Тень"><Select value={ds.questionCard?.shadow || 'soft'} onChange={(e) => updateSection('questionCard', { shadow: e.target.value as any })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
-                <Field label="Медиа в карточке"><Select value={ds.questionCard?.mediaPosition || ds.layout?.mediaPosition || 'top'} onChange={(e) => updateSection('questionCard', { mediaPosition: e.target.value as any })}><option value="top">Сверху</option><option value="left">Слева</option><option value="right">Справа</option><option value="background">Фоном</option></Select></Field>
+                <Field label="Тень"><Select value={ds.questionCard?.shadow || 'soft'} onChange={(e) => updateSection('questionCard', { shadow: e.target.value as NonNullable<DesignSettings['questionCard']>['shadow'] })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
+                <Field label="Медиа в карточке"><Select value={ds.questionCard?.mediaPosition || ds.layout?.mediaPosition || 'top'} onChange={(e) => updateSection('questionCard', { mediaPosition: e.target.value as NonNullable<DesignSettings['questionCard']>['mediaPosition'] })}><option value="top">Сверху</option><option value="left">Слева</option><option value="right">Справа</option><option value="background">Фоном</option></Select></Field>
                 <Field label="Ширина медиа"><RangeInput min={28} max={58} step={1} suffix="%" value={ds.questionCard?.mediaWidth ?? 42} onChange={(value) => updateSection('questionCard', { mediaWidth: value })} /></Field>
                 <Field label="Скругление медиа"><RangeInput min={0} max={36} step={1} suffix="px" value={ds.questionCard?.mediaRadius ?? 22} onChange={(value) => updateSection('questionCard', { mediaRadius: value })} /></Field>
                 <Field label="Заполнение медиа"><Segmented value={ds.questionCard?.mediaFit || 'cover'} onChange={(value) => updateSection('questionCard', { mediaFit: value })} options={[{ value: 'cover', label: 'Обрезать' }, { value: 'contain', label: 'Вместить' }]} /></Field>
               </div>
             </div>
-            <Field label="Хром интерфейса"><Select value={ds.layout?.chrome || 'full'} onChange={(e) => updateSection('layout', { chrome: e.target.value as any })}><option value="full">Полный</option><option value="compact">Компактный</option><option value="none">Без панели</option></Select></Field>
+            <Field label="Хром интерфейса"><Select value={ds.layout?.chrome || 'full'} onChange={(e) => updateSection('layout', { chrome: e.target.value as NonNullable<DesignSettings['layout']>['chrome'] })}><option value="full">Полный</option><option value="compact">Компактный</option><option value="none">Без панели</option></Select></Field>
             <div className="grid gap-3">
               {layoutPresets.map((preset) => (
                 <button
@@ -884,17 +880,17 @@ const DesignPanel: React.FC = () => {
             <Field label="Радиус основной карточки"><RangeInput min={0} max={48} step={1} suffix="px" value={ds.layout?.cardRadius || 28} onChange={(value) => updateSection('layout', { cardRadius: value })} /></Field>
             <Field label="Внутренний отступ"><RangeInput min={16} max={64} step={2} suffix="px" value={ds.layout?.cardPadding || 32} onChange={(value) => updateSection('layout', { cardPadding: value })} /></Field>
             <Field label="Прозрачность поверхности"><RangeInput min={0.7} max={1} step={0.02} value={ds.layout?.cardOpacity || 0.94} onChange={(value) => updateSection('layout', { cardOpacity: value })} /></Field>
-            <Field label="Позиция медиа"><Select value={ds.layout?.mediaPosition || 'top'} onChange={(e) => updateSection('layout', { mediaPosition: e.target.value as any })}><option value="top">Сверху</option><option value="left">Слева</option><option value="right">Справа</option><option value="background">Фоном</option></Select></Field>
-            <Field label="Поверхность"><Select value={ds.layout?.surfaceStyle || 'paper'} onChange={(e) => updateSection('layout', { surfaceStyle: e.target.value as any })}><option value="solid">Чистая карточка</option><option value="paper">Тёплая бумага</option><option value="outline">Тонкий контур</option><option value="glass">Стекло</option><option value="minimal">Без рамки</option></Select></Field>
+            <Field label="Позиция медиа"><Select value={ds.layout?.mediaPosition || 'top'} onChange={(e) => updateSection('layout', { mediaPosition: e.target.value as NonNullable<DesignSettings['layout']>['mediaPosition'] })}><option value="top">Сверху</option><option value="left">Слева</option><option value="right">Справа</option><option value="background">Фоном</option></Select></Field>
+            <Field label="Поверхность"><Select value={ds.layout?.surfaceStyle || 'paper'} onChange={(e) => updateSection('layout', { surfaceStyle: e.target.value as NonNullable<DesignSettings['layout']>['surfaceStyle'] })}><option value="solid">Чистая карточка</option><option value="paper">Тёплая бумага</option><option value="outline">Тонкий контур</option><option value="glass">Стекло</option><option value="minimal">Без рамки</option></Select></Field>
             <Field label="Выравнивание вопроса"><Segmented value={ds.layout?.questionAlign || 'left'} onChange={(value) => updateSection('layout', { questionAlign: value })} options={[{ value: 'left', label: 'Слева' }, { value: 'center', label: 'По центру' }]} /></Field>
-            <Field label="Вертикальный ритм"><Select value={ds.layout?.verticalAlign || 'center'} onChange={(e) => updateSection('layout', { verticalAlign: e.target.value as any })}><option value="center">По центру экрана</option><option value="top">Ближе к верху</option></Select></Field>
-            <Field label="Плотность"><Select value={ds.layout?.density || 'balanced'} onChange={(e) => updateSection('layout', { density: e.target.value as any })}><option value="relaxed">Воздушная</option><option value="balanced">Сбалансированная</option><option value="compact">Плотная</option></Select></Field>
+            <Field label="Вертикальный ритм"><Select value={ds.layout?.verticalAlign || 'center'} onChange={(e) => updateSection('layout', { verticalAlign: e.target.value as NonNullable<DesignSettings['layout']>['verticalAlign'] })}><option value="center">По центру экрана</option><option value="top">Ближе к верху</option></Select></Field>
+            <Field label="Плотность"><Select value={ds.layout?.density || 'balanced'} onChange={(e) => updateSection('layout', { density: e.target.value as NonNullable<DesignSettings['layout']>['density'] })}><option value="relaxed">Воздушная</option><option value="balanced">Сбалансированная</option><option value="compact">Плотная</option></Select></Field>
           </Section>
         )}
 
         {activeTab === 'buttons' && (
           <Section title="Кнопки" note="Стиль основных действий: начать, далее, отправить, перейти.">
-            <Field label="Стиль"><Select value={ds.buttons.style || 'solid'} onChange={(e) => updateSection('buttons', { style: e.target.value as any })}><option value="solid">Solid</option><option value="outline">Outline</option><option value="ghost">Ghost</option><option value="soft">Soft</option><option value="premium">Premium</option></Select></Field>
+            <Field label="Стиль"><Select value={ds.buttons.style || 'solid'} onChange={(e) => updateSection('buttons', { style: e.target.value as NonNullable<DesignSettings['buttons']>['style'] })}><option value="solid">Solid</option><option value="outline">Outline</option><option value="ghost">Ghost</option><option value="soft">Soft</option><option value="premium">Premium</option></Select></Field>
             <Field label="Фон"><ColorInput value={ds.buttons.backgroundColor} onChange={(value) => updateSection('buttons', { backgroundColor: value })} /></Field>
             <Field label="Текст"><ColorInput value={ds.buttons.textColor} onChange={(value) => updateSection('buttons', { textColor: value })} /></Field>
             <Field label="Фон при наведении"><ColorInput value={ds.buttons.hoverBackgroundColor} onChange={(value) => updateSection('buttons', { hoverBackgroundColor: value })} /></Field>
@@ -904,13 +900,13 @@ const DesignPanel: React.FC = () => {
             <Field label="Вес текста"><RangeInput min={400} max={900} step={50} value={ds.buttons.fontWeight || 800} onChange={(value) => updateSection('buttons', { fontWeight: value })} /></Field>
             <Field label="Ширина"><Segmented value={ds.buttons.width || 'auto'} onChange={(value) => updateSection('buttons', { width: value })} options={[{ value: 'auto', label: 'По контенту' }, { value: 'full', label: 'На всю ширину' }]} /></Field>
             <Field label="Регистр"><Segmented value={ds.buttons.textTransform || 'none'} onChange={(value) => updateSection('buttons', { textTransform: value })} options={[{ value: 'none', label: 'Обычный' }, { value: 'uppercase', label: 'Верхний' }]} /></Field>
-            <Field label="Тень"><Select value={ds.buttons.shadow || 'soft'} onChange={(e) => updateSection('buttons', { shadow: e.target.value as any })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
+            <Field label="Тень"><Select value={ds.buttons.shadow || 'soft'} onChange={(e) => updateSection('buttons', { shadow: e.target.value as NonNullable<DesignSettings['buttons']>['shadow'] })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
           </Section>
         )}
 
         {activeTab === 'answers' && (
           <Section title="Ответы" note="Визуальная система вариантов ответа, выбранных состояний и расстояний.">
-            <Field label="Стиль"><Select value={ds.answerCards.style || 'card'} onChange={(e) => updateSection('answerCards', { style: e.target.value as any })}><option value="card">Карточки</option><option value="list">Список</option><option value="tiles">Плитка</option><option value="minimal">Минимальный</option></Select></Field>
+            <Field label="Стиль"><Select value={ds.answerCards.style || 'card'} onChange={(e) => updateSection('answerCards', { style: e.target.value as NonNullable<DesignSettings['answerCards']>['style'] })}><option value="card">Карточки</option><option value="list">Список</option><option value="tiles">Плитка</option><option value="minimal">Минимальный</option></Select></Field>
             <Field label="Фон"><ColorInput value={ds.answerCards.backgroundColor} onChange={(value) => updateSection('answerCards', { backgroundColor: value })} /></Field>
             <Field label="Текст"><ColorInput value={ds.answerCards.textColor} onChange={(value) => updateSection('answerCards', { textColor: value })} /></Field>
             <Field label="Рамка"><ColorInput value={ds.answerCards.borderColor || '#dfd8cc'} onChange={(value) => updateSection('answerCards', { borderColor: value })} /></Field>
@@ -922,15 +918,15 @@ const DesignPanel: React.FC = () => {
             <Field label="Расстояние"><RangeInput min={4} max={28} step={1} suffix="px" value={ds.answerCards.spacing || 12} onChange={(value) => updateSection('answerCards', { spacing: value })} /></Field>
             <Field label="Колонки"><Segmented value={String(ds.answerCards.columns || 1)} onChange={(value) => updateSection('answerCards', { columns: Number(value) as 1 | 2 | 3 })} options={[{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }]} /></Field>
             <Field label="Минимальная высота"><RangeInput min={44} max={120} step={2} suffix="px" value={ds.answerCards.minHeight || 58} onChange={(value) => updateSection('answerCards', { minHeight: value })} /></Field>
-            <Field label="Пропорция медиа"><Select value={ds.answerCards.mediaAspectRatio || 'auto'} onChange={(e) => updateSection('answerCards', { mediaAspectRatio: e.target.value as any })}><option value="auto">Авто</option><option value="16/9">16:9</option><option value="4/3">4:3</option><option value="1/1">1:1</option></Select></Field>
-            <Field label="Маркеры"><Select value={ds.answerCards.markerStyle || 'letters'} onChange={(e) => updateSection('answerCards', { markerStyle: e.target.value as any })}><option value="none">Без маркеров</option><option value="letters">A/B/C</option><option value="numbers">1/2/3</option></Select></Field>
+            <Field label="Пропорция медиа"><Select value={ds.answerCards.mediaAspectRatio || 'auto'} onChange={(e) => updateSection('answerCards', { mediaAspectRatio: e.target.value as NonNullable<DesignSettings['answerCards']>['mediaAspectRatio'] })}><option value="auto">Авто</option><option value="16/9">16:9</option><option value="4/3">4:3</option><option value="1/1">1:1</option></Select></Field>
+            <Field label="Маркеры"><Select value={ds.answerCards.markerStyle || 'letters'} onChange={(e) => updateSection('answerCards', { markerStyle: e.target.value as NonNullable<DesignSettings['answerCards']>['markerStyle'] })}><option value="none">Без маркеров</option><option value="letters">A/B/C</option><option value="numbers">1/2/3</option></Select></Field>
           </Section>
         )}
 
         {activeTab === 'progress' && (
           <Section title="Прогресс" note="Настройка отображения прогресса прохождения.">
-            <Field label="Стиль"><Select value={ds.progress?.style || 'bar'} onChange={(e) => updateSection('progress', { style: e.target.value as any })}><option value="bar">Линия</option><option value="steps">Шаги</option><option value="ring">Кольцо</option><option value="hidden">Скрыть</option></Select></Field>
-            <Field label="Позиция"><Select value={ds.progress?.position || 'top'} onChange={(e) => updateSection('progress', { position: e.target.value as any })}><option value="top">Сверху</option><option value="bottom">Снизу</option><option value="inside">Внутри карточки</option></Select></Field>
+            <Field label="Стиль"><Select value={ds.progress?.style || 'bar'} onChange={(e) => updateSection('progress', { style: e.target.value as NonNullable<DesignSettings['progress']>['style'] })}><option value="bar">Линия</option><option value="steps">Шаги</option><option value="ring">Кольцо</option><option value="hidden">Скрыть</option></Select></Field>
+            <Field label="Позиция"><Select value={ds.progress?.position || 'top'} onChange={(e) => updateSection('progress', { position: e.target.value as NonNullable<DesignSettings['progress']>['position'] })}><option value="top">Сверху</option><option value="bottom">Снизу</option><option value="inside">Внутри карточки</option></Select></Field>
             <Field label="Цвет прогресса"><ColorInput value={ds.progress?.color || ds.buttons.backgroundColor} onChange={(value) => updateSection('progress', { color: value })} /></Field>
             <Field label="Цвет трека"><ColorInput value={ds.progress?.trackColor || '#e4ded2'} onChange={(value) => updateSection('progress', { trackColor: value })} /></Field>
             <Field label="Высота линии"><RangeInput min={3} max={16} step={1} suffix="px" value={ds.progress?.height || 8} onChange={(value) => updateSection('progress', { height: value })} /></Field>
@@ -941,11 +937,11 @@ const DesignPanel: React.FC = () => {
 
         {activeTab === 'result' && (
           <Section title="Результат" note="Брендирование финального экрана и отчёта прохождения.">
-            <Field label="Пресет"><Select value={ds.result?.preset || 'card'} onChange={(e) => updateSection('result', { preset: e.target.value as any })}><option value="card">Карточка</option><option value="certificate">Сертификат</option><option value="report">Отчёт</option><option value="landing">Лендинг</option></Select></Field>
+            <Field label="Пресет"><Select value={ds.result?.preset || 'card'} onChange={(e) => updateSection('result', { preset: e.target.value as NonNullable<DesignSettings['result']>['preset'] })}><option value="card">Карточка</option><option value="certificate">Сертификат</option><option value="report">Отчёт</option><option value="landing">Лендинг</option></Select></Field>
             <Field label="Фон результата"><ColorInput value={ds.result?.backgroundColor || ds.answerCards.backgroundColor} onChange={(value) => updateSection('result', { backgroundColor: value })} /></Field>
             <Field label="Текст результата"><ColorInput value={ds.result?.textColor || ds.typography.headingColor} onChange={(value) => updateSection('result', { textColor: value })} /></Field>
             <Field label="Акцент результата"><ColorInput value={ds.result?.accentColor || ds.buttons.backgroundColor} onChange={(value) => updateSection('result', { accentColor: value })} /></Field>
-            <Field label="Подача баллов"><Select value={ds.result?.scoreStyle || 'badge'} onChange={(e) => updateSection('result', { scoreStyle: e.target.value as any })}><option value="badge">Бейдж</option><option value="ring">Кольцо</option><option value="stat">Статистика</option></Select></Field>
+            <Field label="Подача баллов"><Select value={ds.result?.scoreStyle || 'badge'} onChange={(e) => updateSection('result', { scoreStyle: e.target.value as NonNullable<DesignSettings['result']>['scoreStyle'] })}><option value="badge">Бейдж</option><option value="ring">Кольцо</option><option value="stat">Статистика</option></Select></Field>
             <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Показывать баллы</span><Toggle checked={ds.result?.showScore !== false} onChange={(value) => updateSection('result', { showScore: value })} /></div>
             <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Показывать шаринг</span><Toggle checked={ds.result?.showShare !== false} onChange={(value) => updateSection('result', { showShare: value })} /></div>
           </Section>

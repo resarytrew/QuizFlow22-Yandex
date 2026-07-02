@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase, isSupabaseReady } from '../services/supabaseClient';
 import { api } from '../services/apiClient';
-import type { BillingSnapshot, Entitlement, Plan, Subscription, Payment } from '../types';
+import type { Entitlement, Plan, Subscription, Payment } from '../types';
 
 interface EntitlementState {
   initialized: boolean;
@@ -92,11 +92,13 @@ export const useEntitlementStore = create<EntitlementState>((set, get) => ({
         },
         subscription: data.tier === 'pro' ? {
           id: data.yookassa_subscription_id || '',
-          plan_id: data.tier,
+          plan_id: 'pro_monthly',
           status: data.status || 'active',
+          current_period_start: '',
           current_period_end: data.current_period_end || '',
           cancel_at_period_end: false,
-        } as any : null,
+          canceled_at: null,
+        } : null,
         lastError: null,
       });
     } catch (e) {

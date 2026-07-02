@@ -40,7 +40,6 @@ function formatDate(dateStr: string): string {
 
 const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const session = useAuthStore(s => s.session);
@@ -73,7 +72,8 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const coverImageUrl = quiz.quiz_data?.cover_image_url || fallbackCovers[hashStr(quiz.name || 'quiz') % fallbackCovers.length];
 
   const nodes = quiz.quiz_data?.nodes || [];
-  const questionCount = nodes.filter((n: any) =>
+  const questionCount = nodes.filter((n) =>
+    typeof n.type === 'string' &&
     ['questionNode', 'multipleChoiceNode', 'textInputNode', 'matchingNode', 'timelineNode'].includes(n.type)
   ).length;
   const hasTimer = !!quiz.quiz_data?.globalTimer?.enabled;
@@ -104,7 +104,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
             loading="lazy"
             className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02] ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
-            onError={() => { setImageError(true); setImageLoaded(true); }}
+            onError={() => setImageLoaded(true)}
           />
         </div>
 

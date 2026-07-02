@@ -104,5 +104,5 @@ function processNodeUnsafe(nodeId: string): void {
   logicDepth = 0;
   renderNode(node, { resolveNextNode, processNode });
   updateHUD();
-  playNodeEntrySound((node.data.soundSettings as any)?.onEntry);
+  playNodeEntrySound(node.data.soundSettings?.onEntry);
 }

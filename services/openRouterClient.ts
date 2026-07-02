@@ -25,9 +25,10 @@ export async function callOpenRouter(
     const content = await chatCompletion(model, prompt, expectJson, signal);
     if (!content) throw new Error('Received an empty response from the AI model.');
     return content;
-  } catch (error: any) {
-    if (error?.name === 'AbortError') throw error;
-    if (error?.name === 'TypeError' && error?.message === 'Failed to fetch') {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : null;
+    if (err?.name === 'AbortError') throw error;
+    if (err?.name === 'TypeError' && err.message === 'Failed to fetch') {
       throw new Error('Ошибка сети. Сервер AI недоступен.');
     }
     throw error;
@@ -183,7 +184,9 @@ function tryParseJson<T>(text: string): { data: T; jsonText: string } | null {
 
     try {
       return { data: JSON.parse(jsonText) as T, jsonText };
-    } catch {}
+    } catch {
+      continue;
+    }
   }
 
   return null;
@@ -208,7 +211,7 @@ ${badText.slice(0, 12000)}`;
   }
 }
 
-export async function parseJsonWithRepair<T = any>(
+export async function parseJsonWithRepair<T = unknown>(
   rawText: string,
   signal?: AbortSignal,
 ): Promise<{ data: T; jsonText: string; repaired: boolean }> {

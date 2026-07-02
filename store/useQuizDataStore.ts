@@ -13,7 +13,6 @@ import {
 import { api } from '../services/apiClient';
 import toast from 'react-hot-toast';
 import { useCanvasStore } from './useCanvasStore';
-import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { storeEvents } from './storeEvents';
 import { normalizeQuizKeywords } from '../utils/quizKeywords';
@@ -139,7 +138,22 @@ const createInitialState = () => ({
 const QUIZ_DATA_BATCH_SIZE = 8;
 let quizHydrationGeneration = 0;
 
-export function createQuizSummary(row: any): Quiz {
+type QuizSummaryRow = Pick<Quiz, 'id' | 'name' | 'created_at' | 'updated_at'> &
+  Partial<Pick<Quiz, 'user_id' | 'published_at' | 'is_favorite'>> & {
+    visibility?: QuizVisibility | string;
+  };
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function normalizeQuizVisibility(value: unknown): QuizVisibility {
+  return value === 'private' || value === 'unlisted' || value === 'public'
+    ? value
+    : 'public';
+}
+
+export function createQuizSummary(row: QuizSummaryRow): Quiz {
   const defaults = createInitialState();
   return {
     id: row.id,
@@ -150,7 +164,7 @@ export function createQuizSummary(row: any): Quiz {
     is_published: row.visibility === 'public',
     published_at: row.published_at,
     is_favorite: row.is_favorite || false,
-    visibility: row.visibility || 'public',
+    visibility: normalizeQuizVisibility(row.visibility),
     quiz_data_loaded: false,
     quiz_data: {
       nodes: [],
@@ -207,12 +221,12 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       const previousById = new Map(
         get().userQuizzes.map((quiz) => [quiz.id, quiz])
       );
-      const summaries = (data ?? []).map((row: any) => {
+      const summaries: Quiz[] = (data ?? []).map((row) => {
         const previous = previousById.get(row.id);
         return previous &&
           previous.quiz_data_loaded !== false &&
           previous.updated_at === row.updated_at
-          ? { ...previous, ...row }
+          ? { ...previous, ...row, visibility: normalizeQuizVisibility(row.visibility ?? previous.visibility) }
           : createQuizSummary(row);
       });
 
@@ -255,8 +269,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
           }));
         }
       })();
-    } catch (e: any) {
-      toast.error('Ошибка загрузки квизов: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Ошибка загрузки квизов: ' + getErrorMessage(e));
     } finally {
       set({ isQuizzesLoading: false });
     }
@@ -353,8 +367,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         toast.success('Квиз создан', { id: toastId });
         return createdQuiz.id;
       }
-    } catch (e: any) {
-      toast.error('Ошибка сохранения: ' + e.message, { id: toastId });
+    } catch (e: unknown) {
+      toast.error('Ошибка сохранения: ' + getErrorMessage(e), { id: toastId });
       return null;
     } finally {
       setCanvasLoading(false);
@@ -477,9 +491,9 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       if (currentQuizId === id) {
         set({ currentQuizId: null });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ userQuizzes: prevQuizzes });
-      toast.error('Ошибка удаления: ' + e.message);
+      toast.error('Ошибка удаления: ' + getErrorMessage(e));
     }
   },
 
@@ -504,8 +518,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       }));
       toast.success('Квиз дублирован');
       return data.id;
-    } catch (e: any) {
-      if (/visibility_requires_pro/i.test(e.message ?? '')) {
+    } catch (e: unknown) {
+      if (/visibility_requires_pro/i.test(getErrorMessage(e))) {
         toast.error('Дублирование с этим уровнем доступа требует PRO');
       } else {
         toast.error('Ошибка дублирования');
@@ -592,11 +606,11 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         currentQuizVisibility: s.currentQuizId === id ? data.visibility : s.currentQuizVisibility,
       }));
       toast.success('Настройки доступа обновлены');
-    } catch (e: any) {
-      if (/visibility_requires_pro/i.test(e.message ?? '')) {
+    } catch (e: unknown) {
+      if (/visibility_requires_pro/i.test(getErrorMessage(e))) {
         toast.error('Этот уровень доступа доступен только с подпиской PRO');
       } else {
-        toast.error('Ошибка обновления доступа: ' + e.message);
+        toast.error('Ошибка обновления доступа: ' + getErrorMessage(e));
       }
     }
   },

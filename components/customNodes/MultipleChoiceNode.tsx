@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import BaseNode from './BaseNode.tsx';
-
-const { Handle, Position } = ReactFlow as any;
+import { Answer, MultipleChoiceNodeData } from '../../types.ts';
 
 const MULTIPLE_CHOICE_ICON = (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -12,7 +11,7 @@ const MULTIPLE_CHOICE_ICON = (
     </svg>
 );
 
-const MultipleChoiceNode: React.FC<any> = (props) => {
+const MultipleChoiceNode: React.FC<NodeProps<MultipleChoiceNodeData>> = (props) => {
     const { data, selected } = props;
     const { 
         question, 
@@ -73,7 +72,7 @@ const MultipleChoiceNode: React.FC<any> = (props) => {
 
                 {/* Компактный список вариантов - 2 колонки */}
                 <div className="grid grid-cols-2 gap-1 mb-3">
-                    {answers.slice(0, 6).map((ans: any) => (
+                    {answers.slice(0, 6).map((ans: Answer) => (
                         <div 
                             key={ans.id} 
                             className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] truncate ${

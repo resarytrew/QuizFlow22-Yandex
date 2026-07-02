@@ -5,17 +5,47 @@ import { useUIStore } from '../store/useUIStore';
 import { useAIStore, type AISuggestion } from '../store/useAIStore';
 import toast from 'react-hot-toast';
 import { callOpenRouter, AI_MODEL, extractJsonArray } from '../services/openRouterClient';
-import { CustomNodeType } from '../types';
+import { CustomNodeType, NodeData } from '../types';
+import type { Node } from 'reactflow';
 
 // Helper to create node
-const createNewNodeFromAI = (type: CustomNodeType, position: { x: number, y: number }, data: any) => {
+const createNewNodeFromAI = (type: CustomNodeType, position: { x: number, y: number }, data: Partial<NodeData>): Node<NodeData> => {
     return {
         id: `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         type,
         position,
-        data
+        data: data as NodeData
     };
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+function isCustomNodeType(value: unknown): value is CustomNodeType {
+    return typeof value === 'string' && Object.values(CustomNodeType).includes(value as CustomNodeType);
+}
+
+function getTextField(record: Record<string, unknown>, key: string): string | undefined {
+    const value = record[key];
+    return typeof value === 'string' ? value : undefined;
+}
+
+function toSuggestion(value: unknown): AISuggestion | null {
+    if (!isRecord(value) || !isRecord(value.newNode) || !isRecord(value.newNode.data)) return null;
+    if (!isCustomNodeType(value.newNode.type)) return null;
+    const data = { ...value.newNode.data } as Partial<NodeData>;
+    const dataRecord = data as Record<string, unknown>;
+    const title = getTextField(value, 'title') || getTextField(dataRecord, 'label') || 'Новый узел';
+    if (!getTextField(dataRecord, 'label') && !getTextField(dataRecord, 'title')) {
+        data.label = title;
+    }
+    return {
+        title,
+        description: getTextField(value, 'description') || '',
+        newNode: { type: value.newNode.type, data },
+    };
+}
 
 const AIAssistantPanel: React.FC = () => {
     const nodes = useCanvasStore(s => s.nodes);
@@ -34,17 +64,26 @@ const AIAssistantPanel: React.FC = () => {
         setAILoading(true);
         try {
             // Simplify graph context - extract mainly labels and questions to give context
-            const simplifiedContext = nodes.map(n => ({ 
-                type: n.type, 
-                content: (n.data as any).question || (n.data as any).title || (n.data as any).label 
-            })).slice(-5); // Only take last 5 nodes for context to save tokens
+            const simplifiedContext = nodes.map(n => {
+                const data = n.data as Record<string, unknown>;
+                return {
+                    type: n.type,
+                    content: getTextField(data, 'question') || getTextField(data, 'title') || getTextField(data, 'label'),
+                };
+            }).slice(-5); // Only take last 5 nodes for context to save tokens
 
-            const selectedNodeData: any = { label: selectedNode.data.label };
-            if ((selectedNode.data as any).question) selectedNodeData.question = (selectedNode.data as any).question;
-            if ((selectedNode.data as any).title) selectedNodeData.title = (selectedNode.data as any).title;
-            if ((selectedNode.data as any).description) selectedNodeData.description = (selectedNode.data as any).description;
-            if ((selectedNode.data as any).answers) {
-                selectedNodeData.answers = (selectedNode.data as any).answers.map((a: any) => a.text);
+            const selectedRecord = selectedNode.data as Record<string, unknown>;
+            const selectedNodeData: Record<string, unknown> = { label: selectedNode.data.label };
+            const question = getTextField(selectedRecord, 'question');
+            const title = getTextField(selectedRecord, 'title');
+            const description = getTextField(selectedRecord, 'description');
+            if (question) selectedNodeData.question = question;
+            if (title) selectedNodeData.title = title;
+            if (description) selectedNodeData.description = description;
+            if (Array.isArray(selectedRecord.answers)) {
+                selectedNodeData.answers = selectedRecord.answers
+                    .map((answer) => isRecord(answer) ? getTextField(answer, 'text') : undefined)
+                    .filter((answer): answer is string => Boolean(answer));
             }
 
             const prompt = `Ты — креативный сценарист и методолог образовательных квизов.
@@ -90,24 +129,17 @@ ${JSON.stringify({ type: selectedNode.type, data: selectedNodeData })}
 
             if (!jsonText) throw new Error("Ответ AI не содержит валидный JSON массив.");
             
-            const rawSuggestions = JSON.parse(jsonText);
+            const rawSuggestions: unknown = JSON.parse(jsonText);
+            if (!Array.isArray(rawSuggestions)) throw new Error("Ответ AI должен быть JSON-массивом.");
 
-            const suggestions: AISuggestion[] = rawSuggestions.map((s: any) => {
-                try {
-                     if (!s.newNode || !s.newNode.data) return null;
-                    if (!s.newNode.data.label && !s.newNode.data.title) s.newNode.data.label = s.title || `Новый узел`;
-                    return {
-                        title: s.title || s.newNode.data.label,
-                        description: s.description || "",
-                        newNode: { type: s.newNode.type, data: s.newNode.data }
-                    };
-                } catch (e) { return null; }
-            }).filter((s: AISuggestion | null): s is AISuggestion => s !== null);
+            const suggestions: AISuggestion[] = rawSuggestions
+                .map(toSuggestion)
+                .filter((s): s is AISuggestion => s !== null);
 
             setAISuggestions(suggestions);
 
-        } catch (error: any) {
-            toast.error(error.message || 'Ошибка AI.');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Ошибка AI.');
         } finally {
             setAILoading(false);
         }

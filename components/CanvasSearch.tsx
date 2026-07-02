@@ -1,9 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore.ts';
-import * as ReactFlow from 'reactflow';
-
-const { useReactFlow } = ReactFlow as any;
+import { useReactFlow } from 'reactflow';
 
 const CanvasSearch: React.FC = () => {
     const nodes = useCanvasStore(s => s.nodes);

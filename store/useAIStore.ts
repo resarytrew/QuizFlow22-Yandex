@@ -32,6 +32,23 @@ const parseAIResponse = <T,>(raw: string): T => {
   return JSON.parse(cleaned);
 };
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isFeedbackItem(item: unknown): item is { title: string; message: string; targetHandle: string } {
+  return (
+    isRecord(item) &&
+    typeof item.title === 'string' &&
+    typeof item.message === 'string' &&
+    typeof item.targetHandle === 'string'
+  );
+}
+
 // --- Store ---
 
 interface AIStoreState {
@@ -96,9 +113,9 @@ export const useAIStore = create<AIStoreState>((set, get) => ({
       if (!imageUrl) throw new Error('No image generated');
       set({ aiGeneratedImage: imageUrl });
       toast.success('Изображение готово!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Image Gen Error:', error);
-      toast.error(error.message || 'Ошибка генерации');
+      toast.error(getErrorMessage(error) || 'Ошибка генерации');
     } finally {
       toast.dismiss(toastId);
       set({ isAILoading: false });
@@ -132,17 +149,13 @@ export const useAIStore = create<AIStoreState>((set, get) => ({
 
       // Validate each item
       const validFeedback = feedbackData.filter(
-        (item): item is { title: string; message: string; targetHandle: string } =>
-          typeof item === 'object' &&
-          item !== null &&
-          typeof (item as any).title === 'string' &&
-          typeof (item as any).message === 'string'
+        isFeedbackItem
       );
 
       set({ generatedFeedback: validFeedback });
       toast.success(`Сгенерировано ${validFeedback.length} вариантов фидбэка`);
-    } catch (e: any) {
-      toast.error('Ошибка: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Ошибка: ' + getErrorMessage(e));
     } finally {
       toast.dismiss(toastId);
       set({ isAILoading: false });
@@ -162,8 +175,8 @@ export const useAIStore = create<AIStoreState>((set, get) => ({
       const { uploadUrl } = await api.getUploadUrl(fileName, 'image/png');
       await fetch(uploadUrl, { method: 'PUT', body: blob });
       toast.success('Сохранено в медиатеку');
-    } catch (e: any) {
-      toast.error('Ошибка сохранения: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Ошибка сохранения: ' + getErrorMessage(e));
     }
   },
 

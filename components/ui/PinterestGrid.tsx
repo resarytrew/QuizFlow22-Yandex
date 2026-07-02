@@ -27,7 +27,7 @@ const PinterestGrid: React.FC<PinterestGridProps> = ({ children, className = '' 
     <div className={`columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-4 ${className}`}>
       {items.map((child, i) => (
         <motion.div
-          key={(child as any)?.key || i}
+          key={React.isValidElement(child) && child.key !== null ? child.key : i}
           custom={i}
           variants={itemVariants}
           initial="hidden"

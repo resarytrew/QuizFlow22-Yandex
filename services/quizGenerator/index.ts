@@ -30,6 +30,7 @@
  */
 
 import type { GenerateQuizHtmlInput, QuizPayload } from "./types";
+import type { QuizTemplateId } from "../../types";
 import { DEFAULT_GLOBAL_TIMER, DEFAULT_TEMPLATE_ID } from "./types";
 import { getApiBaseUrl, getApiOrigin } from "./env";
 import { serializeForHtmlScript } from "./serialize";
@@ -173,7 +174,7 @@ function validateInput(input: GenerateQuizHtmlInput): void {
 }
 
 function resolveTemplate(templateId: string): string {
-  const template = getTemplateById(templateId as any);
+  const template = getTemplateById(templateId as QuizTemplateId);
 
   if (typeof template !== "string") {
     throw new Error(

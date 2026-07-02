@@ -1,3 +1,5 @@
+import type { Edge, Node } from "reactflow";
+
 export type QuizTemplateId =
   | "default"
   | "ww2"
@@ -594,9 +596,28 @@ export interface ContestSubmission {
   status: "pending" | "approved" | "rejected";
 }
 
+export interface ResultAchievement {
+  title?: string;
+  description?: string;
+}
+
+export interface QuizResultData {
+  variables?: Record<string, unknown>;
+  achievements?: Array<ResultAchievement | string>;
+  [key: string]: unknown;
+}
+
+export interface PathEventDetails {
+  question?: string;
+  selectedAnswer?: unknown;
+  isCorrect?: boolean | string;
+  scoreChange?: number;
+  [key: string]: unknown;
+}
+
 export interface QuizData {
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   globalTimer: GlobalTimer;
   designSettings: DesignSettings;
   templateId?: QuizTemplateId;
@@ -643,7 +664,7 @@ export interface QuizResult {
   user_id?: string;
   score: number;
   final_node_title: string;
-  results_data: any;
+  results_data: QuizResultData;
   participant_name?: string;
   participant_email?: string;
   time_spent_seconds?: number;
@@ -655,7 +676,7 @@ export interface PathEvent {
   nodeType: string;
   nodeLabel: string;
   timestamp: string;
-  details: any;
+  details: PathEventDetails;
 }
 
 export type SessionStatus = "in_progress" | "completed" | "abandoned";
@@ -670,8 +691,8 @@ export interface QuizSession {
   participant_email?: string;
   status: SessionStatus;
   score: number;
-  variables: Record<string, any>;
-  achievements: any[];
+  variables: Record<string, unknown>;
+  achievements: Array<ResultAchievement | string>;
   path_data: PathEvent[];
   started_at: string;
   completed_at?: string;
@@ -683,8 +704,8 @@ export interface QuizSession {
 export interface QuizTemplate {
   id?: string;
   name?: string;
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   description?: string;
   globalTimer?: GlobalTimer;
   designSettings?: DesignSettings;
@@ -696,8 +717,8 @@ export interface QuizTemplate {
 
 export interface AutosavePayload {
   currentQuizId: string | null;
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   globalTimer: GlobalTimer;
   designSettings: DesignSettings;
   templateId: QuizTemplateId;

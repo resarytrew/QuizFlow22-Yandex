@@ -1,7 +1,20 @@
+import type { Answer } from "../types";
 import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { parseText } from "../sanitize";
 import { getDesignSettings } from "../designState";
+
+interface ChoiceData {
+  answers?: Answer[];
+  options?: Answer[];
+  correctOptions?: string[];
+  minSelections?: number;
+  maxSelections?: number;
+  buttonText?: string;
+  soundSettings?: {
+    onButtonPress?: string;
+  };
+}
 
 function markerFor(index: number): string {
   const markerStyle = getDesignSettings()?.answerCards?.markerStyle ?? "letters";
@@ -11,7 +24,7 @@ function markerFor(index: number): string {
 }
 
 function createAnswerButton(
-  answer: any,
+  answer: Answer,
   index: number,
   selected = false,
 ): HTMLButtonElement {
@@ -45,10 +58,10 @@ function createAnswerButton(
 }
 
 export const renderQuestion: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as ChoiceData;
   const buttons: HTMLButtonElement[] = [];
 
-  (data.answers ?? data.options ?? []).forEach((answer: any, index: number) => {
+  (data.answers ?? data.options ?? []).forEach((answer, index) => {
     const button = createAnswerButton(answer, index);
     button.addEventListener("click", () => {
       button.classList.add("selected", "confirm-flash");
@@ -67,7 +80,7 @@ export const renderQuestion: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as ChoiceData;
   const selected = new Set<string>();
   const answers = data.answers ?? [];
   const min = Math.max(0, Number(data.minSelections ?? 0));
@@ -79,7 +92,7 @@ export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
     confirmButton.disabled = selected.size < min || selected.size > max;
   };
 
-  answers.forEach((answer: any, index: number) => {
+  answers.forEach((answer, index) => {
     const answerId = String(answer.id ?? index);
     const button = createAnswerButton(answer, index);
     button.addEventListener("click", () => {

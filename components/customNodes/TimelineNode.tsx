@@ -1,11 +1,7 @@
-
+﻿
 import React from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { TimelineNodeData } from '../../types.ts';
-
-const { Handle, Position } = ReactFlow as any;
-type NodeProps<T = any> = any;
-
 const TimelineNode: React.FC<NodeProps<TimelineNodeData>> = ({ data, selected }) => {
   const { question, events = [] } = data;
 

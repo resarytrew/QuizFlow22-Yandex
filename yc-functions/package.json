@@ -2,6 +2,7 @@
   "name": "quizflow22-yc-functions",
   "private": true,
   "scripts": {
+    "lint": "tsc -p tsconfig.json --noEmit",
     "build:shared": "tsc -p tsconfig.json",
     "build": "npm run build:shared && npm run build:router && npm run build:quizzes && npm run build:results && npm run build:billing && npm run build:admin && npm run build:support && npm run build:ai-proxy && npm run build:upload && npm run build:cron && npm run build:promo && npm run build:grant-pro && npm run build:session",
     "build:router": "esbuild api-router/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-router/index.js",

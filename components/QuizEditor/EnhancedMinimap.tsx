@@ -1,16 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import * as ReactFlowPkg from 'reactflow';
+import { MiniMap } from 'reactflow';
 import { DS } from './constants';
 import { Icons } from './Icons';
 import type { CustomNodeType } from '../../types';
-
-const { MiniMap } = ReactFlowPkg as any;
 
 export const EnhancedMinimap: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     const getNodeColor = useCallback(
-        (n: { type: CustomNodeType }) => DS.nodeColors[n.type] ?? '#cbd5e1',
+        (n: { type?: string }) => DS.nodeColors[n.type as CustomNodeType] ?? '#cbd5e1',
         []
     );
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/apiClient';
-import { QuizResult, PathEvent, QuizSession } from '../../types.ts';
+import { Quiz, QuizResult, PathEvent, QuizSession } from '../../types.ts';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 
 interface Props {
@@ -38,9 +38,10 @@ const getStatusBadge = (status: string) => {
 };
 
 const getDisplayName = (session: QuizSession): string => {
+  const playerName = typeof session.variables?.playerName === 'string' ? session.variables.playerName : undefined;
   // Сначала проверяем переменную playerName
-  if (session.variables?.playerName && session.variables.playerName !== 'Guest' && session.variables.playerName !== 'Гость') {
-    return session.variables.playerName;
+  if (playerName && playerName !== 'Guest' && playerName !== 'Гость') {
+    return playerName;
   }
   // Потом participant_name
   if (session.participant_name && session.participant_name !== 'Guest' && session.participant_name !== 'Гость') {
@@ -53,7 +54,6 @@ const StatCard = ({
   label, 
   value, 
   icon, 
-  color = 'indigo',
   trend
 }: { 
   label: string; 
@@ -167,14 +167,14 @@ const PathTimeline = ({ path }: { path: PathEvent[] }) => {
                   <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200/50">
                     <p className="font-medium text-slate-700 italic text-sm mb-2">"{event.details.question}"</p>
                     
-                    {event.details.selectedAnswer && (
+                    {event.details.selectedAnswer !== undefined && event.details.selectedAnswer !== null && event.details.selectedAnswer !== '' && (
                       <div className="mt-2 pt-2 border-t border-blue-200/50">
                         <div className="flex items-start gap-2">
                           <span className="text-xs font-semibold text-slate-600">Ответ:</span>
                           <span className="text-xs font-medium text-slate-900 flex-1">
-                            {Array.isArray(event.details.selectedAnswer) 
-                              ? event.details.selectedAnswer.join(', ') 
-                              : event.details.selectedAnswer}
+                            {Array.isArray(event.details.selectedAnswer)
+                              ? event.details.selectedAnswer.map(String).join(', ')
+                              : String(event.details.selectedAnswer)}
                           </span>
                         </div>
                       </div>
@@ -251,7 +251,7 @@ const ResultsTable = ({ results }: { results: QuizResult[] }) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
-          {results.map((result, index) => (
+          {results.map((result) => (
             <React.Fragment key={result.id}>
               <tr 
                 className="bg-white hover:bg-slate-50 cursor-pointer transition-colors duration-150 group"
@@ -380,7 +380,7 @@ const ResultsTable = ({ results }: { results: QuizResult[] }) => {
                               <h4 className="text-lg font-bold text-slate-900">Достижения</h4>
                             </div>
                             <ul className="space-y-3">
-                              {result.results_data.achievements.map((ach: any, index: number) => (
+                              {result.results_data.achievements.map((ach, index) => (
                                 <li key={index} className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200/50">
                                   <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white flex-shrink-0">
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -388,8 +388,8 @@ const ResultsTable = ({ results }: { results: QuizResult[] }) => {
                                     </svg>
                                   </div>
                                   <div className="flex-1">
-                                    <div className="font-bold text-emerald-900">{ach.title || ach}</div>
-                                    {ach.description && <div className="text-sm text-emerald-700 mt-1">{ach.description}</div>}
+                                    <div className="font-bold text-emerald-900">{typeof ach === 'string' ? ach : ach.title}</div>
+                                    {typeof ach !== 'string' && ach.description && <div className="text-sm text-emerald-700 mt-1">{ach.description}</div>}
                                   </div>
                                 </li>
                               ))}
@@ -412,6 +412,8 @@ const ResultsTable = ({ results }: { results: QuizResult[] }) => {
     </div>
   );
 };
+
+void ResultsTable;
 
 const getSessionLeadFields = (session: QuizSession) => {
   const fields: Record<string, string> = {};
@@ -482,7 +484,7 @@ const sessionMatchesSegment = (session: QuizSession, segment: SegmentKey) => {
   }
 };
 
-const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: any[], quizEdges: any[]) => {
+const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: Quiz['quiz_data']['nodes'], quizEdges: Quiz['quiz_data']['edges']) => {
   const total = sessions.length || 1;
   const nodeMap = new Map<string, {
     id: string;
@@ -501,7 +503,7 @@ const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: any[], quizEdge
   }>();
   const orderedNodeIds: string[] = [];
 
-  quizNodes.forEach((node: any) => {
+  quizNodes.forEach((node) => {
     nodeMap.set(node.id, {
       id: node.id,
       label: node.data?.label || node.data?.title || node.id,
@@ -512,7 +514,7 @@ const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: any[], quizEdge
     });
   });
 
-  quizEdges.forEach((edge: any) => {
+  quizEdges.forEach((edge) => {
     edgeMap.set(edge.id, {
       id: edge.id,
       source: edge.source,
@@ -551,7 +553,7 @@ const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: any[], quizEdge
       }
 
       if (next?.nodeId) {
-        const knownEdge = quizEdges.find((edge: any) => edge.source === event.nodeId && edge.target === next.nodeId);
+        const knownEdge = quizEdges.find((edge) => edge.source === event.nodeId && edge.target === next.nodeId);
         const edgeId = knownEdge?.id || `${event.nodeId}->${next.nodeId}`;
         if (!edgeMap.has(edgeId)) {
           edgeMap.set(edgeId, {
@@ -579,7 +581,7 @@ const buildAnalyticsModel = (sessions: QuizSession[], quizNodes: any[], quizEdge
   });
 
   const flowNodes = Array.from(nodeMap.values())
-    .filter((node) => node.reached > 0 || quizNodes.some((quizNode: any) => quizNode.id === node.id))
+    .filter((node) => node.reached > 0 || quizNodes.some((quizNode) => quizNode.id === node.id))
     .sort((a, b) => {
       const ai = orderedNodeIds.indexOf(a.id);
       const bi = orderedNodeIds.indexOf(b.id);
@@ -782,9 +784,9 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
 
       console.log("[Analytics] Fetched sessions:", allSessions.length, "from quiz_sessions:", sessionData?.length || 0, "from quiz_results:", resultsData?.length || 0);
       setSessions(allSessions);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Не удалось загрузить данные аналитики.");
+      setError(err instanceof Error ? err.message : "Не удалось загрузить данные аналитики.");
     } finally {
       setIsLoading(false);
     }
@@ -858,7 +860,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
   }, [sessions, searchQuery]);
 
   // Анализ вопросов
-  const questionAnalysis = useMemo(() => {
+  const _questionAnalysis = useMemo(() => {
     const completedSessions = sessions.filter(s => s.status === 'completed' && s.path_data);
     if (completedSessions.length === 0) return { questions: [], averageTime: 0 };
 
@@ -1440,7 +1442,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
                       <div>
                         <div className="flex items-start justify-between gap-4"><div><h4 className="font-serif text-2xl font-semibold text-stone-950">{getDisplayName(selectedSession)}</h4><p className="mt-1 text-sm text-stone-500">{getSessionFinalTitle(selectedSession)}</p></div>{getStatusBadge(selectedSession.status)}</div>
                         <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs"><div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b className="block text-lg text-stone-950">{selectedSession.score || 0}</b>баллы</div><div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b className="block text-lg text-stone-950">{formatTime(selectedSession.time_spent_seconds || 0)}</b>время</div><div className="rounded-xl border border-stone-200 bg-white/70 p-3"><b className="block text-lg text-stone-950">{selectedSession.path_data?.length || 0}</b>шаги</div></div>
-                        <div className="mt-5 space-y-3">{(selectedSession.path_data || []).map((event, index) => (<div key={event.nodeId + '-' + index} className="rounded-xl border border-stone-200 bg-white/70 p-3"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">{event.nodeType}</div><div className="mt-1 font-semibold text-stone-900">{event.nodeLabel}</div>{event.details?.selectedAnswer && <div className="mt-2 text-xs text-stone-500">Ответ: {Array.isArray(event.details.selectedAnswer) ? event.details.selectedAnswer.join(', ') : String(event.details.selectedAnswer)}</div>}</div>))}</div>
+                        <div className="mt-5 space-y-3">{(selectedSession.path_data || []).map((event, index) => (<div key={event.nodeId + '-' + index} className="rounded-xl border border-stone-200 bg-white/70 p-3"><div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">{event.nodeType}</div><div className="mt-1 font-semibold text-stone-900">{event.nodeLabel}</div>{event.details?.selectedAnswer !== undefined && event.details.selectedAnswer !== null && event.details.selectedAnswer !== '' && <div className="mt-2 text-xs text-stone-500">Ответ: {Array.isArray(event.details.selectedAnswer) ? event.details.selectedAnswer.map(String).join(', ') : String(event.details.selectedAnswer)}</div>}</div>))}</div>
                       </div>
                     ) : <p className="text-sm text-stone-500">Выберите прохождение.</p>}
                   </div>

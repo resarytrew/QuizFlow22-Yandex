@@ -2,11 +2,8 @@
 import React, { useMemo } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import * as ReactFlow from 'reactflow';
+import { useReactFlow, type Node } from 'reactflow';
 import { NodeData } from '../types.ts';
-
-const { useReactFlow } = ReactFlow as any;
-type Node<T = any> = any;
 
 const Breadcrumbs: React.FC = React.memo(() => {
     const currentGroup = useUIStore(s => s.currentGroup);
@@ -24,7 +21,7 @@ const Breadcrumbs: React.FC = React.memo(() => {
             const node = allNodes.find((n: Node<NodeData>) => n.id === currentId);
             if (node) {
                 result.unshift({ id: node.id, label: node.data.label || 'Группа', node: node });
-                currentId = (node.data as any).parentId;
+                currentId = typeof node.data.parentId === 'string' ? node.data.parentId : undefined;
             } else {
                 currentId = undefined;
             }

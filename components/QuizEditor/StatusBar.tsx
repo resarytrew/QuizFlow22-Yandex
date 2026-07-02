@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import * as ReactFlowPkg from 'reactflow';
+import { useViewport } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 import { CustomNodeType, NodeData } from '../../types';
 import { Icons } from './Icons';
 
-const { useViewport } = ReactFlowPkg as any;
-
-type FlowNode<T = any> = Node<T>;
+type FlowNode<T = NodeData> = Node<T>;
 
 interface StatusBarProps {
     nodes: FlowNode<NodeData>[];

@@ -1,11 +1,7 @@
-
+﻿
 import React from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import { MatchingNodeData } from '../../types.ts';
-
-const { Handle, Position } = ReactFlow as any;
-type NodeProps<T = any> = any;
-
 const MatchingNode: React.FC<NodeProps<MatchingNodeData>> = ({ data, selected }) => {
   const { question, correctPairs = [] } = data;
 

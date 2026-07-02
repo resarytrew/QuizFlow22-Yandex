@@ -40,12 +40,12 @@ const LivePreview: React.FC = () => {
       // поэтому строгий родительский CSP не блокирует.
       const html = generateQuizHtml(
         {
-          nodes: previewInputs.nodes as any,
-          edges: previewInputs.edges as any,
+          nodes: previewInputs.nodes,
+          edges: previewInputs.edges,
           globalTimer: previewInputs.globalTimer,
-          designSettings: previewInputs.designSettings as any,
+          designSettings: previewInputs.designSettings as unknown as Record<string, unknown>,
           quizId: null,
-          templateId: previewInputs.templateId as any,
+          templateId: previewInputs.templateId,
           currentQuizName: previewInputs.currentQuizName,
           startNodeId: previewInputs.previewStartNodeId ?? undefined,
         },

@@ -1,11 +1,9 @@
 import React from 'react';
-import * as ReactFlowPkg from 'reactflow';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath } from 'reactflow';
 import type { EdgeProps } from 'reactflow';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { DS } from './constants';
 import { shouldAnimateEdges } from './performanceMode';
-
-const { getBezierPath, BaseEdge, EdgeLabelRenderer } = ReactFlowPkg as any;
 
 export const FlowEdge: React.FC<EdgeProps> = React.memo(({
     id,

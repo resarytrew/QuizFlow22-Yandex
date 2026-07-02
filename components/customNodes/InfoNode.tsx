@@ -1,17 +1,14 @@
-
+﻿
 import React, { useState } from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode.tsx';
 import { InfoNodeData } from '../../types.ts';
 import { getRutubeId, getRutubeEmbedUrl } from '../../utils/videoUtils.ts';
 import { parseMarkdown } from '../../utils/parseText.ts';
 
-// Mock types
-type NodeProps<T = any> = any;
-
 const InfoNode: React.FC<NodeProps<InfoNodeData>> = (props) => {
   const { data } = props;
   const { title, videoUrl } = data;
-  const [isZoomed, setIsZoomed] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   const rutubeId = getRutubeId(videoUrl || '');

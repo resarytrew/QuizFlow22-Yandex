@@ -115,15 +115,20 @@ Bash
 npm run dev        # Запустить dev сервер (Vite)
 npm run build      # Сборка для продакшна
 npm run preview    # Предпросмотр сборки
-npm run lint       # Текущая проверка TypeScript типов (tsc --noEmit)
+npm run typecheck  # Проверка TypeScript типов (tsc --noEmit)
+npm run lint:eslint # ESLint flat config для frontend-кода
+npm run lint       # typecheck + ESLint
+npm run lint:functions # TypeScript-проверка Yandex Functions
 npm test           # Vitest
-npm run test:functions # Deno tests
+npm run test:functions # Сборка/bundle Yandex Functions
+npm run verify     # Полная локальная проверка: functions deps + lint + tests + build
 
 # Полная проверка перед коммитом
-npm run lint && npm test && npm run test:functions && npm run build
+npm run verify
 
-⚠️ ESLint ещё не настроен. До появления отдельного ESLint-конфига команда
-`npm run lint` выполняет только `tsc --noEmit`.
+ESLint настроен через `eslint.config.js`: подключены recommended-наборы JS/TypeScript,
+React Hooks и React Refresh. Текущий baseline допускает предупреждения как техдолг,
+но ошибки ESLint блокируют `npm run lint` и общий `npm run verify`.
 
 3. Архитектура
 Основные слои приложения
@@ -2160,9 +2165,11 @@ import dompurifySource from "dompurify/dist/purify.min.js?raw";
 │  on: push to main                                                │
 │    1. checkout                                                   │
 │    2. setup-node 20 + npm ci                                     │
-│    3. npm run build (vite → dist/)                               │
-│    4. AWS CLI sync → yandex-storage bucket                       │
-│    5. (опц.) yc cdn cache purge                                  │
+│    3. npm run install:functions                                  │
+│    4. npm run lint && npm test && npm run lint:functions          │
+│    5. npm run test:functions && npm run build                    │
+│    6. AWS CLI sync → yandex-storage bucket                       │
+│    7. (опц.) yc cdn cache purge                                  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -2255,10 +2262,12 @@ AWS_DEFAULT_REGION=ru-central1
 В проекте два workflow:
 
 - `.github/workflows/ci.yml` — запускается на push и pull request: `npm ci`,
-  TypeScript-проверка, 412 frontend-тестов, Deno check/tests и production build.
+  TypeScript-проверка, frontend-тесты, production build, а также отдельный job
+  Yandex Functions с `npm ci`, `npm run lint` и `npm run build` внутри `yc-functions`.
 - `.github/workflows/deploy.yml` — перед публикацией повторяет TypeScript,
-  Deno check, frontend/Deno tests и build. Загрузка в Yandex Object Storage
-  начинается только после успешного прохождения всех проверок.
+  frontend tests, Yandex Functions typecheck/bundle и build. Перед проверками
+  deploy явно устанавливает зависимости функций через `npm run install:functions`.
+  Загрузка в Yandex Object Storage начинается только после успешного прохождения всех проверок.
 
 Vitest использует `minWorkers: 1` и `maxWorkers: 2`: это предотвращает
 случайные таймауты тяжёлых router loader-тестов в ограниченном CI-окружении.
@@ -2349,7 +2358,9 @@ supabase db push
 **Phase 4 — Auth & infra (≈3 дня)**
 - [ ] **MFA для admin-аккаунтов** (TOTP через Supabase Auth)
 - [ ] `supabaseConfig.functionsUrl` CVE: заменить на whitelist доменов
-- [ ] ESLint + Prettier setup (в репо сейчас нет конфига)
+- [x] ESLint setup: flat config + `npm run lint` как `typecheck` + ESLint
+- [ ] ESLint warnings burn-down: 419 → 331 → 0 по отдельной задаче `ESLINT_WARNINGS_TASK.md` (Phase 1 выполнена)
+- [ ] Prettier setup
 - [ ] Dependabot для `package.json` + `deno.json` (auto-PR)
 - [ ] Sentry / Logflare для фронта + Edge Functions
 
@@ -2484,11 +2495,11 @@ npm run test:coverage      # V8 coverage
 
 | Runner | Кол-во тестов | Scope | Команда |
 |---|---|---|---|
-| Deno | 204 | edge fns + shared | `npm run test:functions` |
+| Yandex Functions | typecheck + bundle | `yc-functions` API router/domain handlers | `npm run lint:functions` + `npm run test:functions` |
 | SQL   | ~48 (4+ файла: `billing_migration`, `atomic_migration`, `session_rls_hardening`, `admin_foundation`) | migrations + RPCs + RLS | `psql $URL -f supabase/tests/*.sql` |
-| Vitest | 562 (60 файлов) | frontend utils, services, engine, router, components | `npm test` |
+| Vitest | 597 (64 файла) | frontend utils, services, engine, router, components | `npm test` |
 
-> **При добавлении теста**: обнови соответствующий runner-блок в `package.json` (`test:functions` для Deno, `test`/`test:watch` для Vitest) — новые SQL-файлы достаточно положить в `supabase/tests/*.sql`, glob найдёт их автоматически.
+> **При добавлении теста**: обнови соответствующий runner-блок в `package.json` (`test`/`test:watch` для Vitest, `lint:functions`/`test:functions` для Yandex Functions) — новые SQL-файлы достаточно положить в `supabase/tests/*.sql`, glob найдёт их автоматически.
 
 ### 21.4 Метрики успеха (North Star)
 
@@ -2504,6 +2515,14 @@ npm run test:coverage      # V8 coverage
 ---
 
 ## Changelog документации
+
+- **02.07.2026 (ESLint gate)** — добавлен настоящий ESLint flat config (`eslint.config.js`) для frontend-кода: recommended JS/TypeScript, React Hooks и React Refresh. `npm run lint` теперь выполняет `typecheck` + `lint:eslint`, а `npm run verify` получает ESLint как обязательный gate. Исправлены первые блокирующие ошибки правил hooks/no-constant-binary-expression/no-unused-expressions/no-empty.
+
+- **02.07.2026 (ESLint warnings task)** — заведена отдельная задача `ESLINT_WARNINGS_TASK.md` на снижение ESLint warnings с baseline **419 → 0**. Порядок работ: unused vars / `prefer-const`, затем `no-explicit-any`, затем React Hooks / React Refresh.
+
+- **02.07.2026 (ESLint warnings Phase 1)** — закрыта первая фаза `ESLINT_WARNINGS_TASK.md`: `no-unused-vars` **80 → 0**, `prefer-const` **3 → 0**. Общий ESLint warning baseline снижен **419 → 331**; следующий этап — `no-explicit-any` **286 → 0**.
+
+- **02.07.2026 (Local/CI verify gate)** — добавлен корневой `npm run verify`, который устанавливает зависимости `yc-functions`, запускает frontend typecheck, Vitest, Yandex Functions typecheck/bundle и production build. `lint:functions` делегирует в новый `yc-functions` script `lint`; CI job для функций выполняет `npm run lint`/`npm run build` из `yc-functions`, а deploy перед проверками явно выполняет `npm run install:functions`.
 
 - **23.06.2026 (Yandex Cloud migration)** — Supabase оставлен только для Auth/JWT. Клиентские CRUD, публичные квизы, аналитика, assets, support, billing promo, admin API, AI proxy и standalone-сохранение результатов переведены на `VITE_API_URL` → Yandex API Gateway/Cloud Functions. Supabase Edge Function fallback удалён из runtime-конфигов; CI/deploy secrets используют `VITE_API_URL`; Yandex functions собираются через `yc-functions`.
 

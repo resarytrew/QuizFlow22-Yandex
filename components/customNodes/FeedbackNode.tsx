@@ -1,10 +1,8 @@
-
+﻿
 import React, { useState } from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode.tsx';
 import { FeedbackNodeData } from '../../types.ts';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const FeedbackNode: React.FC<NodeProps<FeedbackNodeData>> = (props) => {
     const { data } = props;

@@ -124,7 +124,7 @@ const DraggableNode: React.FC<{ type: string; label: string }> = ({ type, label 
       )}
       {/* Icon */}
       <div className={`relative mb-1 transform ${locked ? 'text-amber-600' : 'text-gray-500 group-hover:text-indigo-600'} transition-all duration-200 ${!locked && 'group-hover:scale-105'}`}>
-        {React.cloneElement(ICONS[type] as React.ReactElement<any>, { width: 20, height: 20 })}
+        {React.cloneElement(ICONS[type] as React.ReactElement<React.SVGProps<SVGSVGElement>>, { width: 20, height: 20 })}
       </div>
 
       {/* Label */}

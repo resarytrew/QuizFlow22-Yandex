@@ -143,7 +143,7 @@ const TemplatesPage: React.FC = () => {
         {/* Grid */}
         {filteredTemplates.length > 0 ? (
           <BentoGrid>
-            {filteredTemplates.map((template, index) => (
+            {filteredTemplates.map((template) => (
               <div key={template.id} onClick={() => handleSelectTemplate(template)} className="cursor-pointer">
                 <GalleryCard>
                   {/* Gradient header */}

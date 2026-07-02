@@ -1,9 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import { Quiz, ProjectPassport } from '../../types';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
-import { useAuthStore } from '../../store/useAuthStore';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -55,9 +53,14 @@ const FieldLabel = ({ children }: { children?: React.ReactNode }) => (
     <label className="block text-sm font-semibold text-gray-700 mb-1">{children}</label>
 );
 
+type PassportListItem = { id: string; [key: string]: unknown };
+
+function isPassportListItem(value: unknown): value is PassportListItem {
+    return typeof value === 'object' && value !== null && typeof (value as { id?: unknown }).id === 'string';
+}
+
 const QuizPassportModal: React.FC<Props> = ({ isOpen, onClose, quiz, readOnly = false }) => {
     const updateQuizPassport = useQuizDataStore(s => s.updateQuizPassport);
-    const session = useAuthStore(s => s.session);
     const [activeTab, setActiveTab] = useState('title');
     const [isSaving, setIsSaving] = useState(false);
     
@@ -127,7 +130,7 @@ const QuizPassportModal: React.FC<Props> = ({ isOpen, onClose, quiz, readOnly = 
         }
     }, [isOpen, quiz]);
 
-    const updateField = (field: keyof ProjectPassport, value: any) => {
+    const updateField = <K extends keyof ProjectPassport>(field: K, value: ProjectPassport[K]) => {
         if (readOnly) return;
         setData(prev => ({ ...prev, [field]: value }));
     };
@@ -136,7 +139,7 @@ const QuizPassportModal: React.FC<Props> = ({ isOpen, onClose, quiz, readOnly = 
         listName: keyof ProjectPassport,
         id: string,
         field: string,
-        value: any
+        value: unknown
     ) => {
         if (readOnly) return;
         setData(prev => {
@@ -145,20 +148,22 @@ const QuizPassportModal: React.FC<Props> = ({ isOpen, onClose, quiz, readOnly = 
             
             return {
                 ...prev,
-                [listName]: list.map((item: any) => item.id === id ? { ...item, [field]: value } : item)
-            };
+                [listName]: (list as unknown[]).map((item) =>
+                    isPassportListItem(item) && item.id === id ? { ...item, [field]: value } : item
+                )
+            } as ProjectPassport;
         });
     };
 
-    const addListItem = (listName: keyof ProjectPassport, newItem: any) => {
+    const addListItem = (listName: keyof ProjectPassport, newItem: unknown) => {
         if (readOnly) return;
         setData(prev => {
             const list = prev[listName];
             if (!Array.isArray(list)) return prev;
              return {
                 ...prev,
-                [listName]: [...list, newItem]
-            };
+                [listName]: [...(list as unknown[]), newItem]
+            } as ProjectPassport;
         });
     };
 

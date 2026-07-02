@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   buildIndexes,
-  nodeById,
   type QuizData,
   type QuizNode,
   type QuizEdge,

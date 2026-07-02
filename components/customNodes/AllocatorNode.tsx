@@ -1,9 +1,7 @@
-import React from "react";
+﻿import React from "react";
+import type { NodeProps } from 'reactflow';
 import BaseNode from "./BaseNode.tsx";
 import { AllocatorNodeData } from "../../types.ts";
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const AllocatorNode: React.FC<NodeProps<AllocatorNodeData>> = (props) => {
   const { data } = props;
@@ -50,67 +48,7 @@ const AllocatorNode: React.FC<NodeProps<AllocatorNodeData>> = (props) => {
           <div className="space-y-2">
             {items
               .slice(0, 3)
-              .map(
-                (
-                  item: {
-                    id: React.Key | null | undefined;
-                    label:
-                      | string
-                      | number
-                      | bigint
-                      | boolean
-                      | React.ReactElement<
-                          unknown,
-                          string | React.JSXElementConstructor<any>
-                        >
-                      | Iterable<React.ReactNode>
-                      | React.ReactPortal
-                      | Promise<
-                          | string
-                          | number
-                          | bigint
-                          | boolean
-                          | React.ReactPortal
-                          | React.ReactElement<
-                              unknown,
-                              string | React.JSXElementConstructor<any>
-                            >
-                          | Iterable<React.ReactNode>
-                          | null
-                          | undefined
-                        >
-                      | null
-                      | undefined;
-                    variableName:
-                      | string
-                      | number
-                      | bigint
-                      | boolean
-                      | React.ReactElement<
-                          unknown,
-                          string | React.JSXElementConstructor<any>
-                        >
-                      | Iterable<React.ReactNode>
-                      | React.ReactPortal
-                      | Promise<
-                          | string
-                          | number
-                          | bigint
-                          | boolean
-                          | React.ReactPortal
-                          | React.ReactElement<
-                              unknown,
-                              string | React.JSXElementConstructor<any>
-                            >
-                          | Iterable<React.ReactNode>
-                          | null
-                          | undefined
-                        >
-                      | null
-                      | undefined;
-                  },
-                  idx: any,
-                ) => (
+              .map((item) => (
                   <div key={item.id} className="space-y-1">
                     <div className="flex justify-between text-[10px] text-gray-600">
                       <span>{item.label}</span>
@@ -122,8 +60,7 @@ const AllocatorNode: React.FC<NodeProps<AllocatorNodeData>> = (props) => {
                       <div className="h-full bg-teal-400 w-1/2 rounded-full"></div>
                     </div>
                   </div>
-                ),
-              )}
+                ))}
             {items.length > 3 && (
               <p className="text-[10px] text-center text-gray-400 italic">
                 + еще {items.length - 3} категорий
