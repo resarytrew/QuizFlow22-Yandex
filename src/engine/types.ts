@@ -66,6 +66,8 @@ export interface NodeData {
   // Sound
   soundSettings?: {
     onEntry?: string;
+    onButtonPress?: string;
+    voiceover?: string;
   };
 
   // Show score
@@ -233,10 +235,18 @@ export interface DesignSettings {
   sound?: {
     volume?: number;
     backgroundMusic?: string;
+    musicVolume?: number;
+    voiceVolume?: number;
+    sfxVolume?: number;
+    tickVolume?: number;
     buttonClick?: string;
     correctAnswer?: string;
     incorrectAnswer?: string;
     achievementUnlock?: string;
+    screenQuizIntro?: string;
+    screenQuizTick?: string;
+    screenQuizReveal?: string;
+    screenQuizTransition?: string;
   };
 }
 

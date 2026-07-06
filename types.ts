@@ -66,6 +66,7 @@ export interface BaseNodeData {
 export interface NodeSoundSettings {
   onEntry?: string;
   onButtonPress?: string;
+  voiceover?: string;
 }
 
 export type ScreenQuizLayout = 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
@@ -443,10 +444,18 @@ export interface DesignSettings {
   sound: {
     volume: number;
     backgroundMusic?: string;
+    musicVolume?: number;
+    voiceVolume?: number;
+    sfxVolume?: number;
+    tickVolume?: number;
     buttonClick?: string;
     correctAnswer?: string;
     incorrectAnswer?: string;
     achievementUnlock?: string;
+    screenQuizIntro?: string;
+    screenQuizTick?: string;
+    screenQuizReveal?: string;
+    screenQuizTransition?: string;
   };
 }
 

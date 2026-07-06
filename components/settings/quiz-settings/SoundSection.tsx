@@ -36,6 +36,10 @@ export const SoundSection: React.FC = () => {
 
   const sound = designSettings.sound ?? {};
   const volume = sound.volume ?? 0.5;
+  const musicVolume = sound.musicVolume ?? 0.3;
+  const voiceVolume = sound.voiceVolume ?? 1;
+  const sfxVolume = sound.sfxVolume ?? 1;
+  const tickVolume = sound.tickVolume ?? 0.85;
 
   const setSound = (field: string, value: unknown) => {
     updateDesignSettings({
@@ -63,6 +67,21 @@ export const SoundSection: React.FC = () => {
           </div>
         </div>
       </SettingRow>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SettingRow label="Музыка" description="Отдельная громкость фоновой музыки.">
+          <LayerVolume value={musicVolume} onChange={(v) => setSound('musicVolume', v)} />
+        </SettingRow>
+        <SettingRow label="Диктор" description="Громкость озвучки сцен.">
+          <LayerVolume value={voiceVolume} onChange={(v) => setSound('voiceVolume', v)} />
+        </SettingRow>
+        <SettingRow label="Эффекты" description="Громкость переходов, появления и раскрытия ответа.">
+          <LayerVolume value={sfxVolume} onChange={(v) => setSound('sfxVolume', v)} />
+        </SettingRow>
+        <SettingRow label="Таймер" description="Громкость тиков таймера экранной викторины.">
+          <LayerVolume value={tickVolume} onChange={(v) => setSound('tickVolume', v)} />
+        </SettingRow>
+      </div>
 
       <div className="space-y-4 pt-2">
         <UrlInput
@@ -102,7 +121,58 @@ export const SoundSection: React.FC = () => {
             icon={ACHIEVEMENT_ICON}
           />
         </div>
+
+        <div className="border-t border-slate-200 pt-4">
+          <div className="mb-3">
+            <h4 className="text-sm font-semibold text-slate-800">Экранная викторина</h4>
+            <p className="mt-1 text-xs text-slate-500">
+              Звуки для автоматического YouTube-режима: заставка, таймер, раскрытие ответа и переходы.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <UrlInput
+              label="Звук заставки"
+              value={sound.screenQuizIntro || ''}
+              onChange={(v) => setSound('screenQuizIntro', v)}
+              placeholder="Intro-sting.mp3"
+            />
+            <UrlInput
+              label="Тик таймера"
+              value={sound.screenQuizTick || ''}
+              onChange={(v) => setSound('screenQuizTick', v)}
+              placeholder="Tick.mp3"
+            />
+            <UrlInput
+              label="Раскрытие ответа"
+              value={sound.screenQuizReveal || ''}
+              onChange={(v) => setSound('screenQuizReveal', v)}
+              placeholder="Reveal.mp3"
+            />
+            <UrlInput
+              label="Переход между сценами"
+              value={sound.screenQuizTransition || ''}
+              onChange={(v) => setSound('screenQuizTransition', v)}
+              placeholder="Whoosh.mp3"
+            />
+          </div>
+        </div>
       </div>
     </Section>
   );
 };
+
+const LayerVolume: React.FC<{ value: number; onChange: (value: number) => void }> = ({ value, onChange }) => (
+  <div className="space-y-1">
+    <RangeInput
+      min={0}
+      max={1}
+      step={0.05}
+      value={value}
+      onChange={onChange}
+      aria-label="Громкость слоя"
+    />
+    <div className="text-right text-xs text-slate-500">
+      {Math.round(value * 100)}%
+    </div>
+  </div>
+);

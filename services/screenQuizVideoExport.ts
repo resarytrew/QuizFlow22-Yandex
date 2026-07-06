@@ -27,6 +27,7 @@ const MP4_MIME_TYPES = [
 
 const VIDEO_FRAME_RATE = 30;
 const VIDEO_BITRATE = 7_500_000;
+const AUDIO_BITRATE = 160_000;
 
 type MediabunnyModule = typeof import('mediabunny');
 
@@ -127,17 +128,13 @@ export async function exportScreenQuizToMp4({
     await waitForPopupLoad(popup);
     popup.focus();
 
-    stream = await navigator.mediaDevices.getDisplayMedia({
-      video: {
-        width: { ideal: width },
-        height: { ideal: height },
-        frameRate: { ideal: VIDEO_FRAME_RATE, max: VIDEO_FRAME_RATE },
-      },
-      audio: false,
-    });
+    stream = await navigator.mediaDevices.getDisplayMedia(
+      buildScreenQuizDisplayMediaOptions(width, height),
+    );
 
-    const quizUrl = createHtmlBlobUrl(resolveScreenQuizCaptureAssetUrls(htmlContent));
-    blobUrls.push(quizUrl);
+    const quizBlobUrl = createHtmlBlobUrl(resolveScreenQuizCaptureAssetUrls(htmlContent));
+    const quizUrl = `${quizBlobUrl}#screen-quiz-recording`;
+    blobUrls.push(quizBlobUrl);
     popup.location.replace(quizUrl);
     popup.focus();
     await waitForPopupLoad(popup);
@@ -151,6 +148,21 @@ export async function exportScreenQuizToMp4({
     if (!popup.closed) popup.close();
     blobUrls.forEach((url) => URL.revokeObjectURL(url));
   }
+}
+
+export function buildScreenQuizDisplayMediaOptions(width: number, height: number): DisplayMediaStreamOptions {
+  return {
+    video: {
+      width: { ideal: width },
+      height: { ideal: height },
+      frameRate: { ideal: VIDEO_FRAME_RATE, max: VIDEO_FRAME_RATE },
+    },
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    },
+  };
 }
 
 async function recordSeekableMp4(
@@ -167,9 +179,11 @@ async function recordSeekableMp4(
   const {
     BufferTarget,
     CanvasSource,
+    MediaStreamAudioTrackSource,
     Mp4OutputFormat,
     Output,
     QUALITY_HIGH,
+    canEncodeAudio,
   } = await loadMediabunny();
   const target = new BufferTarget();
   const output = new Output({
@@ -196,6 +210,25 @@ async function recordSeekableMp4(
     frameRate: VIDEO_FRAME_RATE,
     name: 'Экранная викторина',
   });
+
+  const audioTrack = stream.getAudioTracks()[0];
+  if (audioTrack && audioTrack.readyState === 'live') {
+    try {
+      const canEncodeAac = await canEncodeAudio('aac', { bitrate: AUDIO_BITRATE });
+      if (canEncodeAac) {
+        const audioSource = new MediaStreamAudioTrackSource(
+          audioTrack,
+          { codec: 'aac', bitrate: AUDIO_BITRATE },
+          { timestampBase: 'zero' },
+        );
+        output.addAudioTrack(audioSource, {
+          name: 'Звук экранной викторины',
+        });
+      }
+    } catch {
+      // Audio capture is browser/source dependent. Keep the video export working.
+    }
+  }
 
   try {
     await output.start();
@@ -357,7 +390,7 @@ export function buildCaptureHintHtml(width: number, height: number): string {
 <body>
   <main>
     <h1>Выберите это окно</h1>
-    <p>В системном окне захвата выберите окно с этой надписью. После выбора начнется запись экранной викторины, а совместимый MP4 с нормальной перемоткой скачается автоматически.</p>
+    <p>В системном окне захвата выберите окно с этой надписью. Затем в этом же окне нажмите «Начать запись», чтобы браузер разрешил звук и запустил экранную викторину.</p>
     <div class="frame">Окно экспорта ${width}x${height}</div>
   </main>
 </body>
@@ -376,7 +409,7 @@ export function resolveScreenQuizCaptureAssetUrls(
 
 export function hasScreenQuizPlaybackStarted(documentRef: Document): boolean {
   const scene = documentRef.querySelector('#sq-scene');
-  return Boolean(scene && scene.childElementCount > 0);
+  return Boolean(scene?.querySelector('.sq-content'));
 }
 
 function createHtmlBlobUrl(html: string): string {

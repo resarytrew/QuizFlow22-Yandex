@@ -270,7 +270,13 @@ const NodeSoundSettingsSection = React.memo(({ node, update }: { node: Node<Node
                 onChange={e => handleSoundChange('onButtonPress', e.target.value)}
                 placeholder="https://... (mp3/wav)"
             />
-            <HelperText>Эти звуки имеют приоритет над глобальными настройками.</HelperText>
+            <UrlInput
+                label="Диктор / озвучка сцены"
+                value={soundSettings.voiceover || ''}
+                onChange={e => handleSoundChange('voiceover', e.target.value)}
+                placeholder="https://... (mp3/wav)"
+            />
+            <HelperText>Эти звуки имеют приоритет над глобальными настройками. В шаблоне "Экранная викторина" озвучка приглушает фоновую музыку на время проигрывания.</HelperText>
         </SettingsSection>
     );
 });

@@ -324,6 +324,177 @@ describe('screenQuiz template', () => {
     dom.window.close();
   });
 
+  it('plays screen quiz background, intro, node entry, and voiceover audio cues', async () => {
+    const playedAudio: Array<{ src: string; volume: number }> = [];
+
+    const nodes = [
+      {
+        id: 'question-audio',
+        type: 'questionNode',
+        position: { x: 0, y: 100 },
+        data: {
+          question: 'Вопрос со звуковым оформлением',
+          soundSettings: {
+            onEntry: 'https://cdn.example.com/audio/entry.mp3',
+            voiceover: 'https://cdn.example.com/audio/voiceover.mp3',
+          },
+          answers: [
+            { id: 'a', text: 'Первый', isCorrect: true },
+            { id: 'b', text: 'Второй' },
+          ],
+        },
+      },
+    ];
+
+    const html = generateQuizHtmlProgrammatically(
+      nodes, [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      {
+        sound: {
+          volume: 0.8,
+          musicVolume: 0.25,
+          voiceVolume: 0.7,
+          sfxVolume: 0.5,
+          tickVolume: 0.1,
+          backgroundMusic: 'https://cdn.example.com/audio/bg.mp3',
+          screenQuizIntro: 'https://cdn.example.com/audio/intro.mp3',
+          screenQuizTick: 'https://cdn.example.com/audio/tick.mp3',
+        },
+        screenQuiz: { timerSeconds: 5, introEnabled: false },
+      },
+      'screen-quiz-audio-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/',
+      pretendToBeVisual: true,
+      beforeParse(window: Window) {
+        class MockAudio {
+          src: string;
+          loop = false;
+          preload = '';
+          volume = 1;
+          listeners: Record<string, Array<() => void>> = {};
+
+          constructor(src = '') {
+            this.src = src;
+          }
+
+          play() {
+            playedAudio.push({ src: this.src, volume: this.volume });
+            if (this.src.includes('voiceover')) {
+              setTimeout(() => {
+                this.listeners.ended?.forEach((listener) => listener());
+              }, 20);
+            }
+            return Promise.resolve();
+          }
+
+          pause() {}
+          addEventListener(type: string, listener: () => void) {
+            this.listeners[type] = [...(this.listeners[type] || []), listener];
+          }
+        }
+
+        Object.defineProperty(window, 'Audio', {
+          configurable: true,
+          value: MockAudio,
+        });
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 220));
+
+    expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/bg.mp3');
+    expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/intro.mp3');
+    expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/entry.mp3');
+    expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/voiceover.mp3');
+    expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/tick.mp3');
+    expect(playedAudio.find((item) => item.src.includes('bg'))?.volume).toBeCloseTo(0.2);
+    expect(playedAudio.find((item) => item.src.includes('voiceover'))?.volume).toBeCloseTo(0.56);
+    expect(playedAudio.find((item) => item.src.includes('intro'))?.volume).toBeCloseTo(0.4);
+    expect(playedAudio.find((item) => item.src.includes('tick'))?.volume).toBeCloseTo(0.08);
+    dom.window.close();
+  });
+
+  it('waits for the explicit recording start button before screen quiz playback', async () => {
+    const playedUrls: string[] = [];
+    const html = generateQuizHtmlProgrammatically(
+      [
+        {
+          id: 'question-recording',
+          type: 'questionNode',
+          position: { x: 0, y: 100 },
+          data: {
+            question: 'Старт записи',
+            answers: [
+              { id: 'a', text: 'A', isCorrect: true },
+              { id: 'b', text: 'B' },
+            ],
+          },
+        },
+      ],
+      [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      {
+        sound: {
+          volume: 0.5,
+          backgroundMusic: 'https://cdn.example.com/audio/bg.mp3',
+        },
+        screenQuiz: { timerSeconds: 5, introEnabled: false },
+      },
+      'screen-quiz-recording-gate-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/#screen-quiz-recording',
+      pretendToBeVisual: true,
+      beforeParse(window: Window) {
+        class MockAudio {
+          src: string;
+          loop = false;
+          preload = '';
+          volume = 1;
+
+          constructor(src = '') {
+            this.src = src;
+          }
+
+          play() {
+            playedUrls.push(this.src);
+            return Promise.resolve();
+          }
+
+          pause() {}
+          addEventListener() {}
+        }
+
+        Object.defineProperty(window, 'Audio', {
+          configurable: true,
+          value: MockAudio,
+        });
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(dom.window.document.querySelector('.sq-recording-gate')).not.toBeNull();
+    expect(dom.window.document.querySelector('.sq-content')).toBeNull();
+    expect(playedUrls).toEqual([]);
+
+    (dom.window.document.querySelector('.sq-recording-start') as HTMLButtonElement).click();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(dom.window.document.querySelector('.sq-content')).not.toBeNull();
+    expect(playedUrls).toContain('https://cdn.example.com/audio/bg.mp3');
+    dom.window.close();
+  });
+
   it('applies the configured screen transition effect to the screen quiz shell', () => {
     const nodes = [
       {

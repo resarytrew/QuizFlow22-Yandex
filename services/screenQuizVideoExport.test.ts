@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import {
   buildCaptureHintHtml,
+  buildScreenQuizDisplayMediaOptions,
   canEncodeSeekableMp4,
   estimateScreenQuizVideoDurationMs,
   hasScreenQuizPlaybackStarted,
@@ -52,6 +53,21 @@ describe('screenQuizVideoExport', () => {
     expect(html).not.toMatch(/<script[\s>]/i);
   });
 
+  it('requests window audio when capturing the screen quiz for MP4 export', () => {
+    const options = buildScreenQuizDisplayMediaOptions(1920, 1080);
+
+    expect(options.video).toMatchObject({
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 30, max: 30 },
+    });
+    expect(options.audio).toMatchObject({
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    });
+  });
+
   it('uses absolute preview runner urls for blob-backed MP4 capture windows', () => {
     const html = [
       '<html><body>',
@@ -70,6 +86,9 @@ describe('screenQuizVideoExport', () => {
 
   it('detects when the screen quiz scene has actually rendered before recording', () => {
     document.body.innerHTML = '<section id="sq-scene"></section>';
+    expect(hasScreenQuizPlaybackStarted(document)).toBe(false);
+
+    document.body.innerHTML = '<section id="sq-scene"><article class="sq-recording-gate"></article></section>';
     expect(hasScreenQuizPlaybackStarted(document)).toBe(false);
 
     document.body.innerHTML = '<section id="sq-scene"><article class="sq-content"></article></section>';
