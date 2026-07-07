@@ -85,11 +85,14 @@ export function estimateScreenQuizVideoDurationMs(
     const localSettings = isPlainObject(data.screenQuiz) ? data.screenQuiz : {};
     const settings = { ...globalSettings, ...localSettings };
     const answers = normalizeAnswers(data);
-    const correctCount = answers.filter((answer) => isCorrectAnswer(answer, data)).length;
-    const revealDelay = answers.length > 0 ? Math.min(1900, 1180 + Math.max(0, correctCount - 1) * 180) : 120;
     const introDelay = getIntroMs(settings, data, answers, String(node.type || ''));
 
-    return sum + introDelay + getTimerMs(settings) + revealDelay + getTransitionMs(settings);
+    return sum
+      + introDelay
+      + getHoldMs(settings)
+      + getTimerMs(settings)
+      + getRevealMs(settings, data, answers)
+      + getTransitionMs(settings);
   }, 0);
 
   return Math.max(4000, total + 900);
@@ -496,6 +499,25 @@ function getTimerMs(settings: Record<string, unknown>): number {
   return clampNumber(settings.timerSeconds, 5, 180, 30) * 1000;
 }
 
+function isTimelineMode(settings: Record<string, unknown>): boolean {
+  return settings.timelineMode === 'timeline';
+}
+
+function getHoldMs(settings: Record<string, unknown>): number {
+  if (!isTimelineMode(settings)) return 0;
+  return clampNumber(settings.holdSeconds, 0, 8, 1.2) * 1000;
+}
+
+function getRevealMs(
+  settings: Record<string, unknown>,
+  data: Record<string, unknown>,
+  answers: ReadonlyArray<{ id: string; text: string; isCorrect?: boolean }>,
+): number {
+  if (isTimelineMode(settings)) return clampNumber(settings.revealSeconds, 0.3, 8, 1.4) * 1000;
+  const correctCount = answers.filter((answer) => isCorrectAnswer(answer, data)).length;
+  return answers.length > 0 ? Math.min(1900, 1180 + Math.max(0, correctCount - 1) * 180) : 120;
+}
+
 function getIntroMs(
   settings: Record<string, unknown>,
   data: Record<string, unknown>,
@@ -545,6 +567,7 @@ function getIntroGapMs(settings: Record<string, unknown>): number {
 }
 
 function getTransitionMs(settings: Record<string, unknown>): number {
+  if (isTimelineMode(settings)) return clampNumber(settings.transitionMs, 80, 2000, 340);
   if (settings.motion === 'off') return 1;
   if (settings.transitionEffect === 'glitch-cut') return 280;
   if (settings.transitionEffect === 'pixel-dissolve') return 380;

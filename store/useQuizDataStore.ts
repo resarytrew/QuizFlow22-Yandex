@@ -126,7 +126,7 @@ const createInitialState = () => ({
     progress: { style: 'bar', position: 'top', color: '#2f5d50', trackColor: '#e4ded2', showPercent: true, showStepLabel: true, height: 8 },
     result: { preset: 'card', backgroundColor: '#fffefa', textColor: '#1d1a16', accentColor: '#2f5d50', showScore: true, showShare: true, scoreStyle: 'badge' },
     advanced: { customCss: '', reducedMotion: false, highContrast: false },
-    screenQuiz: { backgroundPreset: 'pop', backgroundImageUrl: '', backgroundColor: '#9a4bdb', accentColor: '#ffc928', secondaryColor: '#7c5ce7', panelColor: '#f1eef6', answerColor: '#eeeeec', inkColor: '#050305', correctColor: '#18c900', borderWidth: 10, radius: 54, decorIntensity: 1, motion: 'premium', layout: 'auto', timerSeconds: 30, showTimer: true, showStoryTimer: true, introEnabled: true, introTiming: 'auto', introQuestionMs: 2800, introAnswerMs: 1800, introMediaMs: 900, introGapMs: 280 },
+    screenQuiz: { backgroundPreset: 'pop', backgroundImageUrl: '', backgroundColor: '#9a4bdb', accentColor: '#ffc928', secondaryColor: '#7c5ce7', panelColor: '#f1eef6', answerColor: '#eeeeec', inkColor: '#050305', correctColor: '#18c900', borderWidth: 10, radius: 54, decorIntensity: 1, motion: 'premium', layout: 'auto', timerSeconds: 30, showTimer: true, showStoryTimer: true, timelineMode: 'auto', holdSeconds: 1.2, revealSeconds: 1.4, transitionMs: 340, introEnabled: true, introTiming: 'auto', introQuestionMs: 2800, introAnswerMs: 1800, introMediaMs: 900, introGapMs: 280 },
     sound: { volume: 0.5 },
   } as DesignSettings,
   userQuizzes: [] as Quiz[],

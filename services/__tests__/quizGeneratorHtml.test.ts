@@ -783,6 +783,64 @@ describe('screenQuiz template', () => {
     dom.window.close();
   }, 9000);
 
+  it('uses manual montage timeline hold and reveal segments during screen quiz playback', async () => {
+    const nodes = [
+      {
+        id: 'question-1',
+        type: 'questionNode',
+        position: { x: 0, y: 100 },
+        data: {
+          label: 'Вопрос 1',
+          question: 'Сцена с ручной монтажной лентой',
+          answers: [
+            { id: 'a', text: 'Первый ответ' },
+            { id: 'b', text: 'Верный ответ', isCorrect: true },
+          ],
+        },
+      },
+    ];
+
+    const html = generateQuizHtmlProgrammatically(
+      nodes, [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      {
+        screenQuiz: {
+          timelineMode: 'timeline',
+          timerSeconds: 5,
+          holdSeconds: 0.4,
+          revealSeconds: 0.5,
+          transitionMs: 80,
+          introEnabled: false,
+        },
+      },
+      'screen-quiz-manual-timeline-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/',
+      pretendToBeVisual: true,
+    });
+
+    const scene = dom.window.document.querySelector('#sq-scene') as HTMLElement;
+    const options = dom.window.document.querySelectorAll('.sq-option');
+
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    expect(scene.getAttribute('data-playback-phase')).not.toBe('countdown');
+
+    await new Promise((resolve) => setTimeout(resolve, 520));
+    expect(scene.getAttribute('data-playback-phase')).toBe('countdown');
+
+    await new Promise((resolve) => setTimeout(resolve, 5150));
+    expect(scene.getAttribute('data-playback-phase')).toBe('reveal');
+    expect(options[0]?.classList.contains('wrong')).toBe(true);
+    expect(options[1]?.classList.contains('correct')).toBe(true);
+
+    dom.window.close();
+  }, 8000);
+
   it('keeps screen quiz playback on visible screens and skips logic nodes', async () => {
     const nodes = [
       {

@@ -3278,7 +3278,7 @@ const screenQuizTemplate = `
         audioState.voiceoverDone.then(function () {
           if (token !== state.token) return;
           var elapsed = performance.now() - introStartedAt;
-          var remainingIntro = Math.max(0, introDuration - elapsed);
+          var remainingIntro = Math.max(0, introDuration - elapsed) + getHoldMs(config);
           state.introTimerIds.push(window.setTimeout(function () {
             if (token !== state.token) return;
             startCountdown(node, answers, config, token);
@@ -3297,8 +3297,7 @@ const screenQuizTemplate = `
           scene.classList.remove("is-counting");
           scene.setAttribute("data-playback-phase", "reveal");
           var handle = answers.length > 0 ? revealCorrectAnswer(node, answers) : undefined;
-          var correctCount = answers.filter(function (answer) { return isCorrect(answer, node) === true; }).length;
-          var delay = answers.length > 0 ? Math.min(1900, 1180 + Math.max(0, correctCount - 1) * 180) : 120;
+          var delay = getRevealMs(config, node, answers);
           transitionToNext(handle, delay, token, config);
         }, getTimerMs(config));
       }
@@ -3356,6 +3355,21 @@ const screenQuizTemplate = `
         return clamp(config.timerSeconds, 5, 180, 30) * 1000;
       }
 
+      function isTimelineMode(config) {
+        return config.timelineMode === "timeline";
+      }
+
+      function getHoldMs(config) {
+        if (!isTimelineMode(config)) return 0;
+        return clamp(config.holdSeconds, 0, 8, 1.2) * 1000;
+      }
+
+      function getRevealMs(config, node, answers) {
+        if (isTimelineMode(config)) return clamp(config.revealSeconds, 0.3, 8, 1.4) * 1000;
+        var correctCount = answers.filter(function (answer) { return isCorrect(answer, node) === true; }).length;
+        return answers.length > 0 ? Math.min(1900, 1180 + Math.max(0, correctCount - 1) * 180) : 120;
+      }
+
       function getIntroQuestionMs(config, data) {
         if (config.introTiming === "manual") return clamp(config.introQuestionMs, 800, 12000, 2800);
         var text = String((data && (data.question || data.title || data.label || data.message || data.description)) || "");
@@ -3387,6 +3401,7 @@ const screenQuizTemplate = `
       }
 
       function getTransitionMs(config) {
+        if (isTimelineMode(config)) return clamp(config.transitionMs, 80, 2000, 340);
         var effect = normalizeTransitionEffect(config.transitionEffect);
         if (config.motion === "off") return 1;
         if (effect === "glitch-cut") return 280;

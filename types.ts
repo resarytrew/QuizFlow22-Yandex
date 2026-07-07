@@ -72,6 +72,7 @@ export interface NodeSoundSettings {
 export type ScreenQuizLayout = 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
 export type ScreenQuizTransitionEffect = 'swipe-reveal' | 'pixel-dissolve' | 'zoom-in-reveal' | 'glitch-cut';
 export type ScreenQuizIntroTiming = 'auto' | 'fast' | 'calm' | 'manual';
+export type ScreenQuizTimelineMode = 'auto' | 'timeline';
 
 export interface ScreenQuizSettings {
   backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel';
@@ -92,6 +93,10 @@ export interface ScreenQuizSettings {
   timerSeconds?: number;
   showTimer?: boolean;
   showStoryTimer?: boolean;
+  timelineMode?: ScreenQuizTimelineMode;
+  holdSeconds?: number;
+  revealSeconds?: number;
+  transitionMs?: number;
   introEnabled?: boolean;
   introTiming?: ScreenQuizIntroTiming;
   introQuestionMs?: number;

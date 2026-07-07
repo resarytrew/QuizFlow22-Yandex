@@ -157,4 +157,33 @@ describe('screenQuizVideoExport', () => {
 
     expect(duration).toBe(800 + 600 + 600 + 5_000 + 1_180 + 340 + 900);
   });
+
+  it('uses manual montage timeline segments when estimating MP4 duration', () => {
+    const duration = estimateScreenQuizVideoDurationMs(
+      [
+        {
+          id: 'q1',
+          type: 'questionNode',
+          data: {
+            answers: [
+              { id: 'a', text: 'A', isCorrect: true },
+              { id: 'b', text: 'B' },
+            ],
+          },
+        },
+      ],
+      {
+        screenQuiz: {
+          timelineMode: 'timeline',
+          timerSeconds: 5,
+          holdSeconds: 1.5,
+          revealSeconds: 2.2,
+          transitionMs: 640,
+          introEnabled: false,
+        },
+      },
+    );
+
+    expect(duration).toBe(1_500 + 5_000 + 2_200 + 640 + 900);
+  });
 });

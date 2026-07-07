@@ -467,12 +467,75 @@ const screenQuizDefaults: Required<ScreenQuizSettings> = {
   timerSeconds: 30,
   showTimer: true,
   showStoryTimer: true,
+  timelineMode: 'auto',
+  holdSeconds: 1.2,
+  revealSeconds: 1.4,
+  transitionMs: 340,
   introEnabled: true,
   introTiming: 'auto',
   introQuestionMs: 2800,
   introAnswerMs: 1800,
   introMediaMs: 900,
   introGapMs: 280,
+};
+
+const TimelineMeter = ({
+  questionMs,
+  mediaMs,
+  answerMs,
+  gapMs,
+  holdSeconds,
+  timerSeconds,
+  revealSeconds,
+  transitionMs,
+}: {
+  questionMs: number;
+  mediaMs: number;
+  answerMs: number;
+  gapMs: number;
+  holdSeconds: number;
+  timerSeconds: number;
+  revealSeconds: number;
+  transitionMs: number;
+}) => {
+  const segments = [
+    { key: 'question', label: 'Q', title: 'Вопрос', ms: questionMs, className: 'bg-sky-500' },
+    { key: 'media', label: 'M', title: 'Медиа', ms: mediaMs, className: 'bg-cyan-500' },
+    { key: 'answer', label: 'A', title: 'Ответ', ms: answerMs, className: 'bg-violet-500' },
+    { key: 'gap', label: 'G', title: 'Пауза', ms: gapMs, className: 'bg-stone-400' },
+    { key: 'hold', label: 'H', title: 'Удержание', ms: holdSeconds * 1000, className: 'bg-amber-500' },
+    { key: 'timer', label: 'T', title: 'Таймер', ms: timerSeconds * 1000, className: 'bg-emerald-500' },
+    { key: 'reveal', label: 'R', title: 'Раскрытие', ms: revealSeconds * 1000, className: 'bg-rose-500' },
+    { key: 'transition', label: 'X', title: 'Переход', ms: transitionMs, className: 'bg-stone-900' },
+  ].filter((segment) => segment.ms > 0);
+  const totalMs = Math.max(1, segments.reduce((sum, segment) => sum + segment.ms, 0));
+
+  return (
+    <div className="rounded-xl border border-stone-200 bg-[#faf7f0] p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Timeline</span>
+        <span className="font-mono text-xs font-semibold text-stone-700">{(totalMs / 1000).toFixed(1)}s</span>
+      </div>
+      <div className="flex h-9 overflow-hidden rounded-lg border border-white bg-white">
+        {segments.map((segment) => (
+          <div
+            key={segment.key}
+            title={`${segment.title}: ${(segment.ms / 1000).toFixed(1)}s`}
+            className={`grid min-w-6 place-items-center text-[10px] font-black text-white ${segment.className}`}
+            style={{ width: `${Math.max(4, (segment.ms / totalMs) * 100)}%` }}
+          >
+            {segment.label}
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 grid grid-cols-4 gap-1 text-[10px] font-semibold text-stone-500">
+        <span>Q/M/A/G intro</span>
+        <span>H hold</span>
+        <span>T timer</span>
+        <span>R/X reveal</span>
+      </div>
+    </div>
+  );
 };
 
 const DesignPanel: React.FC = () => {
@@ -633,6 +696,29 @@ const DesignPanel: React.FC = () => {
           <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Показывать таймер</span><Toggle checked={screenQuiz.showTimer} onChange={(value) => updateScreenQuiz({ showTimer: value })} /></div>
           <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Таймер на Информации и Фидбэке</span><Toggle checked={screenQuiz.showStoryTimer} onChange={(value) => updateScreenQuiz({ showStoryTimer: value })} /></div>
           <Field label="Длительность таймера"><RangeInput min={5} max={180} step={5} suffix=" сек" value={screenQuiz.timerSeconds} onChange={(value) => updateScreenQuiz({ timerSeconds: value })} /></Field>
+        </Section>
+
+        <Section title="Монтажная лента" note="Собирает экран как монтажный таймлайн: вступление, удержание, таймер, раскрытие ответа и переход к следующей сцене. Локальные настройки экрана могут переопределить эти значения.">
+          <TimelineMeter
+            questionMs={screenQuiz.introEnabled ? screenQuiz.introQuestionMs : 0}
+            mediaMs={screenQuiz.introEnabled ? screenQuiz.introMediaMs : 0}
+            answerMs={screenQuiz.introEnabled ? screenQuiz.introAnswerMs : 0}
+            gapMs={screenQuiz.introEnabled ? screenQuiz.introGapMs : 0}
+            holdSeconds={screenQuiz.holdSeconds}
+            timerSeconds={screenQuiz.timerSeconds}
+            revealSeconds={screenQuiz.revealSeconds}
+            transitionMs={screenQuiz.transitionMs}
+          />
+          <Field label="Режим ленты">
+            <Select value={screenQuiz.timelineMode} onChange={(e) => updateScreenQuiz({ timelineMode: e.target.value as ScreenQuizSettings['timelineMode'] })}>
+              <option value="auto">Авто по шоу-ритму</option>
+              <option value="timeline">Ручная монтажная лента</option>
+            </Select>
+          </Field>
+          <Field label="Удержание перед таймером"><RangeInput min={0} max={8} step={0.1} suffix=" сек" value={screenQuiz.holdSeconds} onChange={(value) => updateScreenQuiz({ holdSeconds: value })} /></Field>
+          <Field label="Таймерный сегмент"><RangeInput min={5} max={180} step={1} suffix=" сек" value={screenQuiz.timerSeconds} onChange={(value) => updateScreenQuiz({ timerSeconds: value })} /></Field>
+          <Field label="Раскрытие ответа"><RangeInput min={0.3} max={8} step={0.1} suffix=" сек" value={screenQuiz.revealSeconds} onChange={(value) => updateScreenQuiz({ revealSeconds: value })} /></Field>
+          <Field label="Переход между сценами"><RangeInput min={80} max={2000} step={20} suffix=" мс" value={screenQuiz.transitionMs} onChange={(value) => updateScreenQuiz({ transitionMs: value })} /></Field>
         </Section>
 
         <Section title="Озвучивание перед таймером" note="Вопрос, ответы и медиа появляются по очереди, чтобы ведущий успел их прочитать. Таймер стартует после этой фазы.">
