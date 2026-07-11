@@ -332,7 +332,6 @@ const defaultTemplate = `
             content: "";
             position: absolute;
             inset: 14px;
-            border: 1px solid rgba(39, 35, 28, 0.06);
             border-radius: calc(var(--card-radius) - 10px);
             pointer-events: none;
         }

@@ -90,37 +90,32 @@ export function applyDesign(ds: DesignSettings | undefined): void {
       body.design-valign-top .quiz-content { align-items: flex-start; }
       body.design-valign-center .quiz-content { align-items: center; }
       body.design-surface-solid #quiz-view,
-      body.design-surface-solid .content-card,
-      body.design-surface-solid .node-frame {
+      body.design-surface-solid .content-card {
         background: rgba(255, 254, 250, var(--surface-opacity, 0.94));
         border: 1px solid rgba(39, 35, 28, 0.08);
         box-shadow: 0 10px 28px rgba(29, 26, 22, 0.07);
       }
       body.design-surface-paper #quiz-view,
-      body.design-surface-paper .content-card,
-      body.design-surface-paper .node-frame {
+      body.design-surface-paper .content-card {
         background: linear-gradient(135deg, rgba(255, 254, 250, var(--surface-opacity, 0.94)), rgba(247, 244, 237, var(--surface-opacity, 0.94)));
         border: 1px solid rgba(118, 109, 95, 0.16);
         box-shadow: 0 10px 26px rgba(66, 56, 44, 0.06);
       }
       body.design-surface-outline #quiz-view,
-      body.design-surface-outline .content-card,
-      body.design-surface-outline .node-frame {
+      body.design-surface-outline .content-card {
         background: rgba(255, 255, 255, calc(var(--surface-opacity, 0.94) * 0.82));
         border: 1px solid rgba(28, 25, 23, 0.14);
         box-shadow: none;
       }
       body.design-surface-glass #quiz-view,
-      body.design-surface-glass .content-card,
-      body.design-surface-glass .node-frame {
+      body.design-surface-glass .content-card {
         background: rgba(255, 255, 255, calc(var(--surface-opacity, 0.94) * 0.56));
         border: 1px solid rgba(255, 255, 255, 0.44);
         box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
         backdrop-filter: blur(12px);
       }
       body.design-surface-minimal #quiz-view,
-      body.design-surface-minimal .content-card,
-      body.design-surface-minimal .node-frame {
+      body.design-surface-minimal .content-card {
         background: transparent;
         border-color: transparent;
         box-shadow: none;
@@ -429,20 +424,24 @@ export function applyDesign(ds: DesignSettings | undefined): void {
       #quiz-view {
         max-width: min(var(--content-width, 920px), calc(100vw - 28px));
         padding: var(--card-padding, 32px);
-        border-radius: var(--card-radius, 28px);
-      }
-      .node-frame {
-        position: relative;
-        overflow: hidden;
-        border: 1px solid var(--question-card-border, var(--answer-border));
+        border-color: var(--question-card-border, var(--answer-border));
         border-radius: var(--question-card-radius, var(--card-radius, 28px));
         background: var(--question-card-bg, transparent);
         color: var(--question-card-text, inherit);
-        padding: var(--question-card-padding, 0px);
       }
-      body.design-question-shadow-none .node-frame { box-shadow: none !important; }
-      body.design-question-shadow-soft .node-frame { box-shadow: 0 8px 22px rgba(29, 26, 22, 0.06); }
-      body.design-question-shadow-strong .node-frame { box-shadow: 0 14px 36px rgba(29, 26, 22, 0.10); }
+      .node-frame {
+        position: relative;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        box-shadow: none;
+      }
+      body.design-question-shadow-none #quiz-view { box-shadow: none !important; }
+      body.design-question-shadow-soft #quiz-view { box-shadow: 0 8px 22px rgba(29, 26, 22, 0.06); }
+      body.design-question-shadow-strong #quiz-view { box-shadow: 0 14px 36px rgba(29, 26, 22, 0.10); }
       .media-frame {
         border-radius: var(--question-media-radius, 22px);
         overflow: hidden;
