@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
+import { buildDesignCss } from '../../quizGenerator/designCss';
 import defaultTemplate from '../default';
 
 describe('default template visual hierarchy', () => {
@@ -16,6 +17,21 @@ describe('default template visual hierarchy', () => {
     expect(defaultTemplate).not.toContain('#quiz-view::before');
     expect(defaultTemplate).not.toContain('#quiz-view::after');
     expect(defaultTemplate).toMatch(/--shadow-soft:\s*0 10px 32px rgba\(15, 23, 42, 0\.07\);/);
+  });
+
+  it('does not render a second card around the question content', () => {
+    const css = buildDesignCss({
+      questionCard: {
+        backgroundColor: '#fffefa',
+        borderColor: '#dfd8cc',
+        radius: 28,
+      },
+    });
+
+    expect(css).toMatch(/#quiz-view\s*{[\s\S]*?border-color:\s*var\(--question-card-border\);/);
+    expect(css).toMatch(/\.node-frame\s*{[\s\S]*?border:\s*0;/);
+    expect(css).toMatch(/\.node-frame\s*{[\s\S]*?background:\s*transparent;/);
+    expect(css).not.toContain('body.design-surface-paper .node-frame');
   });
 
   it('hides the empty achievements panel when :has is supported', () => {
