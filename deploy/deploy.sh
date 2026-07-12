@@ -63,7 +63,7 @@ find "$DIST_DIR" -maxdepth 1 -type f \( \
 done
 
 echo "==> Uploading HTML and root files (no-cache)"
-find "$DIST_DIR" -maxdepth 1 -type f ! \( \
+find "$DIST_DIR" -type f ! -path "$DIST_DIR/assets/*" ! \( \
   -name "*.js" -o \
   -name "*.css" -o \
   -name "*.woff" -o \
@@ -75,7 +75,8 @@ find "$DIST_DIR" -maxdepth 1 -type f ! \( \
   -name "*.webp" -o \
   -name "*.ico" \
 \) -print0 | while IFS= read -r -d '' file; do
-  aws --endpoint-url="$YC_S3_ENDPOINT" s3 cp "$file" "s3://$YC_BUCKET/$(basename "$file")" \
+  relative_path="${file#$DIST_DIR/}"
+  aws --endpoint-url="$YC_S3_ENDPOINT" s3 cp "$file" "s3://$YC_BUCKET/$relative_path" \
     --cache-control "public, max-age=0, must-revalidate"
 done
 

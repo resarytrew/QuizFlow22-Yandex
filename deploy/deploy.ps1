@@ -74,12 +74,15 @@ Get-ChildItem -Path $DistDir -File | Where-Object {
 }
 
 Write-Host "==> Uploading HTML and root files (no-cache)"
-Get-ChildItem -Path $DistDir -File | Where-Object {
-    -not ($immutableRootExtensions -contains $_.Extension.ToLowerInvariant())
+$DistRoot = (Resolve-Path $DistDir).Path.TrimEnd('\') + '\'
+Get-ChildItem -Path $DistDir -Recurse -File | Where-Object {
+    $relativePath = $_.FullName.Substring($DistRoot.Length).Replace('\', '/')
+    -not $relativePath.StartsWith('assets/') -and -not ($immutableRootExtensions -contains $_.Extension.ToLowerInvariant())
 } | ForEach-Object {
-    aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 cp $_.FullName "s3://$env:YC_BUCKET/$($_.Name)" `
+    $relativePath = $_.FullName.Substring($DistRoot.Length).Replace('\', '/')
+    aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 cp $_.FullName "s3://$env:YC_BUCKET/$relativePath" `
         --cache-control "public, max-age=0, must-revalidate"
-    if ($LASTEXITCODE -ne 0) { throw "aws s3 cp (root file $($_.Name)) failed" }
+    if ($LASTEXITCODE -ne 0) { throw "aws s3 cp (site file $relativePath) failed" }
 }
 
 Write-Host "==> Applying website configuration"
