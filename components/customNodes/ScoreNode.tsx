@@ -1,10 +1,8 @@
-
+﻿
 import React from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode';
 import { ScoreNodeData } from '../../types';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const ScoreNode: React.FC<NodeProps<ScoreNodeData>> = (props) => {
   const { data } = props;

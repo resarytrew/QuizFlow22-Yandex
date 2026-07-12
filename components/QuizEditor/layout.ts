@@ -1,12 +1,10 @@
 import dagre from 'dagre';
-import * as ReactFlowPkg from 'reactflow';
+import { Position } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 import { NodeData } from '../../types';
 import { DEFAULT_W, DEFAULT_H } from './constants';
 
-const { Position } = ReactFlowPkg as any;
-
-type FlowNode<T = any> = Node<T>;
+type FlowNode<T = NodeData> = Node<T>;
 
 interface NodeWithDimensions extends FlowNode<NodeData> {
     width?: number;

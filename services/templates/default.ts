@@ -7,31 +7,32 @@ const defaultTemplate = `
     <title>Интерактивный квиз</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,650&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f6f3ee;
+            --bg-color: #f4f6f8;
             --bg-image: none;
-            --overlay-color: rgba(246, 243, 238, 0);
+            --overlay-color: rgba(244, 246, 248, 0);
             --overlay-opacity: 0;
 
             --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            --display-family: 'Newsreader', Georgia, serif;
-            --heading-color: #1d1a16;
-            --body-text-color: #615d54;
-            --muted-text: #8a8478;
+            --display-family: var(--font-family);
+            --heading-color: #172033;
+            --body-text-color: #4b5568;
+            --muted-text: #7b8495;
 
-            --surface: rgba(255, 255, 252, 0.92);
-            --surface-solid: #fffefa;
-            --surface-muted: #f1eee7;
-            --surface-raised: #ffffff;
-            --border: rgba(39, 35, 28, 0.11);
-            --border-strong: rgba(39, 35, 28, 0.18);
-            --focus-ring: rgba(47, 93, 80, 0.22);
-            --shadow-soft: 0 24px 80px rgba(56, 47, 35, 0.12);
-            --shadow-control: 0 14px 34px rgba(47, 93, 80, 0.14);
-            --shadow-contact: 0 1px 1px rgba(56, 47, 35, 0.04), 0 18px 46px rgba(56, 47, 35, 0.1);
-            --bezel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(39, 35, 28, 0.035);
+            /* Surfaces derive from customizable card/text colors. */
+            --surface: color-mix(in srgb, var(--card-bg) 94%, transparent);
+            --surface-solid: var(--card-bg);
+            --surface-muted: color-mix(in srgb, var(--card-bg) 92%, var(--body-text-color));
+            --surface-raised: color-mix(in srgb, var(--card-bg) 97%, white);
+            --border: color-mix(in srgb, var(--body-text-color) 16%, transparent);
+            --border-strong: color-mix(in srgb, var(--body-text-color) 26%, transparent);
+            --focus-ring: color-mix(in srgb, var(--accent) 24%, transparent);
+            --shadow-soft: 0 10px 32px rgba(15, 23, 42, 0.07);
+            --shadow-control: none;
+            --shadow-contact: 0 6px 18px rgba(15, 23, 42, 0.07);
+            --bezel-highlight: none;
 
             --motion-quick: 160ms;
             --motion-base: 260ms;
@@ -52,16 +53,16 @@ const defaultTemplate = `
             --btn-text: var(--accent-ink);
             --btn-hover-bg: var(--accent-hover);
             --btn-hover-text: #ffffff;
-            --btn-radius: 18px;
+            --btn-radius: 14px;
 
-            --card-bg: #fffefa;
-            --card-text: #24211c;
-            --card-hover-bg: #f7f4ed;
-            --card-hover-text: #171512;
-            --card-selected-bg: #e5f0ea;
-            --card-selected-text: #183b32;
-            --card-radius: 28px;
-            --answer-radius: 18px;
+            --card-bg: #ffffff;
+            --card-text: #20293a;
+            --card-hover-bg: #f7f9fb;
+            --card-hover-text: #111827;
+            --card-selected-bg: #e9f2ef;
+            --card-selected-text: #173f35;
+            --card-radius: 20px;
+            --answer-radius: 14px;
         }
 
         *, *::before, *::after {
@@ -84,8 +85,7 @@ const defaultTemplate = `
             background-color: var(--bg-color);
             background-image:
                 var(--bg-image),
-                radial-gradient(circle at 18% 0%, rgba(47, 93, 80, 0.04), transparent 34rem),
-                radial-gradient(circle at 90% 18%, rgba(185, 133, 43, 0.04), transparent 30rem);
+                radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 34rem);
             background-position: center;
             background-size: cover;
             background-attachment: fixed;
@@ -107,16 +107,6 @@ const defaultTemplate = `
             opacity: var(--overlay-opacity);
         }
 
-        body::after {
-            content: "";
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background: repeating-linear-gradient(90deg, rgba(29, 26, 22, 0.018) 0, rgba(29, 26, 22, 0.018) 1px, transparent 1px, transparent 7px);
-            opacity: 0.06;
-        }
-
         button, input, textarea, select {
             font: inherit;
         }
@@ -132,7 +122,7 @@ const defaultTemplate = `
         .quiz-shell {
             width: 100%;
             min-height: 100dvh;
-            padding: 18px;
+            padding: 16px;
             position: relative;
             z-index: 1;
             overflow-x: hidden;
@@ -140,16 +130,16 @@ const defaultTemplate = `
 
         .quiz-topbar {
             position: sticky;
-            top: 18px;
+            top: 16px;
             z-index: 40;
             width: 100%;
             max-width: 1180px;
             margin: 0 auto;
             border: 1px solid var(--border);
-            border-radius: 24px;
-            background: rgba(255, 254, 250, 0.86);
-            backdrop-filter: blur(18px);
-            box-shadow: 0 10px 30px rgba(39, 35, 28, 0.07);
+            border-radius: 18px;
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
             opacity: 0;
             transform: translateY(-8px);
             animation: shellIn var(--motion-slow) var(--ease-spring) 20ms forwards;
@@ -177,8 +167,8 @@ const defaultTemplate = `
             display: grid;
             place-items: center;
             border-radius: 14px;
-            background: #1d1a16;
-            color: #fffefa;
+            background: var(--accent);
+            color: var(--accent-ink);
             font-size: 0.88rem;
             font-weight: 800;
             letter-spacing: 0;
@@ -260,13 +250,13 @@ const defaultTemplate = `
             width: min(1180px, 100%);
             min-width: 0;
             margin: 0 auto;
-            padding: 34px 0 48px;
+            padding: 26px 0 42px;
         }
 
         .quiz-layout {
             min-width: 0;
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(260px, 318px);
+            grid-template-columns: minmax(0, 1fr) minmax(240px, 270px);
             align-items: start;
             gap: 22px;
         }
@@ -276,29 +266,16 @@ const defaultTemplate = `
             position: relative;
         }
 
-        .quiz-stage::before {
-            content: "";
-            position: absolute;
-            inset: -14px;
-            border-radius: calc(var(--card-radius) + 18px);
-            background: rgba(255, 254, 250, 0.22);
-            box-shadow: 0 32px 96px rgba(39, 35, 28, 0.12);
-            pointer-events: none;
-            z-index: 0;
-        }
-
         #quiz-view {
             width: 100%;
             max-width: 100%;
             min-width: 0;
-            min-height: clamp(460px, 66dvh, 780px);
+            min-height: clamp(420px, 62dvh, 720px);
             border: 1px solid var(--border);
             border-radius: var(--card-radius);
-            background:
-                linear-gradient(180deg, rgba(255, 254, 250, 0.94), rgba(255, 253, 248, 0.86)),
-                var(--surface-solid);
-            box-shadow: var(--shadow-soft), var(--bezel-highlight);
-            padding: clamp(24px, 4.3vw, 58px);
+            background: var(--surface-solid);
+            box-shadow: var(--shadow-soft);
+            padding: clamp(26px, 4vw, 48px);
             position: relative;
             overflow: hidden;
             z-index: 1;
@@ -308,30 +285,9 @@ const defaultTemplate = `
             animation: shellIn var(--motion-slow) var(--ease-spring) 80ms forwards;
         }
 
-        #quiz-view::before {
-            content: "";
-            position: absolute;
-            inset: 14px;
-            border: 1px solid rgba(39, 35, 28, 0.06);
-            border-radius: calc(var(--card-radius) - 10px);
-            pointer-events: none;
-        }
-
-        #quiz-view::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background:
-                linear-gradient(135deg, rgba(255,255,255,0.34), transparent 32%),
-                linear-gradient(315deg, rgba(47, 93, 80, 0.045), transparent 38%);
-            opacity: 0.68;
-            pointer-events: none;
-        }
-
         .node-frame {
             min-width: 0;
-            min-height: calc(clamp(460px, 66dvh, 780px) - clamp(48px, 8.6vw, 116px));
+            min-height: calc(clamp(420px, 62dvh, 720px) - clamp(52px, 8vw, 96px));
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -349,15 +305,20 @@ const defaultTemplate = `
             justify-content: flex-start;
         }
 
+        .node-frame:has(.media-frame) {
+            justify-content: flex-start;
+        }
+
         .node-title {
             max-width: 780px;
-            margin: 0 0 16px;
+            order: 1;
+            margin: 0 0 22px;
             color: var(--heading-color);
             font-family: var(--display-family);
-            font-size: clamp(2rem, 4.2vw, 4.35rem);
-            font-weight: 650;
-            line-height: 0.96;
-            letter-spacing: 0;
+            font-size: clamp(2rem, 3.5vw, 3.5rem);
+            font-weight: 800;
+            line-height: 1.06;
+            letter-spacing: -0.035em;
             overflow-wrap: anywhere;
             text-wrap: balance;
             opacity: 0;
@@ -366,10 +327,12 @@ const defaultTemplate = `
         }
 
         .node-desc {
+            order: 3;
             max-width: 720px;
-            margin: 0 0 clamp(24px, 3.2vw, 42px);
+            margin: 0 0 clamp(24px, 3vw, 32px);
             color: var(--body-text-color);
-            font-size: clamp(1rem, 1.45vw, 1.24rem);
+            font-size: clamp(1rem, 1.15vw, 1.125rem);
+            line-height: 1.65;
             overflow-wrap: anywhere;
             text-wrap: pretty;
             opacity: 0;
@@ -388,6 +351,7 @@ const defaultTemplate = `
         }
 
         .node-controls {
+            order: 4;
             width: 100%;
             display: grid;
             gap: 14px;
@@ -448,21 +412,11 @@ const defaultTemplate = `
                 opacity var(--motion-base) var(--ease-standard);
         }
 
-        .btn::after {
-            content: "";
-            position: absolute;
-            inset: 1px;
-            border-radius: calc(var(--btn-radius) - 1px);
-            background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent 48%);
-            opacity: 0.9;
-            pointer-events: none;
-        }
-
         .btn:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             background: var(--btn-hover-bg);
             color: var(--btn-hover-text);
-            box-shadow: 0 18px 42px rgba(47, 93, 80, 0.18);
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 16%, transparent);
         }
 
         .btn:active {
@@ -508,7 +462,7 @@ const defaultTemplate = `
             color: var(--card-text);
             cursor: pointer;
             text-align: left;
-            box-shadow: var(--bezel-highlight);
+            box-shadow: none;
             opacity: 0;
             transform: translateY(12px) scale(0.992);
             animation: controlIn var(--motion-slow) var(--ease-spring) forwards;
@@ -527,7 +481,7 @@ const defaultTemplate = `
             position: absolute;
             inset: -1px;
             border-radius: inherit;
-            background: radial-gradient(circle at 22% 18%, rgba(47, 93, 80, 0.12), transparent 34%);
+            background: transparent;
             opacity: 0;
             transform: scale(0.96);
             transition: opacity var(--motion-base) var(--ease-standard), transform var(--motion-base) var(--ease-spring);
@@ -545,11 +499,11 @@ const defaultTemplate = `
         }
 
         .option:hover {
-            transform: translateY(-3px) scale(1.003);
+            transform: translateY(-1px);
             border-color: var(--border-strong);
             background: var(--card-hover-bg);
             color: var(--card-hover-text);
-            box-shadow: var(--shadow-contact), var(--bezel-highlight);
+            box-shadow: var(--shadow-contact);
         }
 
         .option:hover::before {
@@ -566,7 +520,7 @@ const defaultTemplate = `
             border-color: rgba(47, 93, 80, 0.42);
             background: var(--card-selected-bg);
             color: var(--card-selected-text);
-            box-shadow: 0 18px 38px rgba(47, 93, 80, 0.12);
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
         }
 
         .option.selected::after,
@@ -867,16 +821,11 @@ const defaultTemplate = `
             border: 1px solid var(--border);
             border-radius: var(--answer-radius);
             background: var(--card-bg);
-            box-shadow: var(--bezel-highlight);
+            box-shadow: none;
         }
 
         .dialogue-card::before {
-            content: "";
-            position: absolute;
-            inset: -1px;
-            border-radius: inherit;
-            background: linear-gradient(135deg, rgba(47, 93, 80, 0.08), transparent 44%);
-            pointer-events: none;
+            content: none;
         }
 
         .dialogue-avatar,
@@ -1006,12 +955,13 @@ const defaultTemplate = `
         .media-frame,
         .image-wrapper,
         .image-container {
+            order: 2;
             width: 100%;
             overflow: hidden;
             border: 1px solid var(--border);
-            border-radius: 22px;
-            background: #ebe7dc;
-            margin-bottom: clamp(22px, 3vw, 34px);
+            border-radius: 16px;
+            background: var(--surface-muted);
+            margin-bottom: clamp(24px, 3vw, 30px);
         }
 
         .video-frame {
@@ -1039,13 +989,11 @@ const defaultTemplate = `
 
         .image-wrapper {
             position: relative;
-            transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+            transition: border-color var(--motion-quick) ease;
         }
 
         .image-wrapper:hover {
-            transform: translateY(-1px);
             border-color: rgba(47, 93, 80, 0.34);
-            box-shadow: 0 18px 38px rgba(56, 47, 35, 0.09);
         }
 
         .image-wrapper .zoom-hint {
@@ -1107,7 +1055,7 @@ const defaultTemplate = `
             position: sticky;
             top: 110px;
             display: grid;
-            gap: 14px;
+            gap: 12px;
         }
 
         .hud-panel {
@@ -1115,11 +1063,11 @@ const defaultTemplate = `
             max-width: 100%;
             min-width: 0;
             border: 1px solid var(--border);
-            border-radius: 24px;
-            background: rgba(255, 254, 250, 0.78);
-            backdrop-filter: blur(16px);
-            box-shadow: 0 16px 42px rgba(56, 47, 35, 0.07), var(--bezel-highlight);
-            padding: 18px;
+            border-radius: 16px;
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+            padding: 16px;
             transition: transform var(--motion-base) var(--ease-spring), box-shadow var(--motion-base) var(--ease-standard), border-color var(--motion-base) var(--ease-standard);
             opacity: 0;
             transform: translateY(12px);
@@ -1139,9 +1087,14 @@ const defaultTemplate = `
         }
 
         .hud-panel:hover {
-            transform: translateY(-2px);
             border-color: var(--border-strong);
-            box-shadow: 0 20px 52px rgba(56, 47, 35, 0.1), var(--bezel-highlight);
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+        }
+
+        @supports selector(.hud-panel:has(.ach-slot.unlocked)) {
+            .hud-panel:has(#achievements-list):not(:has(.ach-slot.unlocked)) {
+                display: none;
+            }
         }
 
         .hud-pulse {
@@ -1288,16 +1241,11 @@ const defaultTemplate = `
         }
 
         .hud-stats {
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr);
-            gap: 14px;
-            align-items: center;
+            display: block;
         }
 
         .progress-ring-container {
-            position: relative;
-            width: 68px;
-            height: 68px;
+            display: none;
         }
 
         .progress-ring {
@@ -1334,14 +1282,15 @@ const defaultTemplate = `
 
         .stat-stack {
             display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
         }
 
         .stat-card {
             padding: 12px;
             border: 1px solid rgba(39, 35, 28, 0.08);
-            border-radius: 16px;
-            background: rgba(255, 255, 252, 0.72);
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--surface-solid) 82%, transparent);
         }
 
         .stat-label {
@@ -1356,7 +1305,7 @@ const defaultTemplate = `
             overflow: hidden;
             margin-top: 2px;
             color: var(--heading-color);
-            font-size: 1.58rem;
+            font-size: 1.32rem;
             font-weight: 900;
             line-height: 1;
             text-overflow: ellipsis;
@@ -1364,7 +1313,7 @@ const defaultTemplate = `
         }
 
         #hud-name.stat-value {
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             line-height: 1.22;
         }
 
@@ -1503,16 +1452,7 @@ const defaultTemplate = `
 
             .quiz-topbar {
                 top: 12px;
-                border-radius: 20px;
-            }
-
-            .topbar-inner {
-                grid-template-columns: minmax(0, 1fr) auto;
-            }
-
-            .timer-pill {
-                grid-column: 1 / -1;
-                width: 100%;
+                border-radius: 16px;
             }
 
             .quiz-main {
@@ -1524,19 +1464,12 @@ const defaultTemplate = `
             }
 
             .quiz-hud {
-                position: static;
-                grid-template-columns: 1fr;
-                order: 2;
+                display: none;
             }
 
             #quiz-view {
                 min-height: 0;
-                border-radius: 24px;
-            }
-
-            #quiz-view::before {
-                inset: 10px;
-                border-radius: 16px;
+                border-radius: 18px;
             }
 
             .node-frame {
@@ -1545,18 +1478,17 @@ const defaultTemplate = `
 
             .node-title {
                 font-size: clamp(1.9rem, 7.8vw, 3rem);
-                line-height: 1.02;
+                line-height: 1.06;
             }
         }
 
         @media (max-width: 620px) {
-            .brand-kicker,
-            .top-progress {
+            .brand-kicker {
                 display: none;
             }
 
             .topbar-inner {
-                gap: 10px;
+                gap: 8px;
                 padding: 10px;
             }
 
@@ -1567,17 +1499,28 @@ const defaultTemplate = `
             }
 
             .top-progress {
-                min-width: 56px;
+                min-width: auto;
+                gap: 0;
+            }
+
+            .top-progress-track {
+                display: none;
+            }
+
+            .timer-pill {
+                min-width: 76px;
+                min-height: 36px;
+                font-size: 0.88rem;
             }
 
             #quiz-view {
-                padding: 22px 16px;
+                padding: 24px 18px;
             }
 
             .node-title {
                 font-size: clamp(1.72rem, 8.4vw, 2.35rem);
-                line-height: 1.04;
-                margin-bottom: 12px;
+                line-height: 1.08;
+                margin-bottom: 18px;
             }
 
             .node-desc {
@@ -1585,8 +1528,8 @@ const defaultTemplate = `
             }
 
             .option {
-                grid-template-columns: 1fr;
-                gap: 10px;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 12px;
             }
 
             .option-marker,

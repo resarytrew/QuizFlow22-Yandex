@@ -66,6 +66,14 @@ interface CanvasStoreState {
   reset: () => void;
 }
 
+function isEffectOp(value: unknown): value is EffectOp {
+  return value === 'set' || value === 'add' || value === 'subtract';
+}
+
+function toEffectValue(value: unknown, fallback: string | number): string | number {
+  return typeof value === 'string' || typeof value === 'number' ? value : fallback;
+}
+
 const createInitialState = () => ({
   nodes: [
     {
@@ -233,7 +241,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         edgeBySource.set(e.source, arr);
       });
 
-      const collectedEffects: { variableName: string; op: EffectOp; value: any }[] = [];
+      const collectedEffects: { variableName: string; op: EffectOp; value: string | number }[] = [];
       const nodesToDelete: string[] = [];
       const edgesToDelete: string[] = [];
 
@@ -251,20 +259,20 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
         if (!isLogicNode) break;
 
-        const data: any = n.data || {};
+        const data = (n.data || {}) as Record<string, unknown>;
 
         if (n.type === CustomNodeType.Variable || n.type === 'variableNode') {
-          if (!data.variableName || !data.operation) break;
+          if (typeof data.variableName !== 'string' || !isEffectOp(data.operation)) break;
           collectedEffects.push({
             variableName: data.variableName,
             op: data.operation,
-            value: data.value ?? '',
+            value: toEffectValue(data.value, ''),
           });
         } else {
           collectedEffects.push({
             variableName: 'score',
-            op: data.operation || 'add',
-            value: data.value ?? 0,
+            op: isEffectOp(data.operation) ? data.operation : 'add',
+            value: toEffectValue(data.value, 0),
           });
         }
 

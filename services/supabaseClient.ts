@@ -1,12 +1,12 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export const supabaseUrl: string =
-  (import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_URL
-    ? (import.meta as any).env.VITE_SUPABASE_URL
+  import.meta.env.VITE_SUPABASE_URL
+    ? import.meta.env.VITE_SUPABASE_URL
     : "";
 export const supabaseAnonKey: string =
-  (import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_ANON_KEY
-    ? (import.meta as any).env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+    ? import.meta.env.VITE_SUPABASE_ANON_KEY
     : "";
 
 const isConfigValid =

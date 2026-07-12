@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 import GalleryCard from '../ui/GalleryCard.tsx';
+import { normalizeQuizKeywords } from '../../utils/quizKeywords';
 
 interface Props {
   quiz: PublicQuiz;
@@ -22,7 +23,7 @@ const fallbackCovers = [
 
 const templateLabels: Record<string, string> = {
   default: 'Классический', ww2: 'ВОВ', economic: 'Экономика', yandex: 'Яндекс',
-  army: 'Армия', science: 'Наука', math: 'Математика', history: 'История', newyear: 'Новый год',
+  army: 'Армия', science: 'Наука', math: 'Математика', history: 'История', newyear: 'Новый год', screenQuiz: 'Экранная',
 };
 
 function hashStr(s: string): number {
@@ -39,7 +40,6 @@ function formatDate(dateStr: string): string {
 
 const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const session = useAuthStore(s => s.session);
@@ -72,7 +72,8 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const coverImageUrl = quiz.quiz_data?.cover_image_url || fallbackCovers[hashStr(quiz.name || 'quiz') % fallbackCovers.length];
 
   const nodes = quiz.quiz_data?.nodes || [];
-  const questionCount = nodes.filter((n: any) =>
+  const questionCount = nodes.filter((n) =>
+    typeof n.type === 'string' &&
     ['questionNode', 'multipleChoiceNode', 'textInputNode', 'matchingNode', 'timelineNode'].includes(n.type)
   ).length;
   const hasTimer = !!quiz.quiz_data?.globalTimer?.enabled;
@@ -82,6 +83,9 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const author = quiz.quiz_data?.passport?.authors?.trim() || null;
   const templateId = quiz.quiz_data?.templateId as string | undefined;
   const publishedDate = formatDate(quiz.published_at);
+  const keywords = normalizeQuizKeywords(quiz.quiz_data?.keywords);
+  const visibleKeywords = keywords.slice(0, 3);
+  const hiddenKeywordCount = Math.max(0, keywords.length - visibleKeywords.length);
 
   return (
     <GalleryCard className="flex flex-col h-full">
@@ -100,7 +104,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
             loading="lazy"
             className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02] ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
-            onError={() => { setImageError(true); setImageLoaded(true); }}
+            onError={() => setImageLoaded(true)}
           />
         </div>
 
@@ -149,6 +153,24 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
             </span>
           )}
         </div>
+
+        {visibleKeywords.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {visibleKeywords.map((keyword) => (
+              <span
+                key={keyword.toLocaleLowerCase('ru-RU')}
+                className="inline-flex items-center rounded-[0.7rem_0.25rem_0.7rem_0.25rem] border border-stone-200 bg-[#fffaf0] px-2 py-1 text-[10px] font-semibold text-stone-600"
+              >
+                {keyword}
+              </span>
+            ))}
+            {hiddenKeywordCount > 0 && (
+              <span className="inline-flex items-center rounded-[0.7rem_0.25rem_0.7rem_0.25rem] border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] font-semibold text-stone-400">
+                +{hiddenKeywordCount}
+              </span>
+            )}
+          </div>
+        )}
 
         {description && (
           <div>

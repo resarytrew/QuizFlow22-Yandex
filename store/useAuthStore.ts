@@ -23,7 +23,6 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
   setSession: (session) => set({ session }),
 
   signOut: async () => {
-    let cleared = false;
     try {
       // 1. Reset all client stores BEFORE clearing the session.
       //    The previous order (clear session first, reset later) exposed
@@ -54,7 +53,6 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
       // UI last — reset everything (we no longer touch setDashboardVisible
       // because routing is now driven by TanStack Router, not UI state)
       ui.useUIStore.getState().reset();
-      cleared = true;
     } catch (e) {
       console.error('SignOut: store reset failed:', e);
     } finally {

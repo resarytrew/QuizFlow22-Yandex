@@ -1,11 +1,9 @@
-
+﻿
 import React from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode';
 import { TimerNodeData } from '../../types';
 import { useCanvasStore } from '../../store/useCanvasStore';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const formatDuration = (seconds: number | undefined) => {
     if (!seconds || seconds <= 0) return '0 сек';

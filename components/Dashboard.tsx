@@ -360,8 +360,23 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5efe3] text-stone-950 overflow-x-hidden flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-stone-900/10 bg-[#fffaf0]/86 backdrop-blur-xl shadow-[0_14px_45px_rgba(120,53,15,0.06)]">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#f3f3ef] text-stone-950 flex flex-col">
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-70"
+        aria-hidden="true"
+        style={{
+          backgroundImage: [
+            'linear-gradient(rgba(68,64,60,0.045) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(68,64,60,0.045) 1px, transparent 1px)',
+            'linear-gradient(135deg, transparent 0 44%, rgba(180,83,9,0.055) 44% 44.5%, transparent 44.5% 100%)',
+          ].join(', '),
+          backgroundSize: '56px 56px, 56px 56px, 420px 420px',
+          backgroundPosition: '-1px -1px, -1px -1px, right -120px top 20px',
+        }}
+      />
+      <div className="pointer-events-none fixed right-[5vw] top-28 z-0 hidden h-64 w-64 rotate-12 border border-stone-900/[0.055] lg:block" aria-hidden="true" />
+      <div className="pointer-events-none fixed bottom-24 left-[7vw] z-0 hidden h-44 w-72 -rotate-6 border border-stone-900/[0.045] xl:block" aria-hidden="true" />
+      <header className="sticky top-0 z-40 border-b border-stone-900/10 bg-[#f8f7f2]/88 backdrop-blur-xl shadow-[0_14px_45px_rgba(68,64,60,0.05)]">
         <div className="mx-auto flex h-18 max-w-[1400px] items-center justify-between gap-4 px-5 py-4 sm:px-6">
           <Link to="/" className="group flex items-center gap-3" title="На главную страницу">
             <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-black shadow-[0_16px_40px_rgba(251,191,36,0.18)] transition-transform duration-300 group-hover:-translate-y-0.5">
@@ -511,7 +526,7 @@ const Dashboard: React.FC = () => {
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
                   <SearchIcon />
                 </span>
-                <input
+                <input name="components-dashboard-529-input"
                   type="text"
                   placeholder="Найти квиз по названию"
                   value={searchTerm}
@@ -521,7 +536,7 @@ const Dashboard: React.FC = () => {
               </label>
 
               <div className="flex gap-3">
-                <select
+                <select name="components-dashboard-539-select"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortMode)}
                   className="min-w-[150px] cursor-pointer appearance-none rounded-xl border border-stone-200 bg-stone-50 bg-no-repeat px-4 py-3 pr-9 text-sm font-semibold text-stone-600 transition-all duration-200 hover:border-amber-300 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/30"
@@ -620,7 +635,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <footer className="relative z-10 border-t border-stone-900/10 bg-[#fffaf0]/80">
+      <footer className="relative z-10 border-t border-stone-900/10 bg-[#f8f7f2]/82">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 py-7 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <p className="font-semibold text-stone-600">Поток</p>

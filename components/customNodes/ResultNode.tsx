@@ -1,11 +1,9 @@
-
+﻿
 import React, { useState } from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode';
 import { ResultNodeData } from '../../types';
 import { getRutubeId, getRutubeEmbedUrl } from '../../utils/videoUtils';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const ResultNode: React.FC<NodeProps<ResultNodeData>> = (props) => {
   const { data } = props;

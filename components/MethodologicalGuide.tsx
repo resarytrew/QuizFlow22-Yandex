@@ -410,12 +410,10 @@ const BackToTop: React.FC<{ containerRef: React.RefObject<HTMLDivElement | null>
 
 // Interactive Section Indicator
 const SectionIndicator: React.FC<{ sections: typeof SECTIONS; activeSection: string; onSectionClick: (id: string) => void }> = ({ sections, activeSection, onSectionClick }) => {
-    const activeIndex = sections.findIndex(s => s.id === activeSection);
-    
     return (
         <div className="fixed left-8 top-1/2 -translate-y-1/2 z-30 hidden xl:block">
             <div className="space-y-3">
-                {sections.map((section, index) => (
+                {sections.map((section) => (
                     <Tooltip key={section.id} text={section.title}>
                         <button
                             onClick={() => onSectionClick(section.id)}
@@ -596,7 +594,7 @@ const MethodologicalGuide: React.FC = () => {
                         </div>
                         
                         <div className="relative space-y-2">
-                            {SECTIONS.map((section, index) => (
+                            {SECTIONS.map((section) => (
                                 <button 
                                     key={section.id}
                                     onClick={() => scrollToSection(section.id)}

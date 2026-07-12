@@ -8,26 +8,25 @@ interface BillingPageBackgroundProps {
 }
 
 const BILLING_BACKGROUND_STYLE: React.CSSProperties = {
-  backgroundColor: '#09090b',
+  backgroundColor: '#f3f3ef',
   backgroundImage: [
-    'radial-gradient(ellipse 85% 55% at 50% -12%, rgba(251,191,36,0.14), transparent 70%)',
-    'radial-gradient(circle at 8% 48%, rgba(244,63,94,0.08), transparent 32%)',
-    'radial-gradient(circle at 94% 72%, rgba(249,115,22,0.08), transparent 30%)',
-    'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)',
-    'linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+    'linear-gradient(rgba(68,64,60,0.045) 1px, transparent 1px)',
+    'linear-gradient(90deg, rgba(68,64,60,0.045) 1px, transparent 1px)',
+    'linear-gradient(135deg, transparent 0 42%, rgba(180,83,9,0.05) 42% 42.35%, transparent 42.35% 100%)',
+    'radial-gradient(ellipse 80% 45% at 18% 0%, rgba(245,158,11,0.08), transparent 68%)',
   ].join(', '),
-  backgroundSize: '100% 100%, 100% 100%, 100% 100%, 56px 56px, 56px 56px',
-  backgroundPosition: '0 0',
+  backgroundSize: '44px 44px, 44px 44px, 720px 720px, 100% 100%',
+  backgroundPosition: '0 0, 0 0, center top, 0 0',
 };
 
 const BillingPageBackground: React.FC<BillingPageBackgroundProps> = ({ children }) => {
   return (
     <div
-      className="min-h-[100dvh] overflow-x-hidden relative bg-[#09090b] text-white font-sans"
+      className="min-h-[100dvh] overflow-x-hidden relative bg-[#f3f3ef] text-stone-950 font-sans"
       style={BILLING_BACKGROUND_STYLE}
     >
       <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.035] mix-blend-screen"
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.055] mix-blend-multiply"
         aria-hidden="true"
         style={{
           backgroundImage:

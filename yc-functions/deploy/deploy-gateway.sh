@@ -6,13 +6,9 @@ set -euo pipefail
 
 GATEWAY_NAME="potok-api"
 
-# Function names to IDs mapping
-declare -A FUNCTION_IDS
-
-for FN in api-quizzes api-results api-billing api-admin api-support api-ai-proxy upload-asset cron-cleanup billing-redeem-promo billing-admin-grant-pro save-quiz-session; do
-  FUNCTION_IDS[$FN]=$(yc serverless function get --name "potok-$FN" --format json | jq -r '.id')
-  echo "potok-$FN -> ${FUNCTION_IDS[$FN]}"
-done
+API_ROUTER_FUNCTION_ID=$(yc serverless function get --name "potok-api-quizzes" --format json | jq -r '.id')
+SERVICE_ACCOUNT_ID=$(yc iam service-account list --folder-id "$YC_FOLDER_ID" --format json | jq -r '.[] | select(.name == "quizflow-functions") | .id')
+echo "potok-api-quizzes (unified api-router) -> $API_ROUTER_FUNCTION_ID"
 
 # Generate gateway spec with real function IDs
 cat > /tmp/gateway-spec.yaml << EOF
@@ -27,148 +23,15 @@ x-yc-apigateway:
     headers: ["authorization","content-type","x-request-id","x-admin-secret","x-cron-secret"]
 
 paths:
-  /api/quizzes:
-    get:
+  /api/{proxy+}:
+    x-yc-apigateway-any-method:
       x-yc-apigateway-integration:
         type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-quizzes]}
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-quizzes]}
-
-  /api/quizzes/{id}:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-quizzes]}
+        function_id: $API_ROUTER_FUNCTION_ID
+        service_account_id: $SERVICE_ACCOUNT_ID
       parameters:
         - in: path
-          name: id
-          schema: {type: string}
-          required: true
-    put:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-quizzes]}
-      parameters:
-        - in: path
-          name: id
-          schema: {type: string}
-          required: true
-    delete:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-quizzes]}
-      parameters:
-        - in: path
-          name: id
-          schema: {type: string}
-          required: true
-
-  /api/results:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-results]}
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-results]}
-
-  /api/billing/{action}:
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-billing]}
-      parameters:
-        - in: path
-          name: action
-          schema: {type: string}
-          required: true
-
-  /api/admin/{action}:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-admin]}
-      parameters:
-        - in: path
-          name: action
-          schema: {type: string}
-          required: true
-
-  /api/support/tickets:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-support]}
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-support]}
-
-  /api/support/tickets/{ticketId}/messages:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-support]}
-      parameters:
-        - in: path
-          name: ticketId
-          schema: {type: string}
-          required: true
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-support]}
-      parameters:
-        - in: path
-          name: ticketId
-          schema: {type: string}
-          required: true
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-admin]}
-      parameters:
-        - in: path
-          name: action
-          schema: {type: string}
-          required: true
-
-  /api/ai-proxy:
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[api-ai-proxy]}
-
-  /api/upload:
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[upload-asset]}
-
-  /api/billing/redeem-promo:
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[billing-redeem-promo]}
-
-  /api/billing/grant-pro:
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[billing-admin-grant-pro]}
-
-  /api/sessions/{action}:
-    post:
-      x-yc-apigateway-integration:
-        type: cloud-functions
-        function_id: ${FUNCTION_IDS[save-quiz-session]}
-      parameters:
-        - in: path
-          name: action
+          name: proxy
           schema: {type: string}
           required: true
 EOF

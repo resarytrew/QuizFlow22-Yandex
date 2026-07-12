@@ -38,35 +38,35 @@ const SubscriptionStatusBanner: React.FC<SubscriptionStatusBannerProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="max-w-[1180px] mx-auto mb-10 overflow-hidden rounded-[1.75rem_0.75rem_1.75rem_0.75rem]
-                 border border-amber-300/20 bg-white/[0.045] p-6 md:p-7 backdrop-blur-xl
-                 shadow-[0_24px_80px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                 border border-stone-200 bg-[#fffaf0] p-6 md:p-7 backdrop-blur-xl
+                 shadow-[0_24px_80px_rgba(68,64,60,0.10),inset_0_1px_0_rgba(255,255,255,0.70)]"
     >
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-start gap-3 flex-wrap">
-          <span className="bg-gradient-to-r from-amber-300 to-orange-400 text-black
+          <span className="border border-amber-200 bg-amber-50 text-amber-800
                            text-[10px] font-extrabold px-2.5 py-1 rounded-sm uppercase tracking-[0.18em]">
             Активно
           </span>
           {isCancellingAtPeriodEnd && (
             <span className="inline-flex items-center rounded-md text-[11px] px-2.5 py-1
-                             bg-rose-400/10 text-rose-300 border border-rose-300/15 font-semibold uppercase tracking-wider">
+                             bg-rose-50 text-rose-700 border border-rose-200 font-semibold uppercase tracking-wider">
               Истекает
             </span>
           )}
-          <p className="text-sm text-white/55">
-            Тариф <strong className="text-white">{planName}</strong> действует до{' '}
-            <strong className="text-white">{formatDate(subscription.current_period_end)}</strong>
+          <p className="text-sm text-stone-600">
+            Тариф <strong className="text-stone-950">{planName}</strong> действует до{' '}
+            <strong className="text-stone-950">{formatDate(subscription.current_period_end)}</strong>
           </p>
         </div>
         {!isCancellingAtPeriodEnd && (
           <button
             onClick={onCancel}
             disabled={cancelling}
-            className="px-4 py-2 rounded-lg border border-white/10 text-sm font-semibold
-                       text-white/55 bg-white/[0.03] hover:bg-white/[0.08] hover:text-white
+            className="px-4 py-2 rounded-xl border border-stone-200 text-sm font-semibold
+                       text-stone-600 bg-[#f8f7f2] hover:bg-amber-50 hover:text-stone-950
                        disabled:opacity-50 transition-colors
                        focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2
-                       focus-visible:ring-offset-[#09090b]"
+                       focus-visible:ring-offset-[#f3f3ef]"
           >
             {cancelling ? 'Отменяем…' : 'Отменить подписку'}
           </button>

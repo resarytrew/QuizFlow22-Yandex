@@ -30,6 +30,8 @@ const PresetRow: React.FC<{
       <div className="flex-1 min-w-0">
         {editing ? (
           <input
+            id={`preset-name-${preset.id}`}
+            name={`preset-name-${preset.id}`}
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -133,6 +135,8 @@ export const PresetsSection: React.FC = () => {
         ) : (
           <div className="flex items-center gap-2 w-full">
             <input
+              id="new-preset-name"
+              name="new-preset-name"
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}

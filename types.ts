@@ -1,3 +1,5 @@
+import type { Edge, Node } from "reactflow";
+
 export type QuizTemplateId =
   | "default"
   | "ww2"
@@ -7,7 +9,8 @@ export type QuizTemplateId =
   | "science"
   | "math"
   | "history"
-  | "newyear";
+  | "newyear"
+  | "screenQuiz";
 
 export enum CustomNodeType {
   Start = "startNode",
@@ -51,22 +54,62 @@ export interface BaseNodeData {
   title?: string;
   description?: string;
   imageUrl?: string;
-  videoUrl?: string; // RuTube video URL
+  videoUrl?: string; // Direct video URL or supported embed URL
   isRequiredWatch?: boolean; // Block navigation until video ends
   backgroundImageUrl?: string;
   buttonText?: string;
   soundSettings?: NodeSoundSettings;
   parentId?: string;
+  screenQuiz?: Partial<ScreenQuizSettings>;
 }
 
 export interface NodeSoundSettings {
   onEntry?: string;
   onButtonPress?: string;
+  voiceover?: string;
+}
+
+export type ScreenQuizLayout = 'auto' | 'media-right' | 'media-left' | 'media-top' | 'image-grid' | 'question-only' | 'hero-media';
+export type ScreenQuizTransitionEffect = 'swipe-reveal' | 'pixel-dissolve' | 'zoom-in-reveal' | 'glitch-cut';
+export type ScreenQuizIntroTiming = 'auto' | 'fast' | 'calm' | 'manual';
+export type ScreenQuizTimelineMode = 'auto' | 'timeline';
+
+export interface ScreenQuizSettings {
+  backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel';
+  backgroundImageUrl?: string;
+  backgroundColor?: string;
+  accentColor?: string;
+  secondaryColor?: string;
+  panelColor?: string;
+  answerColor?: string;
+  inkColor?: string;
+  correctColor?: string;
+  borderWidth?: number;
+  radius?: number;
+  decorIntensity?: number;
+  motion?: 'premium' | 'calm' | 'off';
+  transitionEffect?: ScreenQuizTransitionEffect;
+  layout?: ScreenQuizLayout;
+  timerSeconds?: number;
+  showTimer?: boolean;
+  showStoryTimer?: boolean;
+  timelineMode?: ScreenQuizTimelineMode;
+  holdSeconds?: number;
+  revealSeconds?: number;
+  transitionMs?: number;
+  introEnabled?: boolean;
+  introTiming?: ScreenQuizIntroTiming;
+  introQuestionMs?: number;
+  introAnswerMs?: number;
+  introMediaMs?: number;
+  introGapMs?: number;
 }
 
 export interface Answer {
   id: string;
   text: string;
+  imageUrl?: string;
+  isCorrect?: boolean;
 }
 
 export interface QuestionNodeData extends BaseNodeData {
@@ -74,6 +117,7 @@ export interface QuestionNodeData extends BaseNodeData {
   answers?: Answer[];
   timer?: number;
   title?: string;
+  correctAnswer?: string;
 }
 
 export interface MultipleChoiceNodeData extends BaseNodeData {
@@ -274,16 +318,79 @@ export interface GlobalTimer {
 }
 
 export interface DesignSettings {
+  brand?: {
+    logoUrl?: string;
+    brandName?: string;
+    primaryColor?: string;
+    accentColor?: string;
+    neutralColor?: string;
+    experiencePreset?: 'conversational' | 'leadForm' | 'calculator' | 'assessment' | 'editorial' | 'minimal';
+  };
   background: {
     color: string;
     imageUrl: string;
     overlayColor: string;
     overlayOpacity: number;
+    mode?: 'solid' | 'gradient' | 'image';
+    gradientFrom?: string;
+    gradientTo?: string;
+    imageFit?: 'cover' | 'contain' | 'repeat';
+    texture?: 'none' | 'grain' | 'grid' | 'paper';
   };
   typography: {
     fontFamily: string;
+    displayFontFamily?: string;
     headingColor: string;
     bodyTextColor: string;
+    headingWeight?: number;
+    bodyWeight?: number;
+    headingScale?: number;
+    bodyScale?: number;
+    lineHeight?: number;
+    letterSpacing?: number;
+    headingLineHeight?: number;
+    paragraphWidth?: number;
+  };
+  layout?: {
+    preset?: 'classic' | 'split' | 'focus' | 'editorial' | 'compact' | 'conversational' | 'calculator' | 'assessment';
+    interfacePreset?: 'studio' | 'immersive' | 'form' | 'exam' | 'kiosk' | 'magazine' | 'product' | 'minimal' | 'workshop' | 'report';
+    contentWidth?: number;
+    cardRadius?: number;
+    cardPadding?: number;
+    cardOpacity?: number;
+    mediaPosition?: 'top' | 'left' | 'right' | 'background';
+    surfaceStyle?: 'solid' | 'paper' | 'outline' | 'glass' | 'minimal';
+    questionAlign?: 'left' | 'center';
+    verticalAlign?: 'top' | 'center';
+    density?: 'compact' | 'balanced' | 'relaxed';
+    chrome?: 'full' | 'compact' | 'none';
+    blocks?: {
+      topbar?: boolean;
+      brand?: boolean;
+      logo?: boolean;
+      title?: boolean;
+      progress?: boolean;
+      timer?: boolean;
+      description?: boolean;
+      media?: boolean;
+      achievements?: boolean;
+      variables?: boolean;
+      stats?: boolean;
+      resultStats?: boolean;
+      backgroundDecor?: boolean;
+    };
+  };
+  questionCard?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    textColor?: string;
+    radius?: number;
+    padding?: number;
+    shadow?: 'none' | 'soft' | 'strong';
+    mediaPosition?: 'top' | 'left' | 'right' | 'background';
+    mediaWidth?: number;
+    mediaRadius?: number;
+    mediaFit?: 'cover' | 'contain';
   };
   buttons: {
     backgroundColor: string;
@@ -291,6 +398,12 @@ export interface DesignSettings {
     hoverBackgroundColor: string;
     hoverTextColor: string;
     borderRadius: number;
+    style?: 'solid' | 'outline' | 'ghost' | 'soft' | 'premium';
+    height?: number;
+    shadow?: 'none' | 'soft' | 'strong';
+    fontWeight?: number;
+    width?: 'auto' | 'full';
+    textTransform?: 'none' | 'uppercase';
   };
   answerCards: {
     backgroundColor: string;
@@ -300,14 +413,54 @@ export interface DesignSettings {
     selectedBackgroundColor: string;
     selectedTextColor: string;
     borderRadius: number;
+    style?: 'card' | 'list' | 'tiles' | 'minimal';
+    borderColor?: string;
+    selectedBorderColor?: string;
+    spacing?: number;
+    markerStyle?: 'none' | 'letters' | 'numbers';
+    columns?: 1 | 2 | 3;
+    minHeight?: number;
+    mediaAspectRatio?: 'auto' | '16/9' | '4/3' | '1/1';
   };
+  progress?: {
+    style?: 'bar' | 'steps' | 'ring' | 'hidden';
+    position?: 'top' | 'bottom' | 'inside';
+    color?: string;
+    trackColor?: string;
+    showPercent?: boolean;
+    showStepLabel?: boolean;
+    height?: number;
+  };
+  result?: {
+    preset?: 'card' | 'certificate' | 'report' | 'landing';
+    backgroundColor?: string;
+    textColor?: string;
+    accentColor?: string;
+    showScore?: boolean;
+    showShare?: boolean;
+    scoreStyle?: 'badge' | 'ring' | 'stat';
+  };
+  advanced?: {
+    customCss?: string;
+    reducedMotion?: boolean;
+    highContrast?: boolean;
+  };
+  screenQuiz?: ScreenQuizSettings;
   sound: {
     volume: number;
     backgroundMusic?: string;
+    musicVolume?: number;
+    voiceVolume?: number;
+    sfxVolume?: number;
+    tickVolume?: number;
     buttonClick?: string;
     correctAnswer?: string;
     incorrectAnswer?: string;
     achievementUnlock?: string;
+    screenQuizIntro?: string;
+    screenQuizTick?: string;
+    screenQuizReveal?: string;
+    screenQuizTransition?: string;
   };
 }
 
@@ -457,15 +610,35 @@ export interface ContestSubmission {
   status: "pending" | "approved" | "rejected";
 }
 
+export interface ResultAchievement {
+  title?: string;
+  description?: string;
+}
+
+export interface QuizResultData {
+  variables?: Record<string, unknown>;
+  achievements?: Array<ResultAchievement | string>;
+  [key: string]: unknown;
+}
+
+export interface PathEventDetails {
+  question?: string;
+  selectedAnswer?: unknown;
+  isCorrect?: boolean | string;
+  scoreChange?: number;
+  [key: string]: unknown;
+}
+
 export interface QuizData {
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   globalTimer: GlobalTimer;
   designSettings: DesignSettings;
   templateId?: QuizTemplateId;
   currentQuizName?: string;
   description?: string;
   cover_image_url?: string;
+  keywords?: string[];
   passport?: ProjectPassport;
 }
 
@@ -505,7 +678,7 @@ export interface QuizResult {
   user_id?: string;
   score: number;
   final_node_title: string;
-  results_data: any;
+  results_data: QuizResultData;
   participant_name?: string;
   participant_email?: string;
   time_spent_seconds?: number;
@@ -517,7 +690,7 @@ export interface PathEvent {
   nodeType: string;
   nodeLabel: string;
   timestamp: string;
-  details: any;
+  details: PathEventDetails;
 }
 
 export type SessionStatus = "in_progress" | "completed" | "abandoned";
@@ -532,8 +705,8 @@ export interface QuizSession {
   participant_email?: string;
   status: SessionStatus;
   score: number;
-  variables: Record<string, any>;
-  achievements: any[];
+  variables: Record<string, unknown>;
+  achievements: Array<ResultAchievement | string>;
   path_data: PathEvent[];
   started_at: string;
   completed_at?: string;
@@ -545,8 +718,8 @@ export interface QuizSession {
 export interface QuizTemplate {
   id?: string;
   name?: string;
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   description?: string;
   globalTimer?: GlobalTimer;
   designSettings?: DesignSettings;
@@ -558,8 +731,8 @@ export interface QuizTemplate {
 
 export interface AutosavePayload {
   currentQuizId: string | null;
-  nodes: any[];
-  edges: any[];
+  nodes: Node<NodeData>[];
+  edges: Edge[];
   globalTimer: GlobalTimer;
   designSettings: DesignSettings;
   templateId: QuizTemplateId;

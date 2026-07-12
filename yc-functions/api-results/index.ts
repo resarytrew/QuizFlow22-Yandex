@@ -157,7 +157,9 @@ async function saveResult(event: any) {
 
   await query(
     `UPDATE public.quiz_sessions
-     SET status = 'completed', completed_at = COALESCE(completed_at, now()), path_data = $1::jsonb
+     SET status = 'completed',
+         completed_at = COALESCE(completed_at, now()),
+         path_data = $1::jsonb
      WHERE session_token = $2 OR id::text = $2`,
     [JSON.stringify(pathData), sessionId],
   ).catch((error) => {

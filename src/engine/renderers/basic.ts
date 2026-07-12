@@ -3,9 +3,22 @@ import { createActionButton } from "./common";
 import { getState } from "../state";
 import { parseText, sanitizeAssetUrl } from "../sanitize";
 import { saveResults } from "../persistence";
+import { getDesignSettings } from "../designState";
+
+interface BasicNodeData {
+  buttonText?: string;
+  characterAvatar?: string;
+  characterName?: string;
+  characterRole?: string;
+  dialogueText?: string;
+  duration?: number;
+  action?: string;
+  onTimeoutNodeId?: string;
+  explanation?: string;
+}
 
 export const renderDialogue: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   const card = document.createElement("div");
   card.className = "dialogue-card";
 
@@ -52,7 +65,7 @@ export const renderDialogue: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderTimer: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   let seconds = Math.max(0, Number(data.duration ?? 0));
   let finished = false;
 
@@ -93,28 +106,45 @@ export const renderTimer: NodeRenderer = (node, controls, context) => {
 
 export const renderResult: NodeRenderer = (node, controls) => {
   const state = getState();
+  const resultDesign = getDesignSettings()?.result;
   saveResults((node.data.title as string | undefined) ?? "Финиш");
 
   const summary = document.createElement("div");
-  summary.className = "result-summary";
+  summary.className = [
+    "result-summary",
+    `result-preset-${resultDesign?.preset ?? "card"}`,
+    `result-score-${resultDesign?.scoreStyle ?? "badge"}`,
+  ].join(" ");
 
-  const score = createResultStat("Очки", String(state.score));
+  if (resultDesign?.showScore !== false) {
+    const score = createResultStat("Очки", String(state.score));
+    summary.appendChild(score);
+  }
   const steps = createResultStat("Экранов", String(state.path.length));
-  summary.append(score, steps);
+  summary.appendChild(steps);
 
   controls.appendChild(summary);
+  if (resultDesign?.showShare !== false && navigator.share) {
+    controls.appendChild(createActionButton("Поделиться", () => {
+      void navigator.share({
+        title: document.title || "Результат квиза",
+        text: `Мой результат: ${state.score}`,
+        url: location.href,
+      }).catch(() => undefined);
+    }));
+  }
   controls.appendChild(createActionButton("Начать заново", () => location.reload()));
 };
 
 export const renderInfo: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   controls.appendChild(createActionButton(data.buttonText ?? "Далее", () => {
     context.continueFrom(node, null);
   }));
 };
 
 export const renderFeedback: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   if (data.explanation) {
     const bubble = document.createElement("div");
     bubble.className = "feedback-bubble md-content";
@@ -128,7 +158,7 @@ export const renderFeedback: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderDefault: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as BasicNodeData;
   controls.appendChild(createActionButton(data.buttonText ?? "Далее", () => {
     context.continueFrom(node, null);
   }));

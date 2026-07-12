@@ -8,7 +8,6 @@ import ReactFlow, {
   type Node,
   type NodeChange,
   type EdgeChange,
-  type OnConnectStartParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -21,17 +20,16 @@ import { EnhancedMinimap } from './EnhancedMinimap';
 import { BottomControlBar } from './BottomControlBar';
 import Breadcrumbs from '../Breadcrumbs';
 import CanvasSearch from '../CanvasSearch';
-import { createNewNode } from './createNewNode';
 import { useEditorActions, useEditorData } from './hooks/useEditorStore';
 import { useEditorMenus } from './hooks/useEditorMenus';
 import { useCanvasLayout, useCanvasResize, useCenterOnSelected } from './hooks/useCanvasLayout';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useEditorAutosave } from './hooks/useEditorAutosave';
 import { EditorMenus } from './EditorOverlays';
 import { LockBanner } from './LockBanner';
 
 import './styles/editor.css';
-import type { CustomNodeType } from '../../types';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { getCanvasBackgroundConfig } from './canvasPreferences';
 import { useUIStore } from '../../store/useUIStore';
@@ -45,13 +43,15 @@ const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: ZOOM.DEFAULT };
 const SNAP_GRID: [number, number] = [16, 16];
 const CONNECTION_LINE_STYLE = { strokeWidth: 2, stroke: DS.colors.edgeActive };
 
+const getChangeId = (change: NodeChange | EdgeChange): string | undefined =>
+  'id' in change ? change.id : undefined;
+
 const QuizEditor: React.FC = () => {
   const { nodes, edges, boardSettings, isCanvasLocked, currentGroup, selectedNode, isCanvasLoading } = useEditorData();
   const actions = useEditorActions();
   const menus = useEditorMenus();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [rfInstance, setRfInstance] = useState<any>(null);
   const [connectingFrom, setConnectingFrom] = useState<{ nodeId: string; handleId?: string | null } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -68,6 +68,7 @@ const QuizEditor: React.FC = () => {
   const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
   const { screenToFlowPosition, getNode, fitView, setCenter } = useReactFlow();
+  useEditorAutosave();
 
   // React Flow warns when nodeTypes/edgeTypes change identity between
   // renders. The module-level exports are stable, but Vite's Fast Refresh
@@ -142,8 +143,6 @@ const QuizEditor: React.FC = () => {
     isCanvasLocked,
     connectingFrom,
     quickAddMenu: menus.quickAdd,
-    visibleNodes,
-    visibleEdges,
     edges,
     setMenu: menus.setNodeMenu,
     setEdgeMenu: menus.setEdgeMenu,
@@ -152,18 +151,12 @@ const QuizEditor: React.FC = () => {
     setIsConnecting,
     setSelectedNode: actions.setSelectedNode,
     addNode: actions.addNode,
-    deleteNode: actions.deleteNode,
-    deleteEdge: actions.deleteEdge,
     onEditEdgeLabel,
     onConnect: actions.onConnect,
     screenToFlowPosition,
     getNode,
     setPreviewMode: actions.setPreviewMode,
   });
-
-  const onInit = useCallback((instance: any) => {
-    setRfInstance(instance);
-  }, []);
 
   const handleNodeDragStart = useCallback((_: React.MouseEvent, node: Node) => {
     setDraggedNodeId(node.id);
@@ -176,9 +169,10 @@ const QuizEditor: React.FC = () => {
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
       if (isCanvasLocked) return;
-      const filtered = changes.filter((change: any) => {
-        if (draggedNodeId && change.type === 'position' && change.id && change.id !== draggedNodeId) return false;
-        if (change.id) return visibleNodeIds.has(change.id);
+      const filtered = changes.filter((change) => {
+        const changeId = getChangeId(change);
+        if (draggedNodeId && change.type === 'position' && changeId && changeId !== draggedNodeId) return false;
+        if (changeId) return visibleNodeIds.has(changeId);
         return true;
       });
       if (filtered.length > 0) actions.onNodesChange(filtered);
@@ -189,8 +183,9 @@ const QuizEditor: React.FC = () => {
   const handleEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       if (isCanvasLocked) return;
-      const filtered = changes.filter((change: any) => {
-        if (change.id) return visibleNodeIds.has(change.id);
+      const filtered = changes.filter((change) => {
+        const changeId = getChangeId(change);
+        if (changeId) return visibleNodeIds.has(changeId);
         return true;
       });
       if (filtered.length > 0) actions.onEdgesChange(filtered);
@@ -267,7 +262,6 @@ const QuizEditor: React.FC = () => {
       />
 
       <ReactFlow
-        onInit={onInit}
         nodes={visibleNodes}
         edges={visibleEdges}
         onNodesChange={handleNodesChange}

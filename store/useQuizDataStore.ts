@@ -13,9 +13,9 @@ import {
 import { api } from '../services/apiClient';
 import toast from 'react-hot-toast';
 import { useCanvasStore } from './useCanvasStore';
-import { useUIStore } from './useUIStore';
 import { useAuthStore } from './useAuthStore';
 import { storeEvents } from './storeEvents';
+import { normalizeQuizKeywords } from '../utils/quizKeywords';
 
 function deepMerge<T extends object>(target: T, source: Partial<T>): T {
   const result = { ...target };
@@ -47,6 +47,7 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'math',
   'history',
   'newyear',
+  'screenQuiz',
 ]);
 
 function normalizeTemplateId(value: unknown): QuizTemplateId {
@@ -86,14 +87,15 @@ interface QuizDataStoreState {
   toggleQuizFavorite: (id: string) => Promise<void>;
   updateQuizPublication: (
     id: string,
-    data: { is_published: boolean; description?: string; cover_image_url?: string }
+    data: { is_published: boolean; description?: string; cover_image_url?: string; keywords?: string[] }
   ) => Promise<void>;
   updateQuizVisibility: (
     id: string,
-    data: { visibility: QuizVisibility; description?: string; cover_image_url?: string }
+    data: { visibility: QuizVisibility; description?: string; cover_image_url?: string; keywords?: string[] }
   ) => Promise<void>;
   updateQuizPassport: (id: string, passport: QuizPassport) => Promise<void>;
   cloneAndEditPublicQuiz: (publicQuiz: PublicQuiz) => Promise<string | null>;
+  autosaveQuiz: (opts?: { visibility?: QuizVisibility }) => Promise<string | null>;
 
   pendingTemplate: QuizTemplate | null;
   setPendingTemplate: (data: QuizTemplate | null) => void;
@@ -114,10 +116,17 @@ const createInitialState = () => ({
     onTimeoutNodeId: null,
   } as GlobalTimer,
   designSettings: {
-    background: { color: '#f6f3ee', imageUrl: '', overlayColor: '#f6f3ee', overlayOpacity: 0 },
-    typography: { fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", headingColor: '#1d1a16', bodyTextColor: '#615d54' },
-    buttons: { backgroundColor: '#2f5d50', textColor: '#ffffff', hoverBackgroundColor: '#25493f', hoverTextColor: '#ffffff', borderRadius: 18 },
-    answerCards: { backgroundColor: '#fffefa', textColor: '#24211c', hoverBackgroundColor: '#f7f4ed', hoverTextColor: '#171512', selectedBackgroundColor: '#e5f0ea', selectedTextColor: '#183b32', borderRadius: 18 },
+    brand: { logoUrl: '', brandName: '', primaryColor: '#2f5d50', accentColor: '#b9852b', neutralColor: '#1d1a16', experiencePreset: 'conversational' },
+    background: { color: '#f6f3ee', imageUrl: '', overlayColor: '#f6f3ee', overlayOpacity: 0, mode: 'solid', gradientFrom: '#f6f3ee', gradientTo: '#ebe5db', imageFit: 'cover', texture: 'grain' },
+    typography: { fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", displayFontFamily: "'Newsreader', Georgia, serif", headingColor: '#1d1a16', bodyTextColor: '#615d54', headingWeight: 650, bodyWeight: 450, headingScale: 1, bodyScale: 1, lineHeight: 1.55, letterSpacing: 0, headingLineHeight: 1.04, paragraphWidth: 680 },
+    layout: { preset: 'classic', interfacePreset: 'studio', contentWidth: 920, cardRadius: 28, cardPadding: 32, cardOpacity: 0.94, mediaPosition: 'top', surfaceStyle: 'paper', questionAlign: 'left', verticalAlign: 'center', density: 'balanced', chrome: 'full', blocks: { topbar: true, brand: true, logo: true, title: true, progress: true, timer: true, description: true, media: true, achievements: true, variables: true, stats: true, resultStats: true, backgroundDecor: true } },
+    questionCard: { backgroundColor: '#fffefa', borderColor: '#dfd8cc', textColor: '#24211c', radius: 28, padding: 32, shadow: 'none', mediaPosition: 'top', mediaWidth: 42, mediaRadius: 22, mediaFit: 'cover' },
+    buttons: { backgroundColor: '#2f5d50', textColor: '#ffffff', hoverBackgroundColor: '#25493f', hoverTextColor: '#ffffff', borderRadius: 18, style: 'solid', height: 52, shadow: 'soft', fontWeight: 800, width: 'auto', textTransform: 'none' },
+    answerCards: { backgroundColor: '#fffefa', textColor: '#24211c', hoverBackgroundColor: '#f7f4ed', hoverTextColor: '#171512', selectedBackgroundColor: '#e5f0ea', selectedTextColor: '#183b32', borderRadius: 18, style: 'card', borderColor: '#dfd8cc', selectedBorderColor: '#2f5d50', spacing: 12, markerStyle: 'letters', columns: 1, minHeight: 58, mediaAspectRatio: 'auto' },
+    progress: { style: 'bar', position: 'top', color: '#2f5d50', trackColor: '#e4ded2', showPercent: true, showStepLabel: true, height: 8 },
+    result: { preset: 'card', backgroundColor: '#fffefa', textColor: '#1d1a16', accentColor: '#2f5d50', showScore: true, showShare: true, scoreStyle: 'badge' },
+    advanced: { customCss: '', reducedMotion: false, highContrast: false },
+    screenQuiz: { backgroundPreset: 'pop', backgroundImageUrl: '', backgroundColor: '#9a4bdb', accentColor: '#ffc928', secondaryColor: '#7c5ce7', panelColor: '#f1eef6', answerColor: '#eeeeec', inkColor: '#050305', correctColor: '#18c900', borderWidth: 10, radius: 54, decorIntensity: 1, motion: 'premium', layout: 'auto', timerSeconds: 30, showTimer: true, showStoryTimer: true, timelineMode: 'auto', holdSeconds: 1.2, revealSeconds: 1.4, transitionMs: 340, introEnabled: true, introTiming: 'auto', introQuestionMs: 2800, introAnswerMs: 1800, introMediaMs: 900, introGapMs: 280 },
     sound: { volume: 0.5 },
   } as DesignSettings,
   userQuizzes: [] as Quiz[],
@@ -129,7 +138,22 @@ const createInitialState = () => ({
 const QUIZ_DATA_BATCH_SIZE = 8;
 let quizHydrationGeneration = 0;
 
-export function createQuizSummary(row: any): Quiz {
+type QuizSummaryRow = Pick<Quiz, 'id' | 'name' | 'created_at' | 'updated_at'> &
+  Partial<Pick<Quiz, 'user_id' | 'published_at' | 'is_favorite'>> & {
+    visibility?: QuizVisibility | string;
+  };
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function normalizeQuizVisibility(value: unknown): QuizVisibility {
+  return value === 'private' || value === 'unlisted' || value === 'public'
+    ? value
+    : 'public';
+}
+
+export function createQuizSummary(row: QuizSummaryRow): Quiz {
   const defaults = createInitialState();
   return {
     id: row.id,
@@ -140,7 +164,7 @@ export function createQuizSummary(row: any): Quiz {
     is_published: row.visibility === 'public',
     published_at: row.published_at,
     is_favorite: row.is_favorite || false,
-    visibility: row.visibility || 'public',
+    visibility: normalizeQuizVisibility(row.visibility),
     quiz_data_loaded: false,
     quiz_data: {
       nodes: [],
@@ -197,12 +221,12 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       const previousById = new Map(
         get().userQuizzes.map((quiz) => [quiz.id, quiz])
       );
-      const summaries = (data ?? []).map((row: any) => {
+      const summaries: Quiz[] = (data ?? []).map((row) => {
         const previous = previousById.get(row.id);
         return previous &&
           previous.quiz_data_loaded !== false &&
           previous.updated_at === row.updated_at
-          ? { ...previous, ...row }
+          ? { ...previous, ...row, visibility: normalizeQuizVisibility(row.visibility ?? previous.visibility) }
           : createQuizSummary(row);
       });
 
@@ -245,8 +269,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
           }));
         }
       })();
-    } catch (e: any) {
-      toast.error('Ошибка загрузки квизов: ' + e.message);
+    } catch (e: unknown) {
+      toast.error('Ошибка загрузки квизов: ' + getErrorMessage(e));
     } finally {
       set({ isQuizzesLoading: false });
     }
@@ -343,11 +367,88 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         toast.success('Квиз создан', { id: toastId });
         return createdQuiz.id;
       }
-    } catch (e: any) {
-      toast.error('Ошибка сохранения: ' + e.message, { id: toastId });
+    } catch (e: unknown) {
+      toast.error('Ошибка сохранения: ' + getErrorMessage(e), { id: toastId });
       return null;
     } finally {
       setCanvasLoading(false);
+    }
+  },
+
+  autosaveQuiz: async (opts): Promise<string | null> => {
+    const state = get();
+    const session = useAuthStore.getState().session;
+    if (!session) return null;
+
+    const { nodes, edges, isCanvasLoading } = useCanvasStore.getState();
+    if (isCanvasLoading) return null;
+
+    const quizData = {
+      nodes,
+      edges,
+      globalTimer: state.globalTimer,
+      designSettings: state.designSettings,
+      templateId: state.templateId,
+      currentQuizName: state.currentQuizName,
+    };
+
+    const quizName = state.currentQuizName.trim() || 'Без названия';
+    const resolvedVisibility: QuizVisibility =
+      opts?.visibility ??
+      state.currentQuizVisibility ??
+      'public';
+
+    try {
+      if (state.currentQuizId) {
+        const updated = await api.updateQuiz(state.currentQuizId, {
+          name: quizName,
+          quiz_data: quizData,
+        });
+
+        set((s) => ({
+          userQuizzes: s.userQuizzes.map((q) =>
+            q.id === s.currentQuizId
+              ? {
+                  ...q,
+                  ...(updated as Partial<Quiz>),
+                  name: quizName,
+                  quiz_data: quizData,
+                  quiz_data_loaded: true,
+                }
+              : q
+          ),
+        }));
+        return state.currentQuizId;
+      }
+
+      const created = await api.createQuiz({
+        name: quizName,
+        quiz_data: quizData,
+        visibility: resolvedVisibility,
+      });
+
+      const createdQuiz: Quiz = {
+        ...(created as Quiz),
+        name: quizName,
+        quiz_data: quizData,
+        quiz_data_loaded: true,
+        visibility: ((created as Quiz).visibility as QuizVisibility) ?? resolvedVisibility,
+      };
+
+      set((s) => ({
+        currentQuizId: createdQuiz.id,
+        currentQuizName: createdQuiz.name,
+        currentQuizVisibility: createdQuiz.visibility ?? 'public',
+        userQuizzes: [
+          createdQuiz,
+          ...s.userQuizzes.filter((quiz) => quiz.id !== createdQuiz.id),
+        ],
+      }));
+
+      return createdQuiz.id;
+    } catch (error) {
+      console.warn('Autosave failed:', error);
+      return null;
     }
   },
 
@@ -390,9 +491,9 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       if (currentQuizId === id) {
         set({ currentQuizId: null });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       set({ userQuizzes: prevQuizzes });
-      toast.error('Ошибка удаления: ' + e.message);
+      toast.error('Ошибка удаления: ' + getErrorMessage(e));
     }
   },
 
@@ -417,8 +518,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       }));
       toast.success('Квиз дублирован');
       return data.id;
-    } catch (e: any) {
-      if (/visibility_requires_pro/i.test(e.message ?? '')) {
+    } catch (e: unknown) {
+      if (/visibility_requires_pro/i.test(getErrorMessage(e))) {
         toast.error('Дублирование с этим уровнем доступа требует PRO');
       } else {
         toast.error('Ошибка дублирования');
@@ -466,6 +567,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       visibility: data.is_published ? 'public' as const : 'private' as const,
       description: data.description,
       cover_image_url: data.cover_image_url,
+      keywords: data.keywords,
     });
   },
 
@@ -480,6 +582,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       ...quiz.quiz_data,
       ...(data.description !== undefined && { description: data.description }),
       ...(data.cover_image_url !== undefined && { cover_image_url: data.cover_image_url }),
+      ...(data.keywords !== undefined && { keywords: normalizeQuizKeywords(data.keywords) }),
     };
 
     try {
@@ -503,11 +606,11 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         currentQuizVisibility: s.currentQuizId === id ? data.visibility : s.currentQuizVisibility,
       }));
       toast.success('Настройки доступа обновлены');
-    } catch (e: any) {
-      if (/visibility_requires_pro/i.test(e.message ?? '')) {
+    } catch (e: unknown) {
+      if (/visibility_requires_pro/i.test(getErrorMessage(e))) {
         toast.error('Этот уровень доступа доступен только с подпиской PRO');
       } else {
-        toast.error('Ошибка обновления доступа: ' + e.message);
+        toast.error('Ошибка обновления доступа: ' + getErrorMessage(e));
       }
     }
   },

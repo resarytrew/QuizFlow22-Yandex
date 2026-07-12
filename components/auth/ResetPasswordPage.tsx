@@ -98,7 +98,7 @@ const ResetPasswordPage: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-            <input
+            <input name="components-auth-resetpasswordpage-101-input"
               type="password"
               required
               minLength={8}
@@ -108,7 +108,7 @@ const ResetPasswordPage: React.FC = () => {
               placeholder="Новый пароль"
               className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3.5 outline-none transition focus:border-amber-300"
             />
-            <input
+            <input name="components-auth-resetpasswordpage-111-input"
               type="password"
               required
               minLength={8}

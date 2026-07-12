@@ -64,11 +64,11 @@ const LandingPricingSection: React.FC = () => {
     >
       {/* Светлый фон с теми же бумажными эффектами, что и в Hero лендинга. */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_64%_at_50%_0%,rgba(251,191,36,0.18),transparent_64%),linear-gradient(180deg,rgba(255,250,240,0.62),rgba(239,228,210,0.62))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_64%_at_50%_0%,rgba(68,64,60,0.055),transparent_64%),linear-gradient(180deg,rgba(248,247,242,0.74),rgba(243,243,239,0.74))]" />
         <div className="absolute inset-0 opacity-[0.10] bg-noise mix-blend-multiply" />
         <div
           className="absolute top-1/4 -left-1/4 w-[600px] h-[600px] rounded-full opacity-25 blur-[100px]"
-          style={{ background: 'conic-gradient(from 180deg, #fbbf24, #f97316, #be6b45, #d6a24a, #fbbf24)' }}
+          style={{ background: 'conic-gradient(from 180deg, #f8f7f2, #e5e3dc, #f3f3ef, #dedbd2, #f8f7f2)' }}
         />
         <div
           className="absolute bottom-1/4 -right-1/4 w-[500px] h-[500px] rounded-full opacity-20 blur-[80px]"
@@ -77,7 +77,7 @@ const LandingPricingSection: React.FC = () => {
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(120,53,15,0.45) 1px, transparent 0)`,
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(68,64,60,0.22) 1px, transparent 0)`,
             backgroundSize: '48px 48px',
           }}
         />

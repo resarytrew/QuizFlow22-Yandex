@@ -7,12 +7,42 @@ import {
 } from '@tanstack/react-router';
 import { Route as editorShellRoute } from './editorShell';
 import { useQuizDataStore } from '../../../store/useQuizDataStore';
+import { useCanvasStore } from '../../../store/useCanvasStore';
 import { api } from '../../../services/apiClient';
+import type { Quiz } from '../../../types';
 
 export async function loadQuizForEditor(quizId: string) {
   try {
     return await api.getQuiz(quizId);
   } catch {
+    const quizState = useQuizDataStore.getState();
+    const cachedQuiz = quizState.userQuizzes.find(
+      (quiz) => quiz.id === quizId && quiz.quiz_data_loaded !== false,
+    );
+    if (cachedQuiz) return cachedQuiz;
+
+    if (quizState.currentQuizId === quizId) {
+      const canvasState = useCanvasStore.getState();
+      return {
+        id: quizId,
+        name: quizState.currentQuizName || 'Без названия',
+        visibility: quizState.currentQuizVisibility ?? 'public',
+        is_published: quizState.currentQuizVisibility === 'public',
+        is_favorite: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        quiz_data_loaded: true,
+        quiz_data: {
+          nodes: canvasState.nodes,
+          edges: canvasState.edges,
+          globalTimer: quizState.globalTimer,
+          designSettings: quizState.designSettings,
+          templateId: quizState.templateId,
+          currentQuizName: quizState.currentQuizName,
+        },
+      };
+    }
+
     throw notFound();
   }
 }
@@ -25,9 +55,9 @@ export const Route = createRoute({
       throw redirect({ to: '/' });
     }
   },
-  loader: async ({ params, context }) => {
+  loader: async ({ params }) => {
     const quiz = await loadQuizForEditor(params.quizId);
-    useQuizDataStore.getState().loadQuiz(quiz as any);
+    useQuizDataStore.getState().loadQuiz(quiz as Quiz);
     return { quizId: params.quizId };
   },
   component: lazyRouteComponent(() => import('../../../components/QuizEditor')),

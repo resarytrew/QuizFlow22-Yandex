@@ -7,6 +7,14 @@ import { generateQuizHtml } from '../services/quizGenerator';
 
 const DEBOUNCE_MS = 400;
 
+function htmlKey(html: string): string {
+  let hash = 0;
+  for (let i = 0; i < html.length; i += 1) {
+    hash = (hash * 31 + html.charCodeAt(i)) | 0;
+  }
+  return `${html.length}-${hash}`;
+}
+
 const LivePreview: React.FC = () => {
   const nodes = useCanvasStore(s => s.nodes);
   const edges = useCanvasStore(s => s.edges);
@@ -32,12 +40,12 @@ const LivePreview: React.FC = () => {
       // поэтому строгий родительский CSP не блокирует.
       const html = generateQuizHtml(
         {
-          nodes: previewInputs.nodes as any,
-          edges: previewInputs.edges as any,
+          nodes: previewInputs.nodes,
+          edges: previewInputs.edges,
           globalTimer: previewInputs.globalTimer,
-          designSettings: previewInputs.designSettings as any,
+          designSettings: previewInputs.designSettings as unknown as Record<string, unknown>,
           quizId: null,
-          templateId: previewInputs.templateId as any,
+          templateId: previewInputs.templateId,
           currentQuizName: previewInputs.currentQuizName,
           startNodeId: previewInputs.previewStartNodeId ?? undefined,
         },
@@ -58,6 +66,7 @@ const LivePreview: React.FC = () => {
         </div>
       <div className="w-full h-full border-8 border-gray-800 bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
         <iframe
+          key={htmlKey(htmlContent)}
           srcDoc={htmlContent}
           title="Live Quiz Preview"
           className="w-full h-full border-0 bg-white"

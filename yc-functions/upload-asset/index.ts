@@ -18,7 +18,11 @@ const s3 = new S3Client({
   },
 });
 
-const BUCKET = process.env.S3_BUCKET || 'potok-quiz-assets';
+const configuredBucket = process.env.S3_BUCKET?.trim();
+const BUCKET = !configuredBucket || configuredBucket === 'potok-quiz-assets'
+  ? 'quizflow22-prod'
+  : configuredBucket;
+const PUBLIC_BASE_URL = (process.env.YANDEX_MEDIA_PUBLIC_BASE || `https://storage.yandexcloud.net/${BUCKET}`).replace(/\/+$/, '');
 
 export async function handler(event: any) {
   const { httpMethod, headers, body } = event;
@@ -72,22 +76,28 @@ function ensureUserKey(userId: string, key: string): string | null {
 }
 
 function publicUrl(key: string): string {
-  return `https://storage.yandexcloud.net/${BUCKET}/${encodeURI(key).replace(/%2F/g, '/')}`;
+  return `${PUBLIC_BASE_URL}/${encodeURI(key).replace(/%2F/g, '/')}`;
 }
 
-function detectType(key: string, contentType?: string): 'image' | 'audio' {
+function detectType(key: string, contentType?: string): 'image' | 'audio' | 'video' {
   const lower = key.toLowerCase();
   if (contentType?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac)$/i.test(lower)) return 'audio';
+  if (contentType?.startsWith('video/') || /\.(mp4|webm|ogv|ogg|mov|m4v)$/i.test(lower)) return 'video';
   return 'image';
 }
 
 async function createUploadUrl(userId: string, filename: string, contentType?: string) {
   if (!filename) return badRequest('filename is required');
 
-  const cleanFilename = sanitizeSegment(filename).split('/').pop();
+  const normalizedFilename = sanitizeSegment(filename);
+  const parts = normalizedFilename.split('/').filter(Boolean);
+  const cleanFilename = parts.pop();
   if (!cleanFilename) return badRequest('filename is required');
 
-  const key = `${userId}/${Date.now()}_${cleanFilename}`;
+  const folderPath = parts.join('/');
+  const key = folderPath
+    ? `${userId}/${folderPath}/${Date.now()}_${cleanFilename}`
+    : `${userId}/${Date.now()}_${cleanFilename}`;
 
   const command = new PutObjectCommand({
     Bucket: BUCKET,

@@ -5,7 +5,7 @@ import { setupGlobalTimer } from './globalTimer';
 import { setupBackgroundMusic } from './media';
 import { processNode } from './navigation';
 import { setQuizConfig, sendAbandonmentBeacon } from './persistence';
-import { setDesignSettings } from './render';
+import { setDesignSettings } from './designState';
 import { resetState } from './state';
 
 declare global {
@@ -54,7 +54,9 @@ function init(): void {
     if (title) title.textContent = quizData.currentQuizName;
   }
 
-  applyDesign(quizData.designSettings);
+  if ((quizData.templateId ?? 'default') === 'default') {
+    applyDesign(quizData.designSettings);
+  }
   setupBackgroundMusic(quizData.designSettings);
   const stopGlobalTimer = setupGlobalTimer(quizData.globalTimer, processNode);
 

@@ -1,12 +1,9 @@
-
+﻿
 import React, { useState } from 'react';
-import * as ReactFlow from 'reactflow';
+import { Handle, Position, type NodeProps } from 'reactflow';
 import BaseNode from './BaseNode';
-import { QuestionNodeData } from '../../types';
+import { Answer, QuestionNodeData } from '../../types';
 import { getRutubeId, getRutubeEmbedUrl } from '../../utils/videoUtils';
-
-const { Handle, Position } = ReactFlow as any;
-type NodeProps<T = any> = any;
 
 const ANSWER_COLORS = [
     { bg: 'bg-blue-50/80', border: 'border-blue-200/60', text: 'text-blue-700', hover: 'hover:bg-blue-100/80 hover:border-blue-300', handle: 'bg-gradient-to-br from-blue-400 to-blue-600' },
@@ -38,7 +35,6 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
   const { question, answers = [], timer, imageUrl, videoUrl } = data;
   const [isZoomed, setIsZoomed] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const [imageHovered, setImageHovered] = useState(false);
 
   const rutubeId = getRutubeId(videoUrl || '');
 
@@ -74,8 +70,6 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
           <div 
             className="relative mb-3 group/image cursor-pointer overflow-hidden rounded-xl"
             onClick={() => setIsZoomed(true)}
-            onMouseEnter={() => setImageHovered(true)}
-            onMouseLeave={() => setImageHovered(false)}
           >
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 z-10 pointer-events-none"></div>
@@ -111,7 +105,7 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
 
         {/* Answers Section */}
         <div className="space-y-2 mb-3">
-          {answers.map((ans: any, index: number) => {
+          {answers.map((ans: Answer, index: number) => {
             const colorScheme = ANSWER_COLORS[index % ANSWER_COLORS.length];
 
             return (
@@ -119,7 +113,7 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
                 key={ans.id} 
                 className={`
                   group/answer relative flex items-center justify-between 
-                  ${colorScheme.bg} ${colorScheme.border} ${colorScheme.hover}
+                  ${ans.isCorrect ? 'bg-green-50/90 border-green-300/80 hover:bg-green-100/90' : `${colorScheme.bg} ${colorScheme.border} ${colorScheme.hover}`}
                   p-3 rounded-xl border-2 
                   transition-all duration-300 ease-out
                   hover:shadow-md hover:-translate-y-0.5
@@ -140,6 +134,12 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
                 <div className={`flex-1 ${colorScheme.text} text-sm font-medium ml-2.5 truncate`} title={ans.text}>
                   {ans.text}
                 </div>
+
+                {ans.isCorrect && (
+                  <div className="mr-2 rounded-full bg-green-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    верно
+                  </div>
+                )}
 
                 {/* Connection Handle */}
                 <Handle

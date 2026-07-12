@@ -76,7 +76,9 @@ jobs:
         run: npm ci
 
       - name: Type-check all Yandex functions
-        run: npm run lint:functions
+        working-directory: yc-functions
+        run: npm run lint
 
       - name: Bundle all Yandex functions
-        run: npm run test:functions
+        working-directory: yc-functions
+        run: npm run build

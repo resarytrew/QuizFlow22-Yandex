@@ -1,39 +1,67 @@
+import type { Answer } from "../types";
 import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { parseText } from "../sanitize";
+import { getDesignSettings } from "../designState";
+
+interface ChoiceData {
+  answers?: Answer[];
+  options?: Answer[];
+  correctOptions?: string[];
+  minSelections?: number;
+  maxSelections?: number;
+  buttonText?: string;
+  soundSettings?: {
+    onButtonPress?: string;
+  };
+}
 
 function markerFor(index: number): string {
+  const markerStyle = getDesignSettings()?.answerCards?.markerStyle ?? "letters";
+  if (markerStyle === "none") return "";
+  if (markerStyle === "numbers") return String(index + 1);
   return index < 26 ? String.fromCharCode(65 + index) : String(index + 1);
 }
 
 function createAnswerButton(
-  answer: any,
+  answer: Answer,
   index: number,
   selected = false,
 ): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
-  button.className = `option${selected ? " selected" : ""}`;
+  const answerStyle = getDesignSettings()?.answerCards?.style ?? "card";
+  const markerStyle = getDesignSettings()?.answerCards?.markerStyle ?? "letters";
+  button.className = [
+    "option",
+    `option-style-${answerStyle}`,
+    markerStyle === "none" ? "option-no-marker" : "",
+    selected ? "selected" : "",
+  ].filter(Boolean).join(" ");
   button.style.setProperty("--control-index", String(index));
   button.setAttribute("aria-pressed", String(selected));
 
-  const marker = document.createElement("span");
-  marker.className = "option-marker";
-  marker.textContent = markerFor(index);
+  const markerText = markerFor(index);
+  if (markerText) {
+    const marker = document.createElement("span");
+    marker.className = "option-marker";
+    marker.textContent = markerText;
+    button.appendChild(marker);
+  }
 
   const copy = document.createElement("span");
   copy.className = "option-copy md-content";
   copy.innerHTML = parseText(answer.text ?? "");
 
-  button.append(marker, copy);
+  button.appendChild(copy);
   return button;
 }
 
 export const renderQuestion: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as ChoiceData;
   const buttons: HTMLButtonElement[] = [];
 
-  (data.answers ?? data.options ?? []).forEach((answer: any, index: number) => {
+  (data.answers ?? data.options ?? []).forEach((answer, index) => {
     const button = createAnswerButton(answer, index);
     button.addEventListener("click", () => {
       button.classList.add("selected", "confirm-flash");
@@ -52,7 +80,7 @@ export const renderQuestion: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as ChoiceData;
   const selected = new Set<string>();
   const answers = data.answers ?? [];
   const min = Math.max(0, Number(data.minSelections ?? 0));
@@ -64,7 +92,7 @@ export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
     confirmButton.disabled = selected.size < min || selected.size > max;
   };
 
-  answers.forEach((answer: any, index: number) => {
+  answers.forEach((answer, index) => {
     const answerId = String(answer.id ?? index);
     const button = createAnswerButton(answer, index);
     button.addEventListener("click", () => {

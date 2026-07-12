@@ -29,6 +29,7 @@ function renderFileMenu(options: { importLocked?: boolean } = {}) {
     onImportJson: vi.fn(),
     onExportJson: vi.fn(),
     onGenerateHtml: vi.fn(),
+    onExportMp4: vi.fn(),
     onClearCanvas: vi.fn(),
   };
 
@@ -52,14 +53,16 @@ describe('HeaderFileMenu', () => {
     fireEvent.click(screen.getByRole('button', { name: /Импорт JSON/ }));
     fireEvent.click(screen.getByRole('button', { name: /Экспорт JSON/ }));
     fireEvent.click(screen.getByRole('button', { name: /Сгенерировать HTML/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Видео MP4/ }));
     fireEvent.click(screen.getByRole('button', { name: /Очистить холст/ }));
 
     expect(actions.onOpenSettings).toHaveBeenCalledOnce();
     expect(actions.onImportJson).toHaveBeenCalledOnce();
     expect(actions.onExportJson).toHaveBeenCalledOnce();
     expect(actions.onGenerateHtml).toHaveBeenCalledOnce();
+    expect(actions.onExportMp4).toHaveBeenCalledOnce();
     expect(actions.onClearCanvas).toHaveBeenCalledOnce();
-    expect(actions.onClose).toHaveBeenCalledTimes(5);
+    expect(actions.onClose).toHaveBeenCalledTimes(6);
   });
 
   it('shows a PRO marker when JSON import is locked', () => {

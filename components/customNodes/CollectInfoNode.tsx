@@ -1,9 +1,7 @@
-import React from "react";
+﻿import React from "react";
+import type { NodeProps } from 'reactflow';
 import BaseNode from "./BaseNode";
 import { CollectInfoNodeData } from "../../types";
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const CollectInfoNode: React.FC<NodeProps<CollectInfoNodeData>> = (props) => {
   const { data } = props;
@@ -43,67 +41,7 @@ const CollectInfoNode: React.FC<NodeProps<CollectInfoNodeData>> = (props) => {
           <div className="mt-2 space-y-1 bg-white/50 rounded-md p-1.5 border border-gray-100">
             {fields
               .slice(0, 3)
-              .map(
-                (
-                  field: {
-                    id: any;
-                    label:
-                      | string
-                      | number
-                      | bigint
-                      | boolean
-                      | React.ReactElement<
-                          unknown,
-                          string | React.JSXElementConstructor<any>
-                        >
-                      | Iterable<React.ReactNode>
-                      | React.ReactPortal
-                      | Promise<
-                          | string
-                          | number
-                          | bigint
-                          | boolean
-                          | React.ReactPortal
-                          | React.ReactElement<
-                              unknown,
-                              string | React.JSXElementConstructor<any>
-                            >
-                          | Iterable<React.ReactNode>
-                          | null
-                          | undefined
-                        >
-                      | null
-                      | undefined;
-                    type:
-                      | string
-                      | number
-                      | bigint
-                      | boolean
-                      | React.ReactElement<
-                          unknown,
-                          string | React.JSXElementConstructor<any>
-                        >
-                      | Iterable<React.ReactNode>
-                      | React.ReactPortal
-                      | Promise<
-                          | string
-                          | number
-                          | bigint
-                          | boolean
-                          | React.ReactPortal
-                          | React.ReactElement<
-                              unknown,
-                              string | React.JSXElementConstructor<any>
-                            >
-                          | Iterable<React.ReactNode>
-                          | null
-                          | undefined
-                        >
-                      | null
-                      | undefined;
-                  },
-                  i: any,
-                ) => (
+              .map((field, i) => (
                   <div
                     key={field.id || i}
                     className="flex items-center justify-between text-[10px] text-gray-600"
@@ -113,8 +51,7 @@ const CollectInfoNode: React.FC<NodeProps<CollectInfoNodeData>> = (props) => {
                       {field.type}
                     </span>
                   </div>
-                ),
-              )}
+                ))}
             {fields.length > 3 && (
               <div className="text-[9px] text-gray-400 text-center pt-0.5">
                 + еще {fields.length - 3}

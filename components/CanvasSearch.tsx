@@ -1,9 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore.ts';
-import * as ReactFlow from 'reactflow';
-
-const { useReactFlow } = ReactFlow as any;
+import { useReactFlow } from 'reactflow';
 
 const CanvasSearch: React.FC = () => {
     const nodes = useCanvasStore(s => s.nodes);
@@ -59,6 +57,8 @@ const CanvasSearch: React.FC = () => {
             {isOpen ? (
                 <div className="relative">
                     <input
+                        id="canvas-node-search"
+                        name="canvas-node-search"
                         type="text"
                         autoFocus
                         value={searchTerm}

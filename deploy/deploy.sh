@@ -40,25 +40,44 @@ if [ ! -d "$DIST_DIR" ]; then
   exit 1
 fi
 
-echo "==> Syncing immutable assets (cache 1y) to s3://$YC_BUCKET"
-aws --endpoint-url="$YC_S3_ENDPOINT" s3 sync "$DIST_DIR" "s3://$YC_BUCKET" \
+echo "==> Syncing immutable hashed assets (cache 1y) to s3://$YC_BUCKET/assets"
+aws --endpoint-url="$YC_S3_ENDPOINT" s3 sync "$DIST_DIR/assets" "s3://$YC_BUCKET/assets" \
   --delete \
-  --exclude "*" \
-  --include "assets/*" \
-  --include "*.js" \
-  --include "*.css" \
-  --include "*.woff" \
-  --include "*.woff2" \
-  --include "*.png" \
-  --include "*.jpg" \
-  --include "*.svg" \
   --cache-control "public, max-age=31536000, immutable"
 
-echo "==> Syncing HTML and root files (no-cache)"
-aws --endpoint-url="$YC_S3_ENDPOINT" s3 sync "$DIST_DIR" "s3://$YC_BUCKET" \
-  --delete \
-  --exclude "assets/*" \
-  --cache-control "public, max-age=0, must-revalidate"
+echo "==> Uploading immutable root assets (cache 1y)"
+find "$DIST_DIR" -maxdepth 1 -type f \( \
+  -name "*.js" -o \
+  -name "*.css" -o \
+  -name "*.woff" -o \
+  -name "*.woff2" -o \
+  -name "*.png" -o \
+  -name "*.jpg" -o \
+  -name "*.jpeg" -o \
+  -name "*.svg" -o \
+  -name "*.webp" -o \
+  -name "*.ico" \
+\) -print0 | while IFS= read -r -d '' file; do
+  aws --endpoint-url="$YC_S3_ENDPOINT" s3 cp "$file" "s3://$YC_BUCKET/$(basename "$file")" \
+    --cache-control "public, max-age=31536000, immutable"
+done
+
+echo "==> Uploading HTML and root files (no-cache)"
+find "$DIST_DIR" -maxdepth 1 -type f ! \( \
+  -name "*.js" -o \
+  -name "*.css" -o \
+  -name "*.woff" -o \
+  -name "*.woff2" -o \
+  -name "*.png" -o \
+  -name "*.jpg" -o \
+  -name "*.jpeg" -o \
+  -name "*.svg" -o \
+  -name "*.webp" -o \
+  -name "*.ico" \
+\) -print0 | while IFS= read -r -d '' file; do
+  aws --endpoint-url="$YC_S3_ENDPOINT" s3 cp "$file" "s3://$YC_BUCKET/$(basename "$file")" \
+    --cache-control "public, max-age=0, must-revalidate"
+done
 
 echo "==> Applying website configuration"
 aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-website \
@@ -69,6 +88,18 @@ echo "==> Applying CORS configuration"
 aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-cors \
   --bucket "$YC_BUCKET" \
   --cors-configuration "file://$SCRIPT_DIR/yandex-cloud/cors-config.json"
+
+MEDIA_BUCKET="${S3_BUCKET:-}"
+if [ -z "$MEDIA_BUCKET" ] || [ "$MEDIA_BUCKET" = "potok-quiz-assets" ]; then
+  MEDIA_BUCKET="$YC_BUCKET"
+fi
+
+if [ -n "$MEDIA_BUCKET" ]; then
+  echo "==> Applying media bucket CORS configuration"
+  aws --endpoint-url="$YC_S3_ENDPOINT" s3api put-bucket-cors \
+    --bucket "$MEDIA_BUCKET" \
+    --cors-configuration "file://$SCRIPT_DIR/yandex-cloud/assets-cors-config.json"
+fi
 
 if [ -n "${YC_CDN_RESOURCE_ID:-}" ] && command -v yc >/dev/null 2>&1; then
   echo "==> Purging Yandex CDN cache for resource $YC_CDN_RESOURCE_ID"

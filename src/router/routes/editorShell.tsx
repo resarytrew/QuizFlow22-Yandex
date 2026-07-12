@@ -1,5 +1,5 @@
 import { createRoute, Outlet } from '@tanstack/react-router';
-import * as ReactFlow from 'reactflow';
+import { ReactFlowProvider } from 'reactflow';
 import { Route as appShellRoute } from './appShell';
 import Sidebar from '../../../components/Sidebar';
 import SettingsPanel from '../../../components/SettingsPanel';
@@ -11,8 +11,6 @@ import RestoreAutosavePrompt from '../../../components/RestoreAutosavePrompt';
 import LivePreview from '../../../components/LivePreview';
 import Header from '../../../components/Header';
 import { useUIStore } from '../../../store/useUIStore';
-
-const { ReactFlowProvider } = ReactFlow as any;
 
 export const Route = createRoute({
   getParentRoute: () => appShellRoute,

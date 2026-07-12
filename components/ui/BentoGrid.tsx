@@ -35,7 +35,7 @@ const BentoGrid: React.FC<BentoGridProps> = ({ children, className = '' }) => {
       <AnimatePresence mode="popLayout">
         {childrenArray.map((child, i) => (
           <motion.div
-            key={(child as any)?.key || i}
+            key={React.isValidElement(child) && child.key !== null ? child.key : i}
             variants={itemVariants}
             initial="hidden"
             animate="visible"

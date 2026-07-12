@@ -39,7 +39,7 @@ export function sanitizeAssetUrl(url: unknown): string {
       // application/javascript) are stripped to prevent exfil.
       if (/^data:image\//i.test(String(url))) return String(url);
     }
-  } catch (e) {
+  } catch {
     // fall through
   }
   return '';

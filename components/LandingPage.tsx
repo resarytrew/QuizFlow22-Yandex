@@ -13,6 +13,7 @@ import ReactFlow, {
   BackgroundVariant,
   Handle,
   Position,
+  useNodesState,
   type Edge,
   type Node,
   type NodeProps,
@@ -32,9 +33,11 @@ import "reactflow/dist/style.css";
 const FlowLine = ({
   className = "",
   variant = 1,
+  animated = true,
 }: {
   className?: string;
   variant?: number;
+  animated?: boolean;
 }) => {
   const paths = [
     "M0,50 Q50,0 100,50 T200,50 T300,50",
@@ -67,7 +70,7 @@ const FlowLine = ({
         stroke={`url(#flow-grad-${variant})`}
         strokeWidth="2"
         strokeLinecap="round"
-        className="animate-flow"
+        className={animated ? "animate-flow" : undefined}
       />
     </svg>
   );
@@ -105,7 +108,9 @@ interface LandingFlowNodeData extends Record<string, unknown> {
   title: string;
   detail: string;
   tone: LandingNodeTone;
+  surface?: "default" | "editor";
   active?: boolean;
+  pulse?: boolean;
   index?: string;
 }
 
@@ -116,23 +121,36 @@ const landingNodeToneClass: Record<LandingNodeTone, string> = {
   sage: "border-emerald-800/16 bg-emerald-100 text-stone-950 shadow-emerald-800/10",
 };
 
+const editorLandingNodeToneClass: Record<LandingNodeTone, string> = {
+  ink: "border-stone-300/70 bg-transparent text-stone-900 shadow-[0_18px_50px_rgba(15,23,42,0.08)]",
+  amber: "border-stone-300/70 bg-transparent text-stone-900 shadow-[0_18px_50px_rgba(15,23,42,0.08)]",
+  rose: "border-stone-300/70 bg-transparent text-stone-900 shadow-[0_18px_50px_rgba(15,23,42,0.08)]",
+  sage: "border-stone-300/70 bg-transparent text-stone-900 shadow-[0_18px_50px_rgba(15,23,42,0.08)]",
+};
+
 const LandingFlowNode: React.FC<NodeProps<LandingFlowNodeData>> = ({
   data,
 }) => (
   <div
     className={`group relative min-w-[172px] rounded-[1.25rem_0.55rem_1.25rem_0.55rem] border px-4 py-3 shadow-[0_18px_52px_var(--tw-shadow-color)] backdrop-blur transition-all duration-500 ${
-      landingNodeToneClass[data.tone]
+      data.surface === "editor"
+        ? editorLandingNodeToneClass[data.tone]
+        : landingNodeToneClass[data.tone]
     } ${data.active ? "scale-[1.04]" : "opacity-75"}`}
   >
     <Handle
       type="target"
       position={Position.Left}
-      className="!h-2 !w-2 !border-0 !bg-amber-700/70"
+      className={`!h-2 !w-2 !border-0 ${
+        data.surface === "editor" ? "!bg-stone-500/70" : "!bg-amber-700/70"
+      }`}
     />
     <Handle
       type="source"
       position={Position.Right}
-      className="!h-2 !w-2 !border-0 !bg-amber-700/70"
+      className={`!h-2 !w-2 !border-0 ${
+        data.surface === "editor" ? "!bg-stone-500/70" : "!bg-amber-700/70"
+      }`}
     />
     <div className="mb-2 flex items-center justify-between gap-4">
       <span className="text-[9px] font-bold uppercase tracking-[0.18em] opacity-60">
@@ -150,7 +168,7 @@ const LandingFlowNode: React.FC<NodeProps<LandingFlowNodeData>> = ({
     <p className="mt-2 max-w-[18ch] text-[11px] leading-relaxed opacity-65">
       {data.detail}
     </p>
-    {data.active && (
+    {data.active && data.pulse !== false && (
       <span className="pointer-events-none absolute -right-1 -top-1 h-3 w-3 rounded-full bg-amber-600 shadow-[0_0_0_6px_rgba(217,119,6,0.16)]" />
     )}
   </div>
@@ -162,97 +180,145 @@ const landingFlowNodeTypes = {
 
 const heroFlowNodes: Node<LandingFlowNodeData>[] = [
   {
-    id: "lesson",
+    id: "start",
     type: "landingFlow",
-    position: { x: 18, y: 118 },
+    position: { x: 0, y: 150 },
     sourcePosition: Position.Right,
     data: {
-      eyebrow: "старт",
-      title: "Урок",
-      detail: "Тема превращается в сценарий",
+      eyebrow: "startNode",
+      title: "Старт",
+      detail: "Точка входа в сценарий",
       tone: "ink",
+      surface: "editor",
       active: true,
+      pulse: false,
       index: "01",
     },
   },
   {
-    id: "choice",
+    id: "info",
     type: "landingFlow",
-    position: { x: 268, y: 38 },
+    position: { x: 230, y: 42 },
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     data: {
-      eyebrow: "развилка",
-      title: "Выбор",
-      detail: "Ученик решает, куда идти дальше",
+      eyebrow: "infoNode",
+      title: "Информация",
+      detail: "Текст, медиа и кнопка далее",
       tone: "amber",
+      surface: "editor",
       active: true,
+      pulse: false,
       index: "02",
     },
   },
   {
-    id: "logic",
+    id: "question",
     type: "landingFlow",
-    position: { x: 292, y: 218 },
+    position: { x: 230, y: 246 },
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
     data: {
-      eyebrow: "условие",
-      title: "Логика",
-      detail: "Баллы, переменные и таймеры",
+      eyebrow: "questionNode",
+      title: "Вопрос",
+      detail: "Варианты ответа и ветки",
       tone: "rose",
+      surface: "editor",
       active: true,
+      pulse: false,
       index: "03",
     },
   },
   {
-    id: "final",
+    id: "collect",
     type: "landingFlow",
-    position: { x: 548, y: 132 },
+    position: { x: 478, y: 48 },
+    sourcePosition: Position.Right,
     targetPosition: Position.Left,
     data: {
-      eyebrow: "финал",
-      title: "История",
-      detail: "Маршрут собирается в опыт",
+      eyebrow: "collectInfoNode",
+      title: "Сбор данных",
+      detail: "Имя, контакты и поля формы",
       tone: "sage",
+      surface: "editor",
       active: true,
+      pulse: false,
       index: "04",
+    },
+  },
+  {
+    id: "result",
+    type: "landingFlow",
+    position: { x: 478, y: 238 },
+    targetPosition: Position.Left,
+    data: {
+      eyebrow: "resultNode",
+      title: "Финал",
+      detail: "Результат, баллы и следующий шаг",
+      tone: "ink",
+      surface: "editor",
+      active: true,
+      pulse: false,
+      index: "05",
     },
   },
 ];
 
 const heroFlowEdges: Edge[] = [
   {
-    id: "lesson-choice",
-    source: "lesson",
-    target: "choice",
+    id: "start-info",
+    source: "start",
+    target: "info",
     type: "smoothstep",
-    animated: true,
-    style: { stroke: "#b45309", strokeWidth: 2.4 },
+    animated: false,
+    style: { stroke: "#a8a29e", strokeWidth: 2.2 },
   },
   {
-    id: "lesson-logic",
-    source: "lesson",
-    target: "logic",
+    id: "info-question",
+    source: "info",
+    target: "question",
     type: "smoothstep",
-    animated: true,
-    style: { stroke: "#78716c", strokeWidth: 2.2 },
+    animated: false,
+    style: { stroke: "#a8a29e", strokeWidth: 2.1 },
   },
   {
-    id: "choice-final",
-    source: "choice",
-    target: "final",
+    id: "question-collect",
+    source: "question",
+    target: "collect",
     type: "smoothstep",
-    animated: true,
-    style: { stroke: "#b45309", strokeWidth: 2.4 },
+    animated: false,
+    style: { stroke: "#a8a29e", strokeWidth: 2.2 },
   },
   {
-    id: "logic-final",
-    source: "logic",
-    target: "final",
+    id: "question-result",
+    source: "question",
+    target: "result",
     type: "smoothstep",
-    animated: true,
-    style: { stroke: "#be123c", strokeWidth: 2.1 },
+    animated: false,
+    style: { stroke: "#78716c", strokeWidth: 2.0 },
+  },
+];
+
+const heroCanvasNodes: Node<LandingFlowNodeData>[] = [
+  {
+    ...heroFlowNodes[0],
+    position: { x: 1210, y: 118 },
+  },
+  {
+    ...heroFlowNodes[1],
+    position: { x: 1190, y: 338 },
+  },
+  {
+    ...heroFlowNodes[2],
+    position: { x: 1120, y: 588 },
+  },
+  {
+    ...heroFlowNodes[3],
+    position: { x: 1458, y: 514 },
+  },
+  {
+    ...heroFlowNodes[4],
+    position: { x: 1458, y: 742 },
   },
 ];
 
@@ -263,6 +329,8 @@ interface LandingFlowSceneProps {
   nodes?: Node<LandingFlowNodeData>[];
   edges?: Edge[];
   caption?: string;
+  theme?: "paper" | "editor";
+  interactive?: boolean;
 }
 
 const LandingFlowScene: React.FC<LandingFlowSceneProps> = ({
@@ -270,10 +338,13 @@ const LandingFlowScene: React.FC<LandingFlowSceneProps> = ({
   nodes = heroFlowNodes,
   edges = heroFlowEdges,
   caption = "readonly flow",
+  theme = "paper",
+  interactive = true,
 }) => {
   const sceneRef = useRef<HTMLDivElement>(null);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!interactive) return;
     const el = sceneRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -284,81 +355,136 @@ const LandingFlowScene: React.FC<LandingFlowSceneProps> = ({
   };
 
   const handlePointerLeave = () => {
+    if (!interactive) return;
     const el = sceneRef.current;
     if (!el) return;
     el.style.setProperty("--flow-x", "0");
     el.style.setProperty("--flow-y", "0");
   };
 
+  const isEditorTheme = theme === "editor";
+
   return (
     <div
       ref={sceneRef}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className={`landing-flow-scene group relative min-h-[430px] overflow-hidden rounded-[2.4rem_0.9rem_2.4rem_0.9rem] border border-stone-900/10 bg-white/52 shadow-[0_34px_110px_rgba(120,53,15,0.16)] backdrop-blur ${className}`}
+      className={`landing-flow-scene group relative min-h-[430px] overflow-hidden ${
+        isEditorTheme
+          ? "bg-transparent"
+          : "rounded-[2.4rem_0.9rem_2.4rem_0.9rem] border border-stone-900/10 bg-white/52 shadow-[0_34px_110px_rgba(68,64,60,0.12)] backdrop-blur"
+      } ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_16%,rgba(251,191,36,0.25),transparent_34%),radial-gradient(circle_at_88%_74%,rgba(120,113,108,0.18),transparent_38%)]" />
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+        className={`pointer-events-none absolute inset-0 ${
+          isEditorTheme
+            ? "bg-[radial-gradient(circle_at_22%_16%,rgba(255,255,255,0.9),transparent_36%),radial-gradient(circle_at_82%_78%,rgba(251,191,36,0.11),transparent_40%)]"
+            : "bg-[radial-gradient(circle_at_22%_16%,rgba(251,191,36,0.25),transparent_34%),radial-gradient(circle_at_88%_74%,rgba(120,113,108,0.18),transparent_38%)]"
+        }`}
+      />
+      <div
+        className={`pointer-events-none absolute inset-0 ${
+          isEditorTheme ? "opacity-[0.18]" : "opacity-[0.12]"
+        }`}
         style={{
           backgroundImage:
-            "linear-gradient(rgba(120,53,15,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(120,53,15,0.2) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
+            isEditorTheme
+              ? undefined
+              : "linear-gradient(rgba(68,64,60,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(68,64,60,0.16) 1px, transparent 1px)",
+          backgroundSize: isEditorTheme ? "28px 28px" : "40px 40px",
           transform:
-            "translate3d(calc(var(--flow-x, 0) * -10px), calc(var(--flow-y, 0) * -10px), 0)",
+            interactive
+              ? "translate3d(calc(var(--flow-x, 0) * -10px), calc(var(--flow-y, 0) * -10px), 0)"
+              : undefined,
         }}
       />
-      <div
-        className="pointer-events-none absolute -left-24 top-14 h-60 w-60 rounded-full bg-amber-300/28 blur-3xl transition-transform duration-500"
-        style={{
-          transform:
-            "translate3d(calc(var(--flow-x, 0) * 34px), calc(var(--flow-y, 0) * 20px), 0)",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -right-20 bottom-8 h-72 w-72 rounded-full bg-stone-700/12 blur-3xl transition-transform duration-500"
-        style={{
-          transform:
-            "translate3d(calc(var(--flow-x, 0) * -28px), calc(var(--flow-y, 0) * -22px), 0)",
-        }}
-      />
+      {!isEditorTheme && (
+        <>
+          <div
+            className="pointer-events-none absolute -left-24 top-14 h-60 w-60 rounded-full bg-amber-300/28 blur-3xl transition-transform duration-500"
+            style={{
+              transform:
+                "translate3d(calc(var(--flow-x, 0) * 34px), calc(var(--flow-y, 0) * 20px), 0)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute -right-20 bottom-8 h-72 w-72 rounded-full bg-stone-700/12 blur-3xl transition-transform duration-500"
+            style={{
+              transform:
+                "translate3d(calc(var(--flow-x, 0) * -28px), calc(var(--flow-y, 0) * -22px), 0)",
+            }}
+          />
+        </>
+      )}
 
-      <div
-        className="relative h-[430px] transition-transform duration-500 ease-out"
-        style={{
-          transform:
-            "translate3d(calc(var(--flow-x, 0) * 18px), calc(var(--flow-y, 0) * 12px), 0)",
-        }}
-      >
+      <div className="relative h-[430px]">
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={landingFlowNodeTypes}
           proOptions={landingFlowProOptions}
           fitView
-          fitViewOptions={{ padding: 0.18 }}
-          nodesDraggable={false}
+          fitViewOptions={{ padding: isEditorTheme ? 0.16 : 0.18 }}
+          nodesDraggable={interactive}
           nodesConnectable={false}
-          elementsSelectable={false}
-          panOnDrag={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
-          zoomOnDoubleClick={false}
+          elementsSelectable={interactive}
+          panOnDrag={interactive}
+          zoomOnScroll={interactive}
+          zoomOnPinch={interactive}
+          zoomOnDoubleClick={interactive}
           preventScrolling={false}
           className="landing-react-flow"
         >
-          <Background
-            variant={BackgroundVariant.Lines}
-            gap={30}
-            color="rgba(120,53,15,0.13)"
-          />
+          {!isEditorTheme && (
+            <Background
+              variant={BackgroundVariant.Lines}
+              gap={30}
+              size={1}
+              color="rgba(68,64,60,0.14)"
+            />
+          )}
         </ReactFlow>
       </div>
 
-      <div className="pointer-events-none absolute left-6 top-6 flex items-center gap-3 rounded-full border border-stone-900/10 bg-white/66 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-stone-600 shadow-sm backdrop-blur">
-        <span className="h-2 w-2 rounded-full bg-amber-600 shadow-[0_0_0_5px_rgba(217,119,6,0.12)]" />
-        {caption}
-      </div>
+      {caption && (
+        <div className="pointer-events-none absolute left-6 top-6 flex items-center gap-3 rounded-full border border-stone-900/10 bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-stone-600 shadow-sm backdrop-blur">
+          <span className="h-2 w-2 rounded-full bg-amber-600 shadow-[0_0_0_5px_rgba(217,119,6,0.12)]" />
+          {caption}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const HeroCanvasBackground: React.FC = () => {
+  const [nodes, , onNodesChange] = useNodesState(heroCanvasNodes);
+
+  return (
+    <div className="absolute inset-0 z-[1]">
+      <ReactFlow
+        nodes={nodes}
+        edges={heroFlowEdges}
+        onNodesChange={onNodesChange}
+        nodeTypes={landingFlowNodeTypes}
+        proOptions={landingFlowProOptions}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        nodesDraggable
+        nodesConnectable={false}
+        elementsSelectable
+        panOnDrag
+        zoomOnScroll
+        zoomOnPinch
+        zoomOnDoubleClick
+        preventScrolling={false}
+        className="landing-react-flow hero-react-flow"
+      >
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={24}
+          size={1}
+          color="rgba(87,83,78,0.34)"
+        />
+      </ReactFlow>
     </div>
   );
 };
@@ -418,6 +544,7 @@ interface RevealProps {
   delay?: number;
   className?: string;
   direction?: "up" | "down" | "left" | "right";
+  disabled?: boolean;
 }
 
 const Reveal: React.FC<React.PropsWithChildren<RevealProps>> = ({
@@ -425,8 +552,13 @@ const Reveal: React.FC<React.PropsWithChildren<RevealProps>> = ({
   delay = 0,
   className = "",
   direction = "up",
+  disabled = false,
 }) => {
   const [ref, inView] = useInView(0.15);
+
+  if (disabled) {
+    return <div className={className}>{children}</div>;
+  }
 
   const transforms = {
     up: "translate-y-12",
@@ -466,18 +598,18 @@ const Heading: React.FC<React.PropsWithChildren<HeadingProps>> = ({
   className = "",
 }) => {
   const sizes = {
-    1: "text-[clamp(2.5rem,8vw,6rem)] leading-[0.95]",
-    2: "text-[clamp(2rem,5vw,4rem)] leading-[1.1]",
-    3: "text-[clamp(1.5rem,3vw,2.5rem)] leading-[1.2]",
+    1: "text-[4.05rem] leading-[0.94] md:text-[4.85rem] lg:text-[5.45rem]",
+    2: "text-[2.6rem] leading-[1.08] md:text-[3.6rem]",
+    3: "text-[1.65rem] leading-[1.18] md:text-[2.25rem]",
   };
 
   return (
     <div
-      className={`font-serif font-bold tracking-tight ${sizes[level]} ${className}`}
+      className={`font-serif font-bold tracking-normal ${sizes[level]} ${className}`}
     >
       {children}
       {accent && (
-        <span className="block italic text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-orange-600 to-rose-700">
+        <span className="block max-w-[9.4ch] italic tracking-normal text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-orange-600 to-rose-700">
           {accent}
         </span>
       )}
@@ -511,105 +643,76 @@ const shootConfetti = async () => {
       origin: { y: 0.6 },
       colors: ["#fbbf24", "#f97316", "#ec4899", "#8b5cf6"],
     });
-  } catch (e) {}
+  } catch (error) {
+    console.warn('[landing] confetti failed', error);
+  }
 };
 
 // ============================================
 // HERO SECTION — Асимметричная композиция
 // ============================================
 const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
-  const scrollProgress = useScrollProgress();
+  useScrollProgress();
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background layers */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_70%_at_16%_8%,rgba(251,191,36,0.24)_0%,rgba(255,247,237,0.72)_34%,transparent_68%),linear-gradient(135deg,#fffaf0_0%,#f5efe3_48%,#efe4d2_100%)]" />
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[#f3f3ef]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_58%_at_16%_12%,rgba(255,255,255,0.72)_0%,rgba(255,255,255,0.44)_42%,transparent_74%)]" />
 
         {/* Grain texture */}
-        <div className="absolute inset-0 opacity-[0.12] bg-noise mix-blend-multiply" />
-        <div
-          className="absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(120,53,15,0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(120,53,15,0.28) 1px, transparent 1px)",
-            backgroundSize: "72px 72px",
-          }}
-        />
-
-        <div
-          className="absolute top-1/4 -left-1/4 w-[620px] h-[620px] rounded-full opacity-35 blur-[110px]"
-          style={{
-            background:
-              "conic-gradient(from 180deg, #fbbf24, #f97316, #be6b45, #d6a24a, #fbbf24)",
-          }}
-        />
-        <div
-          className="absolute bottom-1/4 -right-1/4 w-[520px] h-[520px] rounded-full opacity-25 blur-[90px]"
-          style={{
-            background: "radial-gradient(circle, #7c6f57, transparent)",
-          }}
-        />
-
-        {/* Flow lines декор */}
-        <div className="absolute top-1/3 left-0 right-0 opacity-30">
-          <FlowLine variant={1} />
-        </div>
-        <div className="absolute top-2/3 left-0 right-0 opacity-20">
-          <FlowLine variant={2} />
-        </div>
+        <div className="absolute inset-0 opacity-[0.09] bg-noise mix-blend-multiply" />
       </div>
 
+      <HeroCanvasBackground />
+
       {/* Content - Асимметричный grid */}
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="pointer-events-none container mx-auto px-6 pt-24 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-4 items-center min-h-[80vh]">
           {/* Left: Main content (7 cols - golden ratio) */}
-          <div className="lg:col-span-7 lg:pr-12">
-            <Reveal>
-              <Label className="mb-8">Конструктор интерактивных историй</Label>
+          <div className="pt-10 lg:col-span-7 lg:pr-8">
+            <Reveal disabled>
+              <Label className="mb-9">No-code платформа сценариев</Label>
             </Reveal>
 
-            <Reveal delay={100}>
+            <Reveal disabled>
               <Heading
                 level={1}
-                accent="в путешествие"
-                className="text-stone-950 mb-8"
+                accent="сценарии без кода"
+                className="mb-8 max-w-[49rem] text-stone-950"
               >
-                Превратите урок
+                Создавайте интерактивные
               </Heading>
             </Reveal>
 
-            <Reveal delay={200}>
-              <p className="text-xl md:text-2xl text-stone-700/85 leading-relaxed mb-10 max-w-xl font-light">
-                Визуальный редактор для создания{" "}
-                <span className="font-medium text-stone-950">
-                  нелинейных квизов
-                </span>
-                , симуляций и ветвящихся сценариев. Без единой строки кода.
-              </p>
+            <Reveal disabled>
+              <div className="mb-10 max-w-[35rem] space-y-4 text-[1.02rem] leading-[1.66] tracking-normal text-stone-700 md:text-[1.1rem] md:leading-[1.62]">
+                <p className="font-normal text-stone-700">
+                  <span className="font-semibold text-stone-950">Поток</span>{" "}
+                  — no-code платформа для сценариев с ветвлениями, условиями и
+                  персональными результатами. Подходит для уроков, квестов,
+                  диагностик, тренажёров, лид-воронок и бизнес-опросников.
+                </p>
+                <p className="text-stone-600/95">
+                  Собирайте логику на{" "}
+                  <span className="font-semibold text-amber-800">
+                    визуальной карте
+                  </span>
+                  : вопросы, формы, баллы, обратную связь и итоговые экраны —
+                  без кода, таблиц и технической сборки.
+                </p>
+              </div>
             </Reveal>
 
-            <Reveal delay={300}>
-              <div className="flex flex-wrap items-center gap-4">
+            <Reveal disabled>
+              <div className="pointer-events-auto flex flex-wrap items-center gap-4">
                 <MagneticButton
                   onClick={onCTA}
                   className="group relative px-8 py-4 text-lg font-bold text-black bg-gradient-to-r from-amber-300 to-orange-400 rounded-full overflow-hidden transition-transform hover:scale-105"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    Создать квиз
-                    <svg
-                      className="w-5 h-5 transition-transform group-hover:translate-x-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 8l4 4m0 0l-4 4m4-4H3"
-                      />
-                    </svg>
+                    Начать создавать
                   </span>
                 </MagneticButton>
 
@@ -626,111 +729,23 @@ const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
                       <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                     </svg>
                   </span>
-                  <span className="font-medium">Смотреть примеры</span>
+                  <span className="font-medium">Посмотреть пример</span>
                 </Link>
               </div>
             </Reveal>
 
-            {/* Award badge */}
-            <Reveal delay={500} className="mt-16">
-              <div className="inline-flex items-center gap-4 p-4 rounded-2xl bg-white/58 border border-amber-800/15 shadow-[0_24px_70px_rgba(120,53,15,0.12)] backdrop-blur">
-                <div className="relative">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 font-serif text-2xl font-bold text-stone-950">
-                    К
-                  </div>
-                  <FlowNode
-                    size="sm"
-                    active
-                    className="absolute -top-1 -right-1"
-                  />
-                </div>
-                <div>
-                  <div className="text-xs text-amber-800/60 uppercase tracking-wider mb-1">
-                    Признание
-                  </div>
-                  <div className="font-serif font-bold text-stone-950">
-                    Победитель <span className="text-amber-700">КИвО-2025</span>
-                  </div>
-                </div>
+            <Reveal disabled className="mt-14">
+              <div className="flex max-w-[34rem] items-center gap-4 border-l border-stone-900/15 pl-5 text-[0.82rem] font-medium uppercase tracking-[0.16em] text-stone-500">
+                <span>Обучение</span>
+                <span className="h-px w-7 bg-stone-400/60" />
+                <span>Бизнес</span>
+                <span className="h-px w-7 bg-stone-400/60" />
+                <span>Мероприятия</span>
               </div>
             </Reveal>
           </div>
 
-          {/* Right: Product flow scene (5 cols) */}
-          <div className="relative lg:col-span-5">
-            <Reveal delay={400} direction="left">
-              <div className="relative">
-                <div className="absolute -inset-8 rounded-[3rem] border border-amber-900/10" />
-                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-300/28 blur-2xl" />
-                <LandingFlowScene caption="карта сценария" />
-
-                <div className="absolute -bottom-8 left-8 right-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {[
-                    ["no-code", "собирается мышью"],
-                    ["logic", "условия и баллы"],
-                    ["publish", "готово к уроку"],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="rounded-2xl border border-stone-900/10 bg-white/72 px-4 py-3 shadow-[0_18px_50px_rgba(120,53,15,0.11)] backdrop-blur"
-                    >
-                      <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-800/60">
-                        {label}
-                      </div>
-                      <div className="mt-1 text-sm font-semibold text-stone-900">
-                        {value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// ============================================
-// STATS SECTION — Горизонтальный ритм с линиями
-// ============================================
-const StatsSection = () => {
-  const stats = [
-    { value: "1K+", label: "Квизов создано", icon: "01" },
-    { value: "5K+", label: "Активных учеников", icon: "02" },
-    { value: "4.9", label: "Средняя оценка", icon: "03" },
-    { value: "99%", label: "Uptime", icon: "04" },
-  ];
-
-  return (
-    <section className="py-16 relative overflow-hidden">
-      {/* Connecting line */}
-      <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-900/15 to-transparent" />
-
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, i) => (
-            <Reveal key={i} delay={i * 100}>
-              <div className="relative text-center group">
-                {/* Node point */}
-                <FlowNode
-                  active
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
-                />
-
-                <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-amber-800/18 bg-white/54 font-mono text-xs font-bold text-amber-800 shadow-sm">
-                  {stat.icon}
-                </div>
-                <div className="text-4xl md:text-5xl font-serif font-bold text-stone-950 mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-stone-500 uppercase tracking-wider">
-                  {stat.label}
-                </div>
-              </div>
-            </Reveal>
-          ))}
+          <div className="hidden lg:col-span-5 lg:block" aria-hidden="true" />
         </div>
       </div>
     </section>
@@ -780,7 +795,7 @@ const features = [
 ];
 
 interface ScenarioLabMode {
-  id: "journey" | "simulation" | "quest";
+  id: "client-brief" | "employee-training" | "service-fit" | "corporate-certification" | "product-selection" | "calculator";
   label: string;
   eyebrow: string;
   title: string;
@@ -795,346 +810,148 @@ interface ScenarioLabMode {
 
 const scenarioLabModes: ScenarioLabMode[] = [
   {
-    id: "journey",
-    label: "Урок-путешествие",
-    eyebrow: "для темы с маршрутом",
-    title: "Один урок превращается в карту выбора",
+    id: "client-brief",
+    label: "Бриф для клиента",
+    eyebrow: "первичная диагностика",
+    title: "Соберите точное ТЗ без длинных созвонов",
     description:
-      "Подходит для истории, литературы, обществознания: ученик двигается по сценам, принимает решения и видит последствия.",
-    caption: "режим: путешествие",
-    accent: "from-amber-500 to-orange-500",
+      "Клиент проходит понятный маршрут: отвечает на ключевые вопросы, прикладывает материалы, уточняет бюджет и получает аккуратное резюме запроса. Команда видит структурированный бриф, а не набор разрозненных сообщений.",
+    caption: "сценарий: бриф",
+    accent: "from-stone-700 to-amber-500",
     nodes: [
-      {
-        id: "brief",
-        type: "landingFlow",
-        position: { x: 16, y: 132 },
-        sourcePosition: Position.Right,
-        data: {
-          eyebrow: "ввод",
-          title: "Ситуация",
-          detail: "Контекст, роль и цель маршрута",
-          tone: "ink",
-          active: true,
-          index: "A1",
-        },
-      },
-      {
-        id: "choice-a",
-        type: "landingFlow",
-        position: { x: 276, y: 44 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "выбор",
-          title: "Риск",
-          detail: "Пойти быстро или собрать факты",
-          tone: "amber",
-          active: true,
-          index: "B1",
-        },
-      },
-      {
-        id: "choice-b",
-        type: "landingFlow",
-        position: { x: 286, y: 232 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "ветка",
-          title: "Союзник",
-          detail: "Диалог меняет следующую сцену",
-          tone: "rose",
-          active: true,
-          index: "B2",
-        },
-      },
-      {
-        id: "reflect",
-        type: "landingFlow",
-        position: { x: 548, y: 134 },
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "финал",
-          title: "Вывод",
-          detail: "История собирается в смысл",
-          tone: "sage",
-          active: true,
-          index: "C1",
-        },
-      },
+      { id: "brief-start", type: "landingFlow", position: { x: 10, y: 132 }, sourcePosition: Position.Right, data: { eyebrow: "старт", title: "Контекст", detail: "Цель проекта и роль клиента", tone: "ink", active: true, index: "01" } },
+      { id: "brief-needs", type: "landingFlow", position: { x: 276, y: 44 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "вопросы", title: "Задачи", detail: "Приоритеты, сроки и ограничения", tone: "amber", active: true, index: "02" } },
+      { id: "brief-files", type: "landingFlow", position: { x: 286, y: 232 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "форма", title: "Материалы", detail: "Ссылки, файлы и контакты", tone: "sage", active: true, index: "03" } },
+      { id: "brief-summary", type: "landingFlow", position: { x: 548, y: 134 }, targetPosition: Position.Left, data: { eyebrow: "итог", title: "Резюме", detail: "Готовая заявка для команды", tone: "rose", active: true, index: "04" } },
     ],
     edges: [
-      {
-        id: "journey-1",
-        source: "brief",
-        target: "choice-a",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#b45309", strokeWidth: 2.5 },
-      },
-      {
-        id: "journey-2",
-        source: "brief",
-        target: "choice-b",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#78716c", strokeWidth: 2.1 },
-      },
-      {
-        id: "journey-3",
-        source: "choice-a",
-        target: "reflect",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#b45309", strokeWidth: 2.5 },
-      },
-      {
-        id: "journey-4",
-        source: "choice-b",
-        target: "reflect",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#be123c", strokeWidth: 2.1 },
-      },
+      { id: "brief-1", source: "brief-start", target: "brief-needs", type: "smoothstep", animated: true, style: { stroke: "#78716c", strokeWidth: 2.2 } },
+      { id: "brief-2", source: "brief-start", target: "brief-files", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.4 } },
+      { id: "brief-3", source: "brief-needs", target: "brief-summary", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.4 } },
+      { id: "brief-4", source: "brief-files", target: "brief-summary", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.1 } },
     ],
-    stats: [
-      { label: "ветки", value: "4" },
-      { label: "решения", value: "9" },
-      { label: "минут", value: "18" },
-    ],
-    checkpoints: [
-      "Роль ученика задана с первого экрана",
-      "Каждый выбор меняет следующий эпизод",
-      "Финал объясняет причинно-следственную связь",
-    ],
+    stats: [{ label: "полей", value: "12" }, { label: "ветки", value: "3" }, { label: "минут", value: "7" }],
+    checkpoints: ["Вопросы меняются под тип клиента и задачу", "Форма собирает контакты, материалы и ограничения", "Финал превращает ответы в понятное резюме для менеджера"],
   },
   {
-    id: "simulation",
-    label: "Симуляция решений",
-    eyebrow: "для практики и кейсов",
-    title: "Сценарий реагирует на решения ученика",
+    id: "employee-training",
+    label: "Тренажёр сотрудника",
+    eyebrow: "практика без риска",
+    title: "Отработайте рабочие ситуации до выхода в поле",
     description:
-      "Баллы, условия, ресурсы и таймеры помогают сделать тренажёр для сложных ситуаций: от экономики до медицины и права.",
-    caption: "режим: симуляция",
-    accent: "from-stone-800 to-amber-500",
+      "Сотрудник проходит кейсы, принимает решения, получает обратную связь и видит последствия. Такой сценарий подходит для продаж, поддержки, сервиса, онбординга и регламентов.",
+    caption: "сценарий: тренажёр",
+    accent: "from-emerald-600 to-stone-700",
     nodes: [
-      {
-        id: "case",
-        type: "landingFlow",
-        position: { x: 8, y: 124 },
-        sourcePosition: Position.Right,
-        data: {
-          eyebrow: "кейс",
-          title: "Проблема",
-          detail: "Есть вводные и ограничение",
-          tone: "ink",
-          active: true,
-          index: "S1",
-        },
-      },
-      {
-        id: "resource",
-        type: "landingFlow",
-        position: { x: 268, y: 22 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "ресурс",
-          title: "Баланс",
-          detail: "Очки, бюджет или время",
-          tone: "sage",
-          active: true,
-          index: "S2",
-        },
-      },
-      {
-        id: "condition",
-        type: "landingFlow",
-        position: { x: 278, y: 218 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "if / then",
-          title: "Условие",
-          detail: "Переход зависит от результата",
-          tone: "amber",
-          active: true,
-          index: "S3",
-        },
-      },
-      {
-        id: "result",
-        type: "landingFlow",
-        position: { x: 548, y: 132 },
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "итог",
-          title: "Разбор",
-          detail: "Ученик видит цену решения",
-          tone: "rose",
-          active: true,
-          index: "S4",
-        },
-      },
+      { id: "training-case", type: "landingFlow", position: { x: 8, y: 124 }, sourcePosition: Position.Right, data: { eyebrow: "кейс", title: "Ситуация", detail: "Клиент, задача и вводные", tone: "ink", active: true, index: "01" } },
+      { id: "training-action", type: "landingFlow", position: { x: 268, y: 22 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "выбор", title: "Действие", detail: "Как сотрудник ответит", tone: "sage", active: true, index: "02" } },
+      { id: "training-condition", type: "landingFlow", position: { x: 278, y: 218 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "условие", title: "Реакция", detail: "Ветка зависит от решения", tone: "amber", active: true, index: "03" } },
+      { id: "training-feedback", type: "landingFlow", position: { x: 548, y: 132 }, targetPosition: Position.Left, data: { eyebrow: "разбор", title: "Фидбек", detail: "Баллы, ошибки и подсказки", tone: "rose", active: true, index: "04" } },
     ],
     edges: [
-      {
-        id: "simulation-1",
-        source: "case",
-        target: "resource",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#78716c", strokeWidth: 2.2 },
-      },
-      {
-        id: "simulation-2",
-        source: "case",
-        target: "condition",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#b45309", strokeWidth: 2.5 },
-      },
-      {
-        id: "simulation-3",
-        source: "resource",
-        target: "result",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#047857", strokeWidth: 2.1 },
-      },
-      {
-        id: "simulation-4",
-        source: "condition",
-        target: "result",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#be123c", strokeWidth: 2.2 },
-      },
+      { id: "training-1", source: "training-case", target: "training-action", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.2 } },
+      { id: "training-2", source: "training-case", target: "training-condition", type: "smoothstep", animated: true, style: { stroke: "#78716c", strokeWidth: 2.1 } },
+      { id: "training-3", source: "training-action", target: "training-feedback", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.3 } },
+      { id: "training-4", source: "training-condition", target: "training-feedback", type: "smoothstep", animated: true, style: { stroke: "#be123c", strokeWidth: 2.1 } },
     ],
-    stats: [
-      { label: "условия", value: "12" },
-      { label: "переменные", value: "5" },
-      { label: "попытки", value: "∞" },
-    ],
-    checkpoints: [
-      "Переменные фиксируют состояние ученика",
-      "Условия переключают маршрут без кода",
-      "Финальный разбор показывает не только ответ, но и ход мышления",
-    ],
+    stats: [{ label: "кейсов", value: "8" }, { label: "навыков", value: "5" }, { label: "попытки", value: "∞" }],
+    checkpoints: ["Кейсы имитируют реальные разговоры и решения", "Баллы показывают качество ответа, а не только факт прохождения", "Финальный разбор помогает закрепить правильный алгоритм"],
   },
   {
-    id: "quest",
-    label: "Квест с ролями",
-    eyebrow: "для вовлечения группы",
-    title: "Каждый ученик получает собственную траекторию",
+    id: "service-fit",
+    label: "Подбор услуги",
+    eyebrow: "консультация на сайте",
+    title: "Помогите клиенту выбрать подходящее решение",
     description:
-      "Роли, инвентарь, достижения и скрытые развилки помогают сделать занятие похожим на исследование, а не на тест.",
-    caption: "режим: квест",
-    accent: "from-rose-500 to-amber-500",
+      "Пользователь отвечает на несколько вопросов, а сценарий уточняет потребности, отсеивает неподходящие варианты и выводит персональную рекомендацию с аргументацией.",
+    caption: "сценарий: услуга",
+    accent: "from-amber-600 to-rose-500",
     nodes: [
-      {
-        id: "role",
-        type: "landingFlow",
-        position: { x: 12, y: 132 },
-        sourcePosition: Position.Right,
-        data: {
-          eyebrow: "роль",
-          title: "Герой",
-          detail: "Профиль задаёт доступные выборы",
-          tone: "rose",
-          active: true,
-          index: "Q1",
-        },
-      },
-      {
-        id: "artifact",
-        type: "landingFlow",
-        position: { x: 278, y: 40 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "предмет",
-          title: "Артефакт",
-          detail: "Инвентарь открывает ветку",
-          tone: "amber",
-          active: true,
-          index: "Q2",
-        },
-      },
-      {
-        id: "team",
-        type: "landingFlow",
-        position: { x: 286, y: 232 },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "команда",
-          title: "Выбор",
-          detail: "Маршрут зависит от роли",
-          tone: "ink",
-          active: true,
-          index: "Q3",
-        },
-      },
-      {
-        id: "achievement",
-        type: "landingFlow",
-        position: { x: 552, y: 132 },
-        targetPosition: Position.Left,
-        data: {
-          eyebrow: "награда",
-          title: "Достижение",
-          detail: "Финал сохраняет мотивацию",
-          tone: "sage",
-          active: true,
-          index: "Q4",
-        },
-      },
+      { id: "service-goal", type: "landingFlow", position: { x: 14, y: 126 }, sourcePosition: Position.Right, data: { eyebrow: "запрос", title: "Цель", detail: "Что клиент хочет решить", tone: "amber", active: true, index: "01" } },
+      { id: "service-segment", type: "landingFlow", position: { x: 278, y: 34 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "сегмент", title: "Профиль", detail: "Размер, опыт и бюджет", tone: "ink", active: true, index: "02" } },
+      { id: "service-rule", type: "landingFlow", position: { x: 286, y: 226 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "логика", title: "Фильтр", detail: "Условия убирают лишнее", tone: "sage", active: true, index: "03" } },
+      { id: "service-result", type: "landingFlow", position: { x: 552, y: 132 }, targetPosition: Position.Left, data: { eyebrow: "итог", title: "Услуга", detail: "Рекомендация и следующий шаг", tone: "rose", active: true, index: "04" } },
     ],
     edges: [
-      {
-        id: "quest-1",
-        source: "role",
-        target: "artifact",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#be123c", strokeWidth: 2.3 },
-      },
-      {
-        id: "quest-2",
-        source: "role",
-        target: "team",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#78716c", strokeWidth: 2.1 },
-      },
-      {
-        id: "quest-3",
-        source: "artifact",
-        target: "achievement",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#b45309", strokeWidth: 2.5 },
-      },
-      {
-        id: "quest-4",
-        source: "team",
-        target: "achievement",
-        type: "smoothstep",
-        animated: true,
-        style: { stroke: "#047857", strokeWidth: 2.1 },
-      },
+      { id: "service-1", source: "service-goal", target: "service-segment", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.4 } },
+      { id: "service-2", source: "service-goal", target: "service-rule", type: "smoothstep", animated: true, style: { stroke: "#78716c", strokeWidth: 2.1 } },
+      { id: "service-3", source: "service-segment", target: "service-result", type: "smoothstep", animated: true, style: { stroke: "#be123c", strokeWidth: 2.1 } },
+      { id: "service-4", source: "service-rule", target: "service-result", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.1 } },
     ],
-    stats: [
-      { label: "роли", value: "6" },
-      { label: "награды", value: "14" },
-      { label: "финалы", value: "3" },
+    stats: [{ label: "варианта", value: "6" }, { label: "условий", value: "14" }, { label: "лид", value: "1" }],
+    checkpoints: ["Вопросы идут от простого запроса к точным ограничениям", "Условия показывают только релевантные услуги", "Финал объясняет, почему выбран именно этот вариант"],
+  },
+  {
+    id: "corporate-certification",
+    label: "Корпоративная аттестация",
+    eyebrow: "проверка знаний",
+    title: "Проведите аттестацию с понятными критериями",
+    description:
+      "Сценарий проверяет знания регламентов, считает баллы, фиксирует результат и даёт персональный итог. Подходит для внутреннего обучения, допуска к задачам и повторной проверки.",
+    caption: "сценарий: аттестация",
+    accent: "from-stone-800 to-emerald-600",
+    nodes: [
+      { id: "cert-role", type: "landingFlow", position: { x: 12, y: 126 }, sourcePosition: Position.Right, data: { eyebrow: "роль", title: "Профиль", detail: "Должность и блок проверки", tone: "ink", active: true, index: "01" } },
+      { id: "cert-test", type: "landingFlow", position: { x: 276, y: 36 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "тест", title: "Вопросы", detail: "Регламенты и кейсы", tone: "sage", active: true, index: "02" } },
+      { id: "cert-score", type: "landingFlow", position: { x: 286, y: 226 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "баллы", title: "Порог", detail: "Условия допуска и пересдачи", tone: "amber", active: true, index: "03" } },
+      { id: "cert-report", type: "landingFlow", position: { x: 552, y: 132 }, targetPosition: Position.Left, data: { eyebrow: "отчёт", title: "Итог", detail: "Статус, ошибки и рекомендации", tone: "rose", active: true, index: "04" } },
     ],
-    checkpoints: [
-      "Роли дают ученикам разные точки входа",
-      "Инвентарь работает как педагогическая механика",
-      "Достижения фиксируют прогресс без лишней соревновательности",
+    edges: [
+      { id: "cert-1", source: "cert-role", target: "cert-test", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.2 } },
+      { id: "cert-2", source: "cert-role", target: "cert-score", type: "smoothstep", animated: true, style: { stroke: "#78716c", strokeWidth: 2.1 } },
+      { id: "cert-3", source: "cert-test", target: "cert-report", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.3 } },
+      { id: "cert-4", source: "cert-score", target: "cert-report", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.2 } },
     ],
+    stats: [{ label: "порог", value: "80%" }, { label: "блоков", value: "4" }, { label: "отчёт", value: "PDF" }],
+    checkpoints: ["Вопросы можно разделить по ролям и компетенциям", "Баллы и условия автоматически определяют итоговый статус", "Результат удобно передать руководителю или HR-команде"],
+  },
+  {
+    id: "product-selection",
+    label: "Сложный подбор продукта",
+    eyebrow: "конфигуратор решения",
+    title: "Проведите клиента через сложную продуктовую матрицу",
+    description:
+      "Когда вариантов много, сценарий помогает уточнить ограничения, совместимость и приоритеты. На выходе клиент получает короткий список продуктов вместо перегруженного каталога.",
+    caption: "сценарий: продукт",
+    accent: "from-rose-500 to-stone-800",
+    nodes: [
+      { id: "product-need", type: "landingFlow", position: { x: 12, y: 132 }, sourcePosition: Position.Right, data: { eyebrow: "потребность", title: "Задача", detail: "Что должно измениться", tone: "rose", active: true, index: "01" } },
+      { id: "product-limits", type: "landingFlow", position: { x: 278, y: 40 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "ограничения", title: "Параметры", detail: "Цена, сроки, совместимость", tone: "ink", active: true, index: "02" } },
+      { id: "product-branch", type: "landingFlow", position: { x: 286, y: 232 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "ветки", title: "Матрица", detail: "Правила исключают лишнее", tone: "amber", active: true, index: "03" } },
+      { id: "product-shortlist", type: "landingFlow", position: { x: 552, y: 132 }, targetPosition: Position.Left, data: { eyebrow: "выбор", title: "Shortlist", detail: "2-3 продукта с пояснением", tone: "sage", active: true, index: "04" } },
+    ],
+    edges: [
+      { id: "product-1", source: "product-need", target: "product-limits", type: "smoothstep", animated: true, style: { stroke: "#be123c", strokeWidth: 2.2 } },
+      { id: "product-2", source: "product-need", target: "product-branch", type: "smoothstep", animated: true, style: { stroke: "#78716c", strokeWidth: 2.1 } },
+      { id: "product-3", source: "product-limits", target: "product-shortlist", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.4 } },
+      { id: "product-4", source: "product-branch", target: "product-shortlist", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.1 } },
+    ],
+    stats: [{ label: "SKU", value: "40+" }, { label: "правил", value: "18" }, { label: "итога", value: "3" }],
+    checkpoints: ["Сценарий удерживает клиента от выбора неподходящего продукта", "Правила учитывают совместимость, бюджет и сценарий использования", "Финал даёт не один ответ, а аргументированный shortlist"],
+  },
+  {
+    id: "calculator",
+    label: "Калькулятор",
+    eyebrow: "расчёт стоимости",
+    title: "Покажите цену, выгоду или результат прямо в сценарии",
+    description:
+      "Калькулятор собирает параметры, применяет формулы, показывает диапазон и предлагает следующий шаг. Подходит для стоимости проекта, экономии, окупаемости, рейтинга или персонального результата.",
+    caption: "сценарий: калькулятор",
+    accent: "from-amber-500 to-stone-700",
+    nodes: [
+      { id: "calc-input", type: "landingFlow", position: { x: 10, y: 132 }, sourcePosition: Position.Right, data: { eyebrow: "данные", title: "Параметры", detail: "Объём, сроки и вводные", tone: "amber", active: true, index: "01" } },
+      { id: "calc-formula", type: "landingFlow", position: { x: 276, y: 44 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "формула", title: "Расчёт", detail: "Баллы, множители и условия", tone: "ink", active: true, index: "02" } },
+      { id: "calc-range", type: "landingFlow", position: { x: 286, y: 232 }, sourcePosition: Position.Right, targetPosition: Position.Left, data: { eyebrow: "диапазон", title: "Вилка", detail: "Минимум, максимум и пояснение", tone: "sage", active: true, index: "03" } },
+      { id: "calc-result", type: "landingFlow", position: { x: 548, y: 134 }, targetPosition: Position.Left, data: { eyebrow: "итог", title: "Результат", detail: "Цена, выгода и CTA", tone: "rose", active: true, index: "04" } },
+    ],
+    edges: [
+      { id: "calc-1", source: "calc-input", target: "calc-formula", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.4 } },
+      { id: "calc-2", source: "calc-input", target: "calc-range", type: "smoothstep", animated: true, style: { stroke: "#78716c", strokeWidth: 2.1 } },
+      { id: "calc-3", source: "calc-formula", target: "calc-result", type: "smoothstep", animated: true, style: { stroke: "#b45309", strokeWidth: 2.4 } },
+      { id: "calc-4", source: "calc-range", target: "calc-result", type: "smoothstep", animated: true, style: { stroke: "#047857", strokeWidth: 2.1 } },
+    ],
+    stats: [{ label: "полей", value: "7" }, { label: "формулы", value: "3" }, { label: "CTA", value: "1" }],
+    checkpoints: ["Вводные собираются через понятные вопросы и формы", "Формулы учитывают коэффициенты, пороги и условия", "Финал показывает результат и предлагает следующий шаг"],
   },
 ];
 
@@ -1147,7 +964,7 @@ const FeaturesSection = () => {
       <div
         className="absolute inset-0 opacity-[0.08]"
         style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(120,53,15,0.45) 1px, transparent 0)`,
+          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(68,64,60,0.22) 1px, transparent 0)`,
           backgroundSize: "48px 48px",
         }}
       />
@@ -1215,7 +1032,7 @@ const FeaturesSection = () => {
                 <div
                   className={`group relative p-8 rounded-3xl border transition-all duration-500 cursor-pointer ${
                     activeFeature === feature.id
-                      ? "bg-white/70 border-amber-800/20 scale-[1.02] shadow-[0_24px_70px_rgba(120,53,15,0.12)]"
+                      ? "bg-white/70 border-amber-800/20 scale-[1.02] shadow-[0_24px_70px_rgba(68,64,60,0.1)]"
                       : "bg-white/38 border-stone-900/[0.08] hover:border-amber-800/18 hover:bg-white/65"
                   }`}
                   onMouseEnter={() => setActiveFeature(feature.id)}
@@ -1288,7 +1105,7 @@ const FeaturesSection = () => {
 
 const ScenarioLabSection = () => {
   const [activeModeId, setActiveModeId] =
-    useState<ScenarioLabMode["id"]>("journey");
+    useState<ScenarioLabMode["id"]>("client-brief");
   const activeMode =
     scenarioLabModes.find((mode) => mode.id === activeModeId) ??
     scenarioLabModes[0];
@@ -1306,18 +1123,16 @@ const ScenarioLabSection = () => {
             <div>
               <Label className="mb-6">Лаборатория сценариев</Label>
               <Heading level={2} className="text-stone-950">
-                Соберите занятие
+                Соберите сценарий
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-700 to-rose-700 italic">
-                  под нужную драматургию
+                  под реальную задачу
                 </span>
               </Heading>
             </div>
           </Reveal>
           <Reveal delay={120}>
             <p className="max-w-2xl text-lg leading-relaxed text-stone-600 lg:ml-auto">
-              Три разных педагогических сценария собраны из одних и тех же
-              принципов: узлы, связи, условия и финальный разбор. Переключайте
-              режимы и смотрите, как меняется логика будущего квиза.
+              Шесть прикладных сценариев показывают, как одна визуальная карта закрывает обучение, продажи, диагностику и подбор решений. Переключайте режимы и смотрите, как меняются ноды, условия и финальный результат.
             </p>
           </Reveal>
         </div>
@@ -1372,7 +1187,7 @@ const ScenarioLabSection = () => {
           </Reveal>
 
           <Reveal delay={140} direction="left">
-            <div className="relative overflow-hidden rounded-[2.8rem_0.95rem_2.8rem_0.95rem] border border-stone-900/10 bg-white/46 p-4 shadow-[0_34px_120px_rgba(120,53,15,0.14)] backdrop-blur">
+            <div className="relative overflow-hidden rounded-[2.8rem_0.95rem_2.8rem_0.95rem] border border-stone-900/10 bg-white/46 p-4 shadow-[0_34px_120px_rgba(68,64,60,0.11)] backdrop-blur">
               <div className="absolute right-8 top-8 z-10 hidden rounded-full border border-stone-900/10 bg-white/70 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500 backdrop-blur md:block">
                 live pattern
               </div>
@@ -1385,7 +1200,7 @@ const ScenarioLabSection = () => {
                   className="min-h-[470px]"
                 />
 
-                <div className="relative overflow-hidden rounded-[2rem_0.75rem_2rem_0.75rem] border border-stone-900/10 bg-[#fffaf0]/78 p-6">
+                <div className="relative overflow-hidden rounded-[2rem_0.75rem_2rem_0.75rem] border border-stone-900/10 bg-[#f8f7f2]/82 p-6">
                   <div
                     className={`absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gradient-to-br ${activeMode.accent} opacity-20 blur-2xl`}
                   />
@@ -1547,7 +1362,7 @@ const HowItWorksSection = () => {
       id="how"
       className="scroll-mt-24 py-24 lg:py-32 relative overflow-hidden bg-gradient-to-b from-transparent via-white/42 to-transparent"
     >
-      <div className="pointer-events-none absolute left-[-10%] top-20 h-[28rem] w-[28rem] rounded-full bg-amber-300/18 blur-3xl" />
+      <div className="pointer-events-none absolute left-[-10%] top-20 h-[28rem] w-[28rem] rounded-full bg-stone-300/18 blur-3xl" />
       <div className="pointer-events-none absolute right-[-12%] bottom-16 h-[30rem] w-[30rem] rounded-full bg-stone-700/10 blur-3xl" />
       <div className="container mx-auto px-6">
         <div className="max-w-3xl mx-auto text-center mb-20">
@@ -1572,7 +1387,7 @@ const HowItWorksSection = () => {
               caption={`шаг ${activeStep + 1} / ${steps.length}`}
               className="lg:translate-y-6"
             />
-            <div className="mt-6 rounded-[1.6rem_0.7rem_1.6rem_0.7rem] border border-stone-900/10 bg-white/56 p-5 shadow-[0_18px_60px_rgba(120,53,15,0.08)] backdrop-blur">
+            <div className="mt-6 rounded-[1.6rem_0.7rem_1.6rem_0.7rem] border border-stone-900/10 bg-white/56 p-5 shadow-[0_18px_60px_rgba(68,64,60,0.08)] backdrop-blur">
               <div className="flex items-center justify-between gap-5">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-800/60">
@@ -1600,7 +1415,7 @@ const HowItWorksSection = () => {
                 ref={(el) => {
                   stepsRef.current[i] = el;
                 }}
-                className={`group relative overflow-hidden rounded-[2.25rem_0.8rem_2.25rem_0.8rem] border p-7 shadow-[0_18px_70px_rgba(120,53,15,0.08)] transition-all duration-500 ${
+                className={`group relative overflow-hidden rounded-[2.25rem_0.8rem_2.25rem_0.8rem] border p-7 shadow-[0_18px_70px_rgba(68,64,60,0.08)] transition-all duration-500 ${
                   activeStep === i
                     ? "border-stone-950/15 bg-stone-950 text-amber-50 shadow-stone-950/16"
                     : activeStep > i
@@ -1608,7 +1423,7 @@ const HowItWorksSection = () => {
                       : "border-stone-900/10 bg-white/46 text-stone-950 opacity-72"
                 }`}
               >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(251,191,36,0.18),transparent_34%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(120,113,108,0.14),transparent_34%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                 <div className="relative flex items-start gap-6">
                   <div
                     className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border font-mono text-sm font-bold transition-all duration-500 ${
@@ -1680,10 +1495,12 @@ export function getFeaturedQuizDescription(quiz: PublicQuiz): string {
   const nodes = quiz.quiz_data?.nodes ?? [];
   for (const node of nodes) {
     const data = node?.data;
-    const candidate = [data?.description, data?.question, data?.message].find(
-      (value) => typeof value === "string" && value.trim().length > 0,
-    );
-    if (candidate) return candidate.trim();
+    const fields = data as Record<string, unknown>;
+    for (const value of [fields.description, fields.question, fields.message]) {
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+      }
+    }
   }
 
   return "";
@@ -1758,16 +1575,16 @@ export function getFeaturedPlayablePreview(quiz: PublicQuiz, limit = 10) {
   }
 
   const nodeById = new Map(
-    allNodes.map((node: any) => [String(node.id), node]),
+    allNodes.map((node) => [String(node.id), node]),
   );
-  const outgoing = new Map<string, any[]>();
+  const outgoing = new Map<string, typeof allEdges>();
   for (const edge of allEdges) {
     const source = String(edge.source);
     outgoing.set(source, [...(outgoing.get(source) ?? []), edge]);
   }
 
   const startNode =
-    allNodes.find((node: any) => node.type === "startNode") ?? allNodes[0];
+    allNodes.find((node) => node.type === "startNode") ?? allNodes[0];
   const queue = startNode ? [String(startNode.id)] : [];
   const selectedIds: string[] = [];
   const visited = new Set<string>();
@@ -1795,7 +1612,7 @@ export function getFeaturedPlayablePreview(quiz: PublicQuiz, limit = 10) {
   return {
     nodes: selectedIds.map((id) => nodeById.get(id)),
     edges: allEdges.filter(
-      (edge: any) =>
+      (edge) =>
         selectedSet.has(String(edge.source)) &&
         selectedSet.has(String(edge.target)),
     ),
@@ -1816,11 +1633,11 @@ export function getFeaturedPreviewNodes(
 ): FeaturedPreviewNode[] {
   return (quiz.quiz_data?.nodes ?? [])
     .slice(0, limit)
-    .map((node: any, index: number) => {
-      const data = node?.data ?? {};
+    .map((node, index) => {
+      const data = (node?.data ?? {}) as Record<string, unknown>;
       const title =
         cleanPreviewText(
-          data.title || data.label || data.question || data.characterName,
+        data.title || data.label || data.question || data.characterName,
         ) || `Этап ${index + 1}`;
       const excerpt = cleanPreviewText(
         data.description ||
@@ -1830,10 +1647,11 @@ export function getFeaturedPreviewNodes(
           data.buttonText,
       );
 
+      const type = String(node?.type ?? "infoNode");
       return {
         id: String(node?.id ?? index),
-        type: String(node?.type ?? "infoNode"),
-        typeLabel: FEATURED_NODE_TYPE_LABELS[node?.type] || "Этап",
+        type,
+        typeLabel: FEATURED_NODE_TYPE_LABELS[type] || "Этап",
         title,
         excerpt: excerpt === title ? "" : excerpt,
       };
@@ -1959,8 +1777,8 @@ const TemplateGallery = ({ onRequireAuthForQuiz }: TemplateGalleryProps) => {
 
         {/* Carousel with custom cards */}
         <div className="relative -mx-6">
-          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#f5efe3] to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#f5efe3] to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#f3f3ef] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#f3f3ef] to-transparent z-10 pointer-events-none" />
 
           <div
             ref={scrollRef}
@@ -1998,7 +1816,7 @@ const TemplateGallery = ({ onRequireAuthForQuiz }: TemplateGalleryProps) => {
                       }}
                       role="link"
                       tabIndex={0}
-                      className="group relative h-full min-h-[430px] overflow-hidden rounded-[2rem_0.75rem_2rem_0.75rem] border border-stone-900/10 bg-[linear-gradient(155deg,rgba(255,255,255,0.9),rgba(255,250,240,0.72)_45%,rgba(251,191,36,0.14))] cursor-pointer shadow-[0_24px_65px_rgba(120,53,15,0.16)] backdrop-blur-sm transition-all duration-500 hover:-translate-y-2 hover:border-amber-700/28 hover:shadow-[0_32px_80px_rgba(120,53,15,0.2),0_0_45px_rgba(251,191,36,0.12)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/70 active:translate-y-0"
+                      className="group relative h-full min-h-[430px] overflow-hidden rounded-[2rem_0.75rem_2rem_0.75rem] border border-stone-900/10 bg-[linear-gradient(155deg,rgba(255,255,255,0.92),rgba(248,247,242,0.82)_48%,rgba(229,228,222,0.52))] cursor-pointer shadow-[0_24px_65px_rgba(68,64,60,0.12)] backdrop-blur-sm transition-all duration-500 hover:-translate-y-2 hover:border-amber-700/24 hover:shadow-[0_32px_80px_rgba(68,64,60,0.15),0_0_38px_rgba(180,83,9,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/70 active:translate-y-0"
                     >
                       <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-amber-400/18 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
                       <div className="pointer-events-none absolute bottom-0 left-0 h-40 w-40 rounded-full bg-rose-500/[0.08] blur-3xl" />
@@ -2427,7 +2245,7 @@ const FinalCTA = ({ onCTA }: { onCTA: () => void }) => (
 const Footer: React.FC = () => {
   const nav = useAppNavigation();
   return (
-    <footer className="border-t border-stone-900/10 bg-[#efe4d2]/70 pt-16 pb-8">
+    <footer className="border-t border-stone-900/10 bg-[#f8f7f2]/86 pt-16 pb-8">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-2 md:col-span-1">
@@ -2544,7 +2362,7 @@ const Header = ({ isScrolled }: { isScrolled: boolean }) => {
       <div
         className={`absolute inset-0 transition-all duration-500 ${
           isScrolled
-            ? "bg-[#fffaf0]/86 backdrop-blur-xl border-b border-stone-900/10 shadow-[0_14px_45px_rgba(120,53,15,0.08)]"
+            ? "bg-[#f8f7f2]/88 backdrop-blur-xl border-b border-stone-900/10 shadow-[0_14px_45px_rgba(68,64,60,0.08)]"
             : ""
         }`}
       />
@@ -2650,7 +2468,7 @@ const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5efe3] text-stone-950 overflow-x-hidden flex flex-col">
+    <div className="min-h-screen bg-[#f3f3ef] text-stone-950 overflow-x-hidden flex flex-col">
       {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 h-[2px] z-[60] bg-stone-900/10">
         <div
@@ -2663,7 +2481,6 @@ const LandingPage: React.FC = () => {
 
       <main className="flex-1">
         <HeroSection onCTA={handleCTA} />
-        <StatsSection />
         <TemplateGallery onRequireAuthForQuiz={handleRequireAuthForQuiz} />
         <FeaturesSection />
         <ScenarioLabSection />
@@ -2704,7 +2521,11 @@ const LandingPage: React.FC = () => {
                 }
 
                 .landing-react-flow .react-flow__pane {
-                    cursor: default;
+                    cursor: grab;
+                }
+
+                .landing-react-flow .react-flow__pane:active {
+                    cursor: grabbing;
                 }
 
                 .landing-react-flow .react-flow__handle {

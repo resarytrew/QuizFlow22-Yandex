@@ -3,8 +3,36 @@ import { createActionButton } from "./common";
 import { makeImageZoomable } from "../lightbox";
 import { sanitizeAssetUrl } from "../sanitize";
 
+interface MatchItem {
+  id: string;
+  text?: string;
+  imageUrl?: string;
+}
+
+interface MatchPair {
+  leftId: string;
+  rightId: string;
+}
+
+interface MatchingData {
+  leftColumn?: MatchItem[];
+  rightColumn?: MatchItem[];
+  correctPairs?: MatchPair[];
+  buttonText?: string;
+}
+
+interface TimelineItem {
+  id: string;
+  text?: string;
+}
+
+interface TimelineData {
+  events?: TimelineItem[];
+  buttonText?: string;
+}
+
 export const renderMatching: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as MatchingData;
   const pairs: Array<{ left: string; right: string }> = [];
   let selectedLeft: string | null = null;
   let selectedRight: string | null = null;
@@ -23,7 +51,7 @@ export const renderMatching: NodeRenderer = (node, controls, context) => {
     selectedRight = null;
   };
 
-  const createItem = (item: any, side: "left" | "right") => {
+  const createItem = (item: MatchItem, side: "left" | "right") => {
     const button = document.createElement("button");
     const isSelected = side === "left"
       ? selectedLeft === item.id
@@ -80,7 +108,7 @@ export const renderMatching: NodeRenderer = (node, controls, context) => {
   controls.appendChild(grid);
   controls.appendChild(createActionButton(data.buttonText ?? "Проверить", () => {
     const expected = data.correctPairs ?? [];
-    const correct = expected.length === pairs.length && expected.every((pair: any) =>
+    const correct = expected.length === pairs.length && expected.every((pair) =>
       pairs.some((value) => value.left === pair.leftId && value.right === pair.rightId));
     context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
     context.continueFrom(node, correct ? "correct" : "incorrect");
@@ -88,7 +116,7 @@ export const renderMatching: NodeRenderer = (node, controls, context) => {
 };
 
 export const renderTimeline: NodeRenderer = (node, controls, context) => {
-  const data: any = node.data;
+  const data = node.data as TimelineData;
   const original = data.events ?? [];
   const items = [...original].sort(() => Math.random() - 0.5);
   const list = document.createElement("div");
@@ -96,7 +124,7 @@ export const renderTimeline: NodeRenderer = (node, controls, context) => {
 
   const draw = () => {
     list.replaceChildren();
-    items.forEach((item: any, index: number) => {
+    items.forEach((item, index) => {
       const row = document.createElement("div");
       const controlsWrap = document.createElement("div");
       const up = document.createElement("button");
@@ -134,8 +162,8 @@ export const renderTimeline: NodeRenderer = (node, controls, context) => {
   draw();
   controls.appendChild(list);
   controls.appendChild(createActionButton(data.buttonText ?? "Проверить", () => {
-    const correct = JSON.stringify(items.map((item: any) => item.id)) ===
-      JSON.stringify(original.map((item: any) => item.id));
+    const correct = JSON.stringify(items.map((item) => item.id)) ===
+      JSON.stringify(original.map((item) => item.id));
     context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
     context.continueFrom(node, correct ? "correct" : "incorrect");
   }));

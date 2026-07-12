@@ -2,6 +2,7 @@ import type {
   AdminFinancesParams,
   AdminFinancesResponse,
   AdminGrantProPayload,
+  AdminGrantProResponse,
   AdminModerateQuizPayload,
   AdminModerateQuizResponse,
   AdminOperationResponse,
@@ -15,6 +16,7 @@ import type {
   AdminReportsParams,
   AdminReportsResponse,
   AdminSessionResponse,
+  AdminStaffSession,
   AdminSupportParams,
   AdminSupportResponse,
   AdminUpdateUserStatusPayload,
@@ -22,8 +24,10 @@ import type {
   AdminUsersParams,
   AdminUsersResponse,
   PublicQuiz,
+  QuizData,
   QuizResult,
   QuizSession,
+  SubscriptionStatus,
   SupportTicketCategory,
   SupportTicketMessage,
   UserSupportTicket,
@@ -32,6 +36,26 @@ import type {
 const API_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : '')).replace(/\/$/, '');
 
 type QueryValue = string | number | boolean | null | undefined;
+type QuizMutationPayload = Partial<Pick<Quiz, 'name' | 'visibility' | 'is_favorite' | 'quiz_data'>> & Record<string, unknown>;
+type ResultMutationPayload = Record<string, unknown>;
+type AiProxyPayload = {
+  model: string;
+  prompt: string;
+  type: 'json' | 'text';
+  expectJson: boolean;
+};
+type BillingEntitlementResponse = {
+  tier: 'free' | 'pro';
+  status?: SubscriptionStatus;
+  current_period_end?: string | null;
+  quizzes_limit: number | null;
+  ai_questions_limit: number;
+  has_media_upload?: boolean;
+  yookassa_subscription_id?: string | null;
+};
+type AdminSupportReplyResponse = { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
+type AdminPromocodeMutationResponse = { staff: AdminStaffSession; promocode: AdminPromocodeItem; generated_at: string };
+type PublicQuizFallbackRow = Pick<PublicQuiz, 'id' | 'name' | 'quiz_data' | 'created_at' | 'published_at' | 'visibility' | 'is_favorite'>;
 
 function withQuery(path: string, params?: object): string {
   const entries = Object.entries(params ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
@@ -74,12 +98,41 @@ export async function apiRequest<T>(
   return response.json();
 }
 
+async function listPublicQuizzesWithFallback(): Promise<PublicQuiz[]> {
+  try {
+    return await apiRequest<PublicQuiz[]>('/quizzes?public=true');
+  } catch (apiError) {
+    console.warn('[apiClient] Public gallery API failed, using Supabase fallback', apiError);
+
+    const { supabase, isSupabaseReady } = await import('./supabaseClient');
+    if (!isSupabaseReady || !supabase) throw apiError;
+
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('id,name,quiz_data,created_at,published_at,visibility,is_favorite')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw apiError;
+
+    const rows = (data ?? []) as PublicQuizFallbackRow[];
+    return rows.map((quiz) => ({
+      ...quiz,
+      published_at: quiz.published_at || quiz.created_at,
+      is_published: Boolean(quiz.published_at),
+    }));
+  }
+}
+
 interface Quiz {
   id: string;
   name: string;
   visibility: string;
   is_favorite: boolean;
-  quiz_data: any;
+  quiz_data: QuizData;
   created_at: string;
   updated_at: string;
 }
@@ -88,7 +141,7 @@ interface AssetItem {
   name: string;
   key: string;
   url: string;
-  type: 'image' | 'audio';
+  type: 'image' | 'audio' | 'video';
   created_at: string;
   folder: string;
 }
@@ -97,21 +150,21 @@ export const api = {
   // ─── Quizzes ────────────────────────────────────────────────
   listQuizzes: () => apiRequest<Quiz[]>('/quizzes'),
   getQuiz: (id: string) => apiRequest<Quiz>(`/quizzes/${id}`),
-  createQuiz: (data: any) => apiRequest<Quiz>('/quizzes', {
+  createQuiz: (data: QuizMutationPayload) => apiRequest<Quiz>('/quizzes', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  updateQuiz: (id: string, data: any) => apiRequest<Quiz>(`/quizzes/${id}`, {
+  updateQuiz: (id: string, data: QuizMutationPayload) => apiRequest<Quiz>(`/quizzes/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
   deleteQuiz: (id: string) => apiRequest<void>(`/quizzes/${id}`, {
     method: 'DELETE',
   }),
-  listPublicQuizzes: () => apiRequest<PublicQuiz[]>('/quizzes?public=true'),
+  listPublicQuizzes: listPublicQuizzesWithFallback,
 
   // ─── Results ────────────────────────────────────────────────
-  saveResult: (data: any) => apiRequest<{ id: string; score: number }>('/results', {
+  saveResult: (data: ResultMutationPayload) => apiRequest<{ id: string; score: number }>('/results', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
@@ -124,7 +177,7 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ plan }),
   }),
-  getEntitlement: () => apiRequest<any>('/billing/get-entitlement', {
+  getEntitlement: () => apiRequest<BillingEntitlementResponse>('/billing/get-entitlement', {
     method: 'POST',
   }),
   cancelSubscription: () => apiRequest<{ ok: boolean; current_period_end: string; cancel_at_period_end: boolean }>('/billing/cancel-subscription', {
@@ -136,7 +189,7 @@ export const api = {
   }),
 
   // ─── AI ─────────────────────────────────────────────────────
-  aiProxy: (payload: any, signal?: AbortSignal) => apiRequest<{ result: string; used: number; limit: number }>('/ai-proxy', {
+  aiProxy: (payload: AiProxyPayload, signal?: AbortSignal) => apiRequest<{ result: string; used: number; limit: number }>('/ai-proxy', {
     method: 'POST',
     signal,
     body: JSON.stringify(payload),
@@ -206,20 +259,20 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  replyToAdminSupport: (payload: { ticket_id: string; body: string }) => apiRequest<{ staff: any; message: SupportTicketMessage; generated_at: string }>('/admin/support-reply', {
+  replyToAdminSupport: (payload: { ticket_id: string; body: string }) => apiRequest<AdminSupportReplyResponse>('/admin/support-reply', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  grantAdminPro: (payload: AdminGrantProPayload) => apiRequest<any>('/admin/grant-pro', {
+  grantAdminPro: (payload: AdminGrantProPayload) => apiRequest<AdminGrantProResponse>('/admin/grant-pro', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
   adminPromocodes: (params?: AdminUsersParams) => apiRequest<AdminPromocodesResponse>(withQuery('/admin/promocodes', params)),
-  createAdminPromocode: (payload: AdminPromocodeCreatePayload) => apiRequest<{ staff: any; promocode: AdminPromocodeItem; generated_at: string }>('/admin/promocode-create', {
+  createAdminPromocode: (payload: AdminPromocodeCreatePayload) => apiRequest<AdminPromocodeMutationResponse>('/admin/promocode-create', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  toggleAdminPromocode: (payload: AdminPromocodeTogglePayload) => apiRequest<{ staff: any; promocode: AdminPromocodeItem; generated_at: string }>('/admin/promocode-toggle', {
+  toggleAdminPromocode: (payload: AdminPromocodeTogglePayload) => apiRequest<AdminPromocodeMutationResponse>('/admin/promocode-toggle', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),

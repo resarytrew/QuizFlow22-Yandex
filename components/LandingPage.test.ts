@@ -112,8 +112,8 @@ describe('featured quiz card presentation', () => {
 
     const preview = getFeaturedPlayablePreview(quiz);
     expect(preview.nodes).toHaveLength(10);
-    expect(preview.nodes[0].id).toBe('node-0');
-    expect(preview.nodes[9].id).toBe('node-9');
+    expect(preview.nodes[0]).toMatchObject({ id: 'node-0' });
+    expect(preview.nodes[9]).toMatchObject({ id: 'node-9' });
     expect(preview.edges).toHaveLength(9);
   });
 });

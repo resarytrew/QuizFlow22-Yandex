@@ -25,6 +25,8 @@ export const UrlInput: React.FC<UrlInputProps> = ({
   icon,
 }) => {
   const openAssetManager = useUIStore((s) => s.openAssetManager);
+  const generatedId = React.useId().replace(/[^a-z0-9_-]+/gi, '');
+  const fieldId = `url-input-${generatedId}`;
 
   const handlePick = () => {
     openAssetManager((url) => onChange(url));
@@ -32,7 +34,7 @@ export const UrlInput: React.FC<UrlInputProps> = ({
 
   return (
     <div>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+      <label htmlFor={fieldId} className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
         {label}
       </label>
       <div className="flex gap-2">
@@ -41,6 +43,8 @@ export const UrlInput: React.FC<UrlInputProps> = ({
             {icon ?? DEFAULT_ICON}
           </div>
           <input
+            id={fieldId}
+            name={fieldId}
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}

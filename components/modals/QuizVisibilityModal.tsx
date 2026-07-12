@@ -4,6 +4,7 @@ import { Quiz, QuizVisibility } from '../../types.ts';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 import { useEntitlementStore } from '../../store/useEntitlementStore';
 import { Link } from '@tanstack/react-router';
+import { MAX_QUIZ_KEYWORDS, normalizeQuizKeywords, quizKeywordsToInput } from '../../utils/quizKeywords';
 
 interface Props {
   isOpen: boolean;
@@ -13,15 +14,15 @@ interface Props {
 
 const Input = ({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; icon?: React.ReactNode }) => (
     <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+        <label className="mb-2 block text-sm font-semibold text-stone-700">{label}</label>
         <div className="relative">
             {icon && (
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">
                     {icon}
                 </div>
             )}
-            <input
-                className={`w-full bg-white border-2 border-slate-200/80 rounded-xl py-3 ${icon ? 'pl-10 pr-4' : 'px-4'} text-sm text-slate-900 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none hover:border-slate-300`}
+            <input name="components-modals-quizvisibilitymodal-24-input"
+                className={`w-full rounded-xl border border-stone-200 bg-[#fffaf0] py-3 ${icon ? 'pl-10 pr-4' : 'px-4'} text-sm font-medium text-stone-900 placeholder-stone-400 transition-all duration-200 hover:border-amber-200 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/25`}
                 {...props}
             />
         </div>
@@ -30,9 +31,9 @@ const Input = ({ label, icon, ...props }: React.InputHTMLAttributes<HTMLInputEle
 
 const Textarea = ({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) => (
     <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
-        <textarea
-            className="w-full bg-white border-2 border-slate-200/80 rounded-xl py-3 px-4 text-sm text-slate-900 placeholder-slate-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none hover:border-slate-300 resize-none"
+        <label className="mb-2 block text-sm font-semibold text-stone-700">{label}</label>
+        <textarea name="components-modals-quizvisibilitymodal-35-textarea"
+            className="w-full resize-none rounded-xl border border-stone-200 bg-[#fffaf0] px-4 py-3 text-sm font-medium text-stone-900 placeholder-stone-400 transition-all duration-200 hover:border-amber-200 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/25"
             {...props}
         />
     </div>
@@ -47,6 +48,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
     );
     const [description, setDescription] = useState('');
     const [coverImageUrl, setCoverImageUrl] = useState('');
+    const [keywordsText, setKeywordsText] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -56,6 +58,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
             setVisibility((quiz.visibility as QuizVisibility) ?? (quiz.is_published ? 'public' : 'private'));
             setDescription(quiz.quiz_data?.description || '');
             setCoverImageUrl(quiz.quiz_data?.cover_image_url || '');
+            setKeywordsText(quizKeywordsToInput(quiz.quiz_data?.keywords));
             setImageError(false);
             setCopied(false);
         }
@@ -79,6 +82,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                 visibility,
                 description,
                 cover_image_url: coverImageUrl,
+                keywords: normalizeQuizKeywords(keywordsText),
             });
             onClose();
         } catch {
@@ -102,6 +106,8 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
     };
+
+    const keywords = normalizeQuizKeywords(keywordsText);
 
     if (!isOpen) return null;
 
@@ -165,28 +171,40 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
             className="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-fade-in"
             onClick={onClose}
         >
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+            <div className="absolute inset-0 bg-stone-950/45 backdrop-blur-md" />
 
             <div
-                className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-scale-in border border-slate-200/50"
+                className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem_0.75rem_2rem_0.75rem] border border-stone-200/90 bg-[#f8f7f2] shadow-[0_36px_120px_rgba(68,64,60,0.22)] animate-scale-in"
                 onClick={(e) => e.stopPropagation()}
             >
+                <div
+                    className="pointer-events-none absolute inset-0 opacity-60"
+                    aria-hidden="true"
+                    style={{
+                        backgroundImage: [
+                            'linear-gradient(rgba(68,64,60,0.045) 1px, transparent 1px)',
+                            'linear-gradient(90deg, rgba(68,64,60,0.045) 1px, transparent 1px)',
+                        ].join(', '),
+                        backgroundSize: '44px 44px',
+                    }}
+                />
                 {/* Header */}
-                <div className="flex items-center justify-between px-8 py-6 border-b border-slate-200/80 bg-gradient-to-r from-slate-50 to-white rounded-t-3xl shrink-0">
+                <div className="relative flex items-center justify-between border-b border-stone-900/10 bg-[#fffaf0]/82 px-8 py-6 backdrop-blur shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-[1rem_0.35rem_1rem_0.35rem] border border-amber-200 bg-amber-50 text-amber-700">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                             </svg>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900">Настройки доступа</h2>
-                            <p className="text-sm text-slate-500 mt-0.5">Управление видимостью квиза «{quiz.name}»</p>
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-stone-400">публикация сценария</p>
+                            <h2 className="font-serif text-3xl font-semibold tracking-[-0.035em] text-stone-950">Доступ</h2>
+                            <p className="mt-1 text-sm font-medium text-stone-500">Управление видимостью квиза «{quiz.name}»</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-stone-400 transition-all hover:bg-stone-100 hover:text-stone-700"
                         aria-label="Закрыть"
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -195,18 +213,18 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-8 py-6">
+                <div className="relative flex-1 overflow-y-auto px-8 py-6">
                     <div className="max-w-3xl mx-auto space-y-6">
                         {/* Info banner */}
-                        <div className="flex items-start gap-4 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200/50 rounded-2xl">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <div className="flex items-start gap-4 rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5 shadow-[0_12px_36px_rgba(68,64,60,0.06)]">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[0.9rem_0.3rem_0.9rem_0.3rem] border border-amber-200 bg-amber-50 text-amber-700">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                 </svg>
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-semibold text-blue-900 mb-1">Об уровнях доступа</h3>
-                                <p className="text-sm text-blue-700 leading-relaxed">
+                                <h3 className="mb-1 font-serif text-xl font-semibold tracking-[-0.035em] text-stone-950">Об уровнях доступа</h3>
+                                <p className="text-sm leading-relaxed text-stone-600">
                                     Выберите, кто сможет найти и пройти квиз. Изменить уровень можно в любой момент. PRO-уровни («Только мне» и «По ссылке») доступны по подписке.
                                 </p>
                             </div>
@@ -214,7 +232,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
 
                         {/* Visibility selector */}
                         <div>
-                            <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Уровень доступа</h3>
+                            <h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-stone-400">Уровень доступа</h3>
                             <div className="space-y-2">
                                 {options.map((opt) => {
                                     const active = visibility === opt.id;
@@ -225,38 +243,38 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                                             type="button"
                                             onClick={() => !locked && setVisibility(opt.id)}
                                             disabled={locked}
-                                            className={`w-full text-left relative flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${
+                                            className={`relative flex w-full items-start gap-4 rounded-[1.15rem_0.4rem_1.15rem_0.4rem] border p-4 text-left transition-all ${
                                                 locked
-                                                    ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                                                    ? 'border-stone-200 bg-stone-100/70 opacity-60 cursor-not-allowed'
                                                     : active
-                                                        ? 'border-indigo-500 bg-indigo-50/40 cursor-pointer shadow-sm'
-                                                        : 'border-slate-200 bg-white hover:border-slate-300 cursor-pointer'
+                                                        ? 'border-amber-300 bg-amber-50/70 cursor-pointer shadow-[0_14px_38px_rgba(180,83,9,0.09)]'
+                                                        : 'border-stone-200 bg-[#fffaf0] hover:border-amber-200 cursor-pointer'
                                             }`}
                                         >
                                             <div className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${
-                                                active ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                active ? 'border border-amber-200 bg-amber-100 text-amber-800' : 'border border-stone-200 bg-stone-100 text-stone-500'
                                             }`}>
                                                 {opt.icon}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className={`text-sm font-bold ${active ? 'text-indigo-900' : 'text-slate-900'}`}>
+                                                    <span className={`text-sm font-bold ${active ? 'text-stone-950' : 'text-stone-900'}`}>
                                                         {opt.title}
                                                     </span>
                                                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                                         opt.proOnly
-                                                            ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
-                                                            : 'bg-slate-200 text-slate-600'
+                                                            ? 'border border-amber-200 bg-amber-100 text-amber-800'
+                                                            : 'border border-stone-200 bg-stone-100 text-stone-600'
                                                     }`}>
                                                         {opt.badge}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-slate-600 mt-1">{opt.description}</p>
+                                                <p className="mt-1 text-xs text-stone-600">{opt.description}</p>
                                                 {locked && (
                                                     <Link
                                                         to="/billing"
                                                         onClick={(e) => { e.stopPropagation(); onClose(); }}
-                                                        className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                                                        className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-800 hover:text-stone-950"
                                                     >
                                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2zm6-3V7a6 6 0 10-12 0v1H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V10a2 2 0 00-2-2h-1zM8 8a4 4 0 018 0v1H8V8z" />
@@ -266,7 +284,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                                                 )}
                                             </div>
                                             <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                                active ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
+                                                active ? 'border-amber-600 bg-amber-600' : 'border-stone-300'
                                             }`}>
                                                 {active && (
                                                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -282,39 +300,39 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
 
                         {/* Shareable URL — only for unlisted and public */}
                         {visibility !== 'private' && (
-                            <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-200/60 rounded-2xl p-5">
+                            <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5 shadow-[0_12px_36px_rgba(68,64,60,0.06)]">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                     </svg>
-                                    <h3 className="text-sm font-bold text-slate-900">Прямая ссылка</h3>
+                                    <h3 className="font-serif text-xl font-semibold tracking-[-0.035em] text-stone-950">Прямая ссылка</h3>
                                 </div>
                                 <div className="flex gap-2">
-                                    <input
+                                    <input name="components-modals-quizvisibilitymodal-311-input"
                                         type="text"
                                         readOnly
                                         value={shareUrl}
-                                        className="flex-1 bg-white border-2 border-slate-200 rounded-xl py-2.5 px-3 text-xs text-slate-700 font-mono select-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                        className="flex-1 select-all rounded-xl border border-stone-200 bg-[#f8f7f2] px-3 py-2.5 font-mono text-xs text-stone-700 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/25"
                                     />
                                     <button
                                         type="button"
                                         onClick={handleCopyUrl}
                                         className={`shrink-0 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                                             copied
-                                                ? 'bg-emerald-500 text-white'
-                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-stone-950 text-amber-50 hover:bg-stone-800'
                                         }`}
                                     >
                                         {copied ? '✓ Скопировано' : 'Копировать'}
                                     </button>
                                 </div>
                                 {visibility === 'unlisted' && (
-                                    <p className="mt-2 text-xs text-slate-600">
+                                    <p className="mt-2 text-xs text-stone-600">
                                         Эта ссылка открывает квиз в режиме прохождения. В общей галерее он не отображается — делитесь ссылкой вручную.
                                     </p>
                                 )}
                                 {visibility === 'public' && (
-                                    <p className="mt-2 text-xs text-slate-600">
+                                    <p className="mt-2 text-xs text-stone-600">
                                         Квиз также попадёт в общую галерею. Эту ссылку можно встраивать в посты и рассылки.
                                     </p>
                                 )}
@@ -324,12 +342,12 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                         {/* Description + cover — only when visible to others */}
                         {visibility !== 'private' && (
                             <>
-                                <div className="bg-white border-2 border-slate-200/80 rounded-2xl p-6">
+                                <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-6 shadow-[0_12px_36px_rgba(68,64,60,0.06)]">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
                                         </svg>
-                                        <h3 className="text-lg font-bold text-slate-900">Описание квиза</h3>
+                                        <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Описание квиза</h3>
                                     </div>
                                     <Textarea
                                         label="Краткое описание (до 200 символов)"
@@ -340,19 +358,52 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                                         maxLength={200}
                                     />
                                     <div className="mt-2 flex items-center justify-between text-xs">
-                                        <span className="text-slate-500">Хорошее описание увеличивает интерес к квизу</span>
-                                        <span className={`font-semibold ${description.length > 180 ? 'text-orange-500' : 'text-slate-400'}`}>
+                                        <span className="text-stone-500">Хорошее описание увеличивает интерес к квизу</span>
+                                        <span className={`font-semibold ${description.length > 180 ? 'text-amber-700' : 'text-stone-400'}`}>
                                             {description.length}/200
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="bg-white border-2 border-slate-200/80 rounded-2xl p-6">
+                                <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-6 shadow-[0_12px_36px_rgba(68,64,60,0.06)]">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.023.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                        <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Ключевые слова</h3>
+                                    </div>
+                                    <Textarea
+                                        label={`До ${MAX_QUIZ_KEYWORDS} слов или коротких фраз, через запятую`}
+                                        value={keywordsText}
+                                        onChange={(e) => setKeywordsText(e.target.value)}
+                                        placeholder="обучение, диагностика, продажи, мероприятие"
+                                        rows={2}
+                                        maxLength={240}
+                                    />
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {keywords.length > 0 ? (
+                                            keywords.map((keyword) => (
+                                                <span
+                                                    key={keyword.toLocaleLowerCase('ru-RU')}
+                                                    className="inline-flex items-center rounded-[0.8rem_0.25rem_0.8rem_0.25rem] border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-900"
+                                                >
+                                                    {keyword}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-xs leading-relaxed text-stone-500">
+                                                Эти слова появятся на карточке квиза и помогут найти его в галерее.
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-6 shadow-[0_12px_36px_rgba(68,64,60,0.06)]">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
-                                        <h3 className="text-lg font-bold text-slate-900">Обложка</h3>
+                                        <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Обложка</h3>
                                     </div>
                                     <Input
                                         label="URL изображения обложки"
@@ -370,8 +421,8 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                                     />
                                     {coverImageUrl && !imageError && (
                                         <div className="mt-4">
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Предпросмотр</label>
-                                            <div className="relative rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-50 aspect-video">
+                                            <label className="mb-2 block text-sm font-semibold text-stone-700">Предпросмотр</label>
+                                            <div className="relative aspect-video overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
                                                 <img
                                                     src={coverImageUrl}
                                                     alt="Предпросмотр обложки"
@@ -382,7 +433,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                                         </div>
                                     )}
                                     {imageError && (
-                                        <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl flex items-center gap-3">
+                                        <div className="mt-4 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
                                             <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                             </svg>
@@ -395,15 +446,15 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
 
                         {/* Private note */}
                         {visibility === 'private' && (
-                            <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-5 flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
-                                    <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <div className="flex items-start gap-3 rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-stone-100">
+                                    <svg className="w-5 h-5 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2zm6-3V7a6 6 0 10-12 0v1H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V10a2 2 0 00-2-2h-1zM8 8a4 4 0 018 0v1H8V8z" />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-slate-900 mb-1">Приватный квиз</h4>
-                                    <p className="text-sm text-slate-600">Квиз виден только вам. Описание и обложка для галереи не нужны. Чтобы поделиться, переключите уровень на «По ссылке» или «В галерее».</p>
+                                    <h4 className="mb-1 font-serif text-xl font-semibold tracking-[-0.035em] text-stone-950">Приватный квиз</h4>
+                                    <p className="text-sm text-stone-600">Квиз виден только вам. Описание и обложка для галереи не нужны. Чтобы поделиться, переключите уровень на «По ссылке» или «В галерее».</p>
                                 </div>
                             </div>
                         )}
@@ -411,11 +462,11 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-6 border-t border-slate-200/80 bg-gradient-to-r from-white to-slate-50 rounded-b-3xl shrink-0">
+                <div className="relative border-t border-stone-900/10 bg-[#fffaf0]/82 px-8 py-6 backdrop-blur shrink-0">
                     <div className="flex gap-4 max-w-3xl mx-auto">
                         <button
                             onClick={onClose}
-                            className="flex-1 px-6 py-3.5 rounded-xl bg-white border-2 border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2"
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-stone-200 bg-[#fffaf0] px-6 py-3.5 text-sm font-semibold text-stone-700 transition-all hover:border-amber-200 hover:bg-stone-50"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -425,7 +476,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                         <button
                             onClick={handleSave}
                             disabled={isSaving || isLocked(visibility)}
-                            className="flex-1 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-sm hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-950 px-6 py-3.5 text-sm font-semibold text-amber-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {isSaving ? (
                                 <>

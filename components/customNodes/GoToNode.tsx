@@ -1,11 +1,9 @@
-
+﻿
 import React from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode';
 import { GoToNodeData } from '../../types';
 import { useCanvasStore } from '../../store/useCanvasStore';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const GoToNode: React.FC<NodeProps<GoToNodeData>> = (props) => {
   const { data } = props;

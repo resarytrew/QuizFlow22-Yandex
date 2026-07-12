@@ -66,7 +66,6 @@ const Paywall: React.FC<PaywallProps> = ({ feature, children, fallback, forceSho
 };
 
 const UpgradeInline: React.FC<{ feature: PaywallFeature; featureLabel: string }> = ({
-  feature,
   featureLabel,
 }) => {
   const nav = useAppNavigation();

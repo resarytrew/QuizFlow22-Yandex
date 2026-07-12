@@ -1,24 +1,40 @@
 
 import React, { useMemo } from 'react';
+import type { Node } from 'reactflow';
 import { useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import { CustomNodeType, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData } from '../types.ts';
+import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode } from '../types.ts';
 import DesignPanel from './DesignPanel.tsx';
 import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
 
-// Mock Node type to avoid import error
-type Node<T = any> = any;
+type UpdateNodeData = (id: string, data: Partial<NodeData>) => void;
 
-function useDerivedNodes<T>(compute: (nodes: Node[]) => T, isEqual: (a: T, b: T) => boolean): T {
+type TrueFalseCorrectAnswer = 'true' | 'false';
+
+const TRUE_FALSE_LABELS: Record<TrueFalseCorrectAnswer, string> = {
+    true: 'Верно',
+    false: 'Неверно',
+};
+
+const normalizeAnswerText = (value: string | undefined): string => String(value || '').trim().toLowerCase();
+
+const parseOptionalNumber = (value: string, min: number, max: number, fallback: number): number | undefined => {
+    if (value === '') return undefined;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(min, Math.min(max, parsed));
+};
+
+function useDerivedNodes<T>(compute: (nodes: Node<NodeData>[]) => T, isEqual: (a: T, b: T) => boolean): T {
     const computeRef = React.useRef(compute);
     const isEqualRef = React.useRef(isEqual);
     computeRef.current = compute;
     isEqualRef.current = isEqual;
     const [value, setValue] = React.useState<T>(() => compute(useCanvasStore.getState().nodes));
     React.useEffect(() => {
-        return useCanvasStore.subscribe((state: any) => {
+        return useCanvasStore.subscribe((state) => {
             const next = computeRef.current(state.nodes);
             setValue(prev => isEqualRef.current(prev, next) ? prev : next);
         });
@@ -63,35 +79,66 @@ const SettingsSection = ({ title, children }: { title: string, children?: React.
     </div>
 );
 
-const Input = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) => (
-    <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
-        <input className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" {...props} />
-    </div>
-);
+const slugifyFieldName = (value: string): string => {
+    const slug = value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9а-яё]+/gi, '-')
+        .replace(/^-+|-+$/g, '');
 
-const Textarea = ({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) => (
-    <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
-        <textarea className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" {...props} />
-    </div>
-);
+    return slug || 'field';
+};
 
-const Select = ({ label, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string, children: React.ReactNode }) => (
-    <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
-        <select className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none appearance-none bg-no-repeat bg-right pr-8" style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }} {...props}>
-            {children}
-        </select>
-    </div>
-);
+const useFieldIdentity = (prefix: string, label?: string, id?: string, name?: string) => {
+    const generatedId = React.useId().replace(/[^a-z0-9_-]+/gi, '');
+    const fieldId = id || `${prefix}-${label ? slugifyFieldName(label) : generatedId}`;
+    return {
+        id: fieldId,
+        name: name || fieldId,
+    };
+};
 
-const Checkbox = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) => (
-    <label className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-lg py-3 px-3.5 cursor-pointer hover:bg-slate-100 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-300">
-        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/50" {...props} />
-        <span className="text-sm text-gray-700 font-medium">{label}</span>
-    </label>
-);
+const Input = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) => {
+    const field = useFieldIdentity('settings-input', label, props.id, props.name);
+    return (
+        <div>
+            <label htmlFor={field.id} className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
+            <input id={field.id} name={field.name} className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" {...props} />
+        </div>
+    );
+};
+
+const Textarea = ({ label, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) => {
+    const field = useFieldIdentity('settings-textarea', label, props.id, props.name);
+    return (
+        <div>
+            <label htmlFor={field.id} className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
+            <textarea id={field.id} name={field.name} className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" {...props} />
+        </div>
+    );
+};
+
+const Select = ({ label, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string, children: React.ReactNode }) => {
+    const field = useFieldIdentity('settings-select', label, props.id, props.name);
+    return (
+        <div>
+            <label htmlFor={field.id} className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
+            <select id={field.id} name={field.name} className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none appearance-none bg-no-repeat bg-right pr-8" style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }} {...props}>
+                {children}
+            </select>
+        </div>
+    );
+};
+
+const Checkbox = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) => {
+    const field = useFieldIdentity('settings-checkbox', label, props.id, props.name);
+    return (
+        <label htmlFor={field.id} className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-lg py-3 px-3.5 cursor-pointer hover:bg-slate-100 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-300">
+            <input id={field.id} name={field.name} type="checkbox" className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/50" {...props} />
+            <span className="text-sm text-gray-700 font-medium">{label}</span>
+        </label>
+    );
+};
 
 const HelperText = ({ children }: { children?: React.ReactNode }) => (
     <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200/75 p-2.5 rounded-lg">{children}</p>
@@ -112,6 +159,7 @@ const MarkdownPreview = ({ text }: { text?: string }) => {
 
 const UrlInput = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) => {
     const openAssetManager = useUIStore(s => s.openAssetManager);
+    const field = useFieldIdentity('settings-url', label, props.id, props.name);
 
     const handlePick = () => {
         openAssetManager((url) => {
@@ -126,9 +174,9 @@ const UrlInput = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElemen
 
     return (
         <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
+            <label htmlFor={field.id} className="block text-sm font-medium text-gray-600 mb-1.5 px-1">{label}</label>
             <div className="flex gap-2">
-                <input className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" {...props} />
+                <input id={field.id} name={field.name} className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" {...props} />
                 <button 
                     onClick={handlePick}
                     className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg border border-indigo-200 transition-colors flex items-center justify-center shrink-0"
@@ -142,6 +190,9 @@ const UrlInput = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElemen
 };
 
 const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string, isRequired?: boolean, onRequiredChange?: (val: boolean) => void }) => {
+    const field = useFieldIdentity('settings-video-url', label, props.id, props.name);
+    const requiredFieldId = `${field.id}-required-watch`;
+
     const isValidRutube = (url: string) => {
         if (!url) return true;
         return !!getRutubeId(url);
@@ -152,7 +203,7 @@ const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.
     return (
         <div className="space-y-2">
             <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1.5 px-1 flex items-center gap-2">
+                <label htmlFor={field.id} className="block text-sm font-medium text-gray-600 mb-1.5 px-1 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-500">
                         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
                         <line x1="7" y1="2" x2="7" y2="22"></line>
@@ -166,11 +217,13 @@ const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.
                     {label}
                 </label>
                 <input 
+                    id={field.id}
+                    name={field.name}
                     className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm text-gray-800 placeholder-gray-400 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none" 
                     placeholder="https://rutube.ru/video/..." 
                     {...props} 
                     onChange={(e) => {
-                        props.onChange && props.onChange(e);
+                        props.onChange?.(e);
                     }}
                 />
                 {props.value && !isValidRutube(props.value as string) && (
@@ -178,8 +231,10 @@ const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.
                 )}
             </div>
             {hasVideo && onRequiredChange && (
-                 <label className="flex items-center gap-2 cursor-pointer p-2 bg-rose-50 rounded-lg border border-rose-100">
+                 <label htmlFor={requiredFieldId} className="flex items-center gap-2 cursor-pointer p-2 bg-rose-50 rounded-lg border border-rose-100">
                     <input 
+                        id={requiredFieldId}
+                        name={requiredFieldId}
                         type="checkbox" 
                         className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500" 
                         checked={isRequired || false}
@@ -195,7 +250,7 @@ const VideoUrlInput = ({ label, isRequired, onRequiredChange, ...props }: React.
 };
 
 // --- Node Sound Settings Component ---
-const NodeSoundSettingsSection = React.memo(({ node, update }: { node: any, update: Function }) => {
+const NodeSoundSettingsSection = React.memo(({ node, update }: { node: Node<NodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const soundSettings = data.soundSettings || {};
 
@@ -222,14 +277,20 @@ const NodeSoundSettingsSection = React.memo(({ node, update }: { node: any, upda
                 onChange={e => handleSoundChange('onButtonPress', e.target.value)}
                 placeholder="https://... (mp3/wav)"
             />
-            <HelperText>Эти звуки имеют приоритет над глобальными настройками.</HelperText>
+            <UrlInput
+                label="Диктор / озвучка сцены"
+                value={soundSettings.voiceover || ''}
+                onChange={e => handleSoundChange('voiceover', e.target.value)}
+                placeholder="https://... (mp3/wav)"
+            />
+            <HelperText>Эти звуки имеют приоритет над глобальными настройками. В шаблоне "Экранная викторина" озвучка приглушает фоновую музыку на время проигрывания.</HelperText>
         </SettingsSection>
     );
 });
 
 // --- Settings Components ---
 
-const GroupSettings = React.memo(({ node, update }: { node: Node<GroupNodeData>, update: Function }) => {
+const GroupSettings = React.memo(({ node, update }: { node: Node<GroupNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     
     return (
@@ -283,7 +344,7 @@ const GroupSettings = React.memo(({ node, update }: { node: Node<GroupNodeData>,
     );
 });
 
-const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeData>, update: Function }) => {
+const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
 
     const availableVars = useDerivedNodes(
@@ -342,6 +403,8 @@ const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeDa
                         <span className="text-gray-400 font-mono text-xs">var</span>
                     </div>
                     <input 
+                        id={`formula-variable-${id}`}
+                        name={`formula-variable-${id}`}
                         className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 pl-10 pr-3.5 text-sm text-indigo-700 font-mono font-bold placeholder-gray-400 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 focus:outline-none"
                         value={data.variableName || ''} 
                         onChange={e => update(id, { variableName: e.target.value })} 
@@ -390,6 +453,7 @@ const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeDa
 
                 <textarea 
                     id="formula-textarea"
+                    name={`formula-expression-${id}`}
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 px-4 text-sm text-green-400 font-mono placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 focus:outline-none leading-relaxed shadow-inner" 
                     value={data.expression || ''} 
                     onChange={e => update(id, { expression: e.target.value })} 
@@ -436,7 +500,7 @@ const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeDa
     );
 });
 
-const ProgressionSettings = React.memo(({ node, update }: { node: Node<ProgressionNodeData>, update: Function }) => {
+const ProgressionSettings = React.memo(({ node, update }: { node: Node<ProgressionNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { levelVar = 'rankLevel', nameVar = 'rankName' } = data;
     const rules: RankRule[] = data.rules ?? [];
@@ -502,6 +566,8 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                              <div className="w-1/4">
                                 <label className="text-[10px] font-bold text-gray-500">LVL</label>
                                 <input 
+                                    id={`rank-rule-level-${id}-${ruleIdx}`}
+                                    name={`rank-rule-level-${id}-${ruleIdx}`}
                                     type="number" 
                                     className="w-full p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
                                     value={rule.level} 
@@ -511,6 +577,8 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                              <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-600">Название</label>
                                 <input 
+                                    id={`rank-rule-name-${id}-${ruleIdx}`}
+                                    name={`rank-rule-name-${id}-${ruleIdx}`}
                                     type="text" 
                                     className="w-full p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
                                     value={rule.name} 
@@ -524,9 +592,11 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                             {rule.requirements.map((req, reqIdx) => (
                                 <div key={reqIdx} className="flex gap-2 items-center bg-white p-2 rounded border border-gray-200">
                                     <select 
+                                        id={`rank-rule-requirement-type-${id}-${ruleIdx}-${reqIdx}`}
+                                        name={`rank-rule-requirement-type-${id}-${ruleIdx}-${reqIdx}`}
                                         className="text-xs border border-slate-200 rounded-lg p-2 w-24 bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500"
                                         value={req.type}
-                                        onChange={e => updateRequirement(ruleIdx, reqIdx, { type: e.target.value as any })}
+                                        onChange={e => updateRequirement(ruleIdx, reqIdx, { type: e.target.value as Requirement['type'] })}
                                     >
                                         <option value="minVar">Var &gt;=</option>
                                         <option value="maxVar">Var &lt;=</option>
@@ -536,6 +606,8 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                                     
                                     {(req.type === 'minVar' || req.type === 'maxVar') && (
                                         <input 
+                                            id={`rank-rule-requirement-variable-${id}-${ruleIdx}-${reqIdx}`}
+                                            name={`rank-rule-requirement-variable-${id}-${ruleIdx}-${reqIdx}`}
                                             className="text-xs border border-slate-200 rounded-lg p-2 flex-1 min-w-0 bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
                                             placeholder="Var name"
                                             value={req.variable} 
@@ -544,6 +616,8 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                                     )}
                                     
                                     <input 
+                                        id={`rank-rule-requirement-value-${id}-${ruleIdx}-${reqIdx}`}
+                                        name={`rank-rule-requirement-value-${id}-${ruleIdx}-${reqIdx}`}
                                         type="number" 
                                         className="text-xs border border-slate-200 rounded-lg p-2 w-16 bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
                                         value={req.value} 
@@ -563,16 +637,29 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
     );
 });
 
-const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNodeData>, update: Function }) => {
-    // ... (No changes needed)
+const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '', timer } = data;
     const answers: Answer[] = data.answers ?? [];
+    const screenQuiz = data.screenQuiz || {};
+    const isTrueFalseQuestion =
+        answers.length === 2 &&
+        normalizeAnswerText(answers[0]?.text) === normalizeAnswerText(TRUE_FALSE_LABELS.true) &&
+        normalizeAnswerText(answers[1]?.text) === normalizeAnswerText(TRUE_FALSE_LABELS.false);
+    const trueFalseCorrectAnswer: TrueFalseCorrectAnswer | null = isTrueFalseQuestion
+        ? (answers[0]?.isCorrect || data.correctAnswer === answers[0]?.id ? 'true'
+            : answers[1]?.isCorrect || data.correctAnswer === answers[1]?.id ? 'false'
+                : null)
+        : null;
+
+    const updateAnswer = (index: number, patch: Partial<Answer>) => {
+        const newAnswers = [...answers];
+        newAnswers[index] = { ...newAnswers[index], ...patch };
+        update(id, { answers: newAnswers });
+    };
 
     const handleAnswerChange = (index: number, text: string) => {
-        const newAnswers = [...answers];
-        newAnswers[index] = { ...newAnswers[index], text };
-        update(id, { answers: newAnswers });
+        updateAnswer(index, { text });
     };
 
     const addAnswer = () => {
@@ -581,14 +668,54 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
     };
 
     const removeAnswer = (index: number) => {
-        update(id, { answers: answers.filter((_, i) => i !== index) });
+        const removedAnswerId = answers[index]?.id;
+        update(id, {
+            answers: answers.filter((_, i) => i !== index),
+            ...(data.correctAnswer === removedAnswerId ? { correctAnswer: undefined } : {}),
+        });
+    };
+
+    const setCorrectAnswer = (answerId: string) => {
+        update(id, {
+            correctAnswer: answerId,
+            answers: answers.map(answer => ({ ...answer, isCorrect: answer.id === answerId })),
+        });
+    };
+
+    const applyTrueFalsePreset = (correct: TrueFalseCorrectAnswer) => {
+        const trueId = answers[0]?.id || 'true';
+        const falseId = answers[1]?.id || 'false';
+        const correctAnswer = correct === 'true' ? trueId : falseId;
+
+        update(id, {
+            answers: [
+                { id: trueId, text: TRUE_FALSE_LABELS.true, isCorrect: correct === 'true' },
+                { id: falseId, text: TRUE_FALSE_LABELS.false, isCorrect: correct === 'false' },
+            ],
+            correctAnswer,
+            screenQuiz: {
+                ...screenQuiz,
+                layout: 'question-only',
+            },
+        });
+    };
+
+    const updateScreenQuiz = (patch: Partial<NonNullable<QuestionNodeData['screenQuiz']>>) => {
+        const next = { ...screenQuiz, ...patch };
+        Object.keys(next).forEach((key) => {
+            const typedKey = key as keyof typeof next;
+            if (next[typedKey] === undefined || next[typedKey] === null || next[typedKey] === '') {
+                delete next[typedKey];
+            }
+        });
+        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
     };
 
     const handleTimerToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
             update(id, { timer: 30 }); // Default to 30 seconds
         } else {
-            update(id, { timer: undefined, onTimerNodeId: undefined });
+            update(id, { timer: undefined });
         }
     };
 
@@ -598,7 +725,7 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={4} />
                 <UrlInput label="URL изображения (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} placeholder="https://example.com/image.png" />
-                <VideoUrlInput label="Видео (RuTube)" value={data.videoUrl || ''} isRequired={data.isRequiredWatch} onRequiredChange={(val) => update(id, { isRequiredWatch: val })} onChange={e => update(id, { videoUrl: e.target.value })} />
+                <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
             </SettingsSection>
             <SettingsSection title="Фон узла">
                 <UrlInput
@@ -609,18 +736,79 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 />
             </SettingsSection>
             <SettingsSection title="Варианты ответов">
+                <HelperText>Отметьте правильный ответ, чтобы экранная викторина могла подсветить верный вариант анимацией.</HelperText>
+                <div className="rounded-xl border border-blue-200/70 bg-blue-50/70 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                        <div>
+                            <div className="text-xs font-bold uppercase tracking-wide text-blue-700">Пресет</div>
+                            <div className="text-sm font-semibold text-slate-800">Верно / Неверно</div>
+                        </div>
+                        {isTrueFalseQuestion && (
+                            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm">
+                                Активен
+                            </span>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => applyTrueFalsePreset('true')}
+                            className={`rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
+                                trueFalseCorrectAnswer === 'true'
+                                    ? 'border-green-300 bg-green-100 text-green-800'
+                                    : 'border-white bg-white text-slate-700 hover:border-green-200 hover:bg-green-50'
+                            }`}
+                        >
+                            Верно правильно
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => applyTrueFalsePreset('false')}
+                            className={`rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
+                                trueFalseCorrectAnswer === 'false'
+                                    ? 'border-green-300 bg-green-100 text-green-800'
+                                    : 'border-white bg-white text-slate-700 hover:border-green-200 hover:bg-green-50'
+                            }`}
+                        >
+                            Неверно правильно
+                        </button>
+                    </div>
+                </div>
                 <div className="space-y-2">
                     {answers.map((ans, index) => (
-                        <div key={ans.id} className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={ans.text}
-                                onChange={(e) => handleAnswerChange(index, e.target.value)}
-                                className="flex-grow bg-slate-50 border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm"
+                        <div key={ans.id} className={`rounded-lg border p-3 space-y-3 transition-colors ${ans.isCorrect ? 'border-green-200 bg-green-50' : 'border-slate-200/80 bg-slate-50'}`}>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCorrectAnswer(ans.id)}
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${ans.isCorrect ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 hover:border-green-400'}`}
+                                    title={ans.isCorrect ? 'Правильный ответ' : 'Отметить как правильный'}
+                                >
+                                    {ans.isCorrect && (
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    )}
+                                </button>
+                                <input
+                                    id={`question-answer-text-${id}-${ans.id}`}
+                                    name={`question-answer-text-${id}-${ans.id}`}
+                                    type="text"
+                                    value={ans.text}
+                                    onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                    className="flex-grow bg-white border border-slate-200/80 rounded-lg py-2.5 px-3.5 text-sm"
+                                    placeholder="Текст ответа..."
+                                />
+                                <button onClick={() => removeAnswer(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50 shrink-0" title="Удалить ответ">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </div>
+                            <UrlInput
+                                label="Изображение ответа"
+                                value={ans.imageUrl || ''}
+                                onChange={(e) => updateAnswer(index, { imageUrl: e.target.value })}
+                                placeholder="URL или выберите из медиатеки"
                             />
-                            <button onClick={() => removeAnswer(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-md hover:bg-red-50 shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
                         </div>
                     ))}
                 </div>
@@ -628,6 +816,100 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     Добавить ответ
                 </button>
+            </SettingsSection>
+            <SettingsSection title="Экранная викторина">
+                <HelperText>Эти параметры применяются только к этому экрану. Значение "Наследовать" берет настройку из глобального дизайна шаблона.</HelperText>
+                <Select
+                    label="Композиция этого экрана"
+                    value={screenQuiz.layout || 'inherit'}
+                    onChange={e => updateScreenQuiz({ layout: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizLayout })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто</option>
+                    <option value="media-right">Медиа справа</option>
+                    <option value="media-left">Медиа слева</option>
+                    <option value="media-top">Медиа сверху</option>
+                    <option value="image-grid">Сетка изображений</option>
+                    <option value="question-only">Только вопрос</option>
+                    <option value="hero-media">Большое медиа</option>
+                </Select>
+                <Select
+                    label="Таймер на этом экране"
+                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Показать</option>
+                    <option value="hide">Скрыть</option>
+                </Select>
+                <Input
+                    label="Длительность таймера, сек"
+                    type="number"
+                    min="5"
+                    max="180"
+                    value={screenQuiz.timerSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
+                    placeholder="Наследовать"
+                />
+                <Select
+                    label="Показ перед таймером"
+                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Включить</option>
+                    <option value="hide">Выключить</option>
+                </Select>
+                <Select
+                    label="Темп озвучивания"
+                    value={screenQuiz.introTiming || 'inherit'}
+                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто</option>
+                    <option value="fast">Быстро</option>
+                    <option value="calm">Спокойно</option>
+                    <option value="manual">Ручной</option>
+                </Select>
+                <Select
+                    label="Режим монтажной ленты"
+                    value={screenQuiz.timelineMode || 'inherit'}
+                    onChange={e => updateScreenQuiz({ timelineMode: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizTimelineMode })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто по шоу-ритму</option>
+                    <option value="timeline">Ручная монтажная лента</option>
+                </Select>
+                <Input
+                    label="Удержание перед таймером, сек"
+                    type="number"
+                    min="0"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.holdSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Раскрытие ответа, сек"
+                    type="number"
+                    min="0.3"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.revealSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Переход, мс"
+                    type="number"
+                    min="80"
+                    max="2000"
+                    step="20"
+                    value={screenQuiz.transitionMs ?? ''}
+                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
+                    placeholder="Наследовать"
+                />
             </SettingsSection>
             <SettingsSection title="Таймер">
                 <HelperText>Если время выйдет, произойдет переход по красной точке выхода внизу узла.</HelperText>
@@ -660,19 +942,24 @@ function getColorForCount(count: number, max: number): string {
     return '#ef4444';                         // red-500
 }
 
-const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<MultipleChoiceNodeData>, update: Function }) => {
+const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<MultipleChoiceNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '' } = data;
     const answers: Answer[] = data.answers ?? [];
     const correctOptions: string[] = data.correctOptions ?? [];
+    const screenQuiz = data.screenQuiz || {};
 
     const correctCount = correctOptions.length;
     const totalAnswers = answers.length;
 
-    const handleAnswerChange = (index: number, text: string) => {
+    const updateAnswer = (index: number, patch: Partial<Answer>) => {
         const newAnswers = [...answers];
-        newAnswers[index] = { ...newAnswers[index], text };
+        newAnswers[index] = { ...newAnswers[index], ...patch };
         update(id, { answers: newAnswers });
+    };
+
+    const handleAnswerChange = (index: number, text: string) => {
+        updateAnswer(index, { text });
     };
 
     const addAnswer = () => {
@@ -692,6 +979,17 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
             ? correctOptions.filter(id => id !== answerId)
             : [...correctOptions, answerId];
         update(id, { correctOptions: newCorrectOptions });
+    };
+
+    const updateScreenQuiz = (patch: Partial<NonNullable<MultipleChoiceNodeData['screenQuiz']>>) => {
+        const next = { ...screenQuiz, ...patch };
+        Object.keys(next).forEach((key) => {
+            const typedKey = key as keyof typeof next;
+            if (next[typedKey] === undefined || next[typedKey] === null || next[typedKey] === '') {
+                delete next[typedKey];
+            }
+        });
+        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
     };
 
     // Генерация превью выходов
@@ -732,12 +1030,11 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                     onChange={e => update(id, { imageUrl: e.target.value })}
                     placeholder="https://example.com/image.png"
                 />
-                <VideoUrlInput 
-                    label="Видео (RuTube)" 
+                <UrlInput 
+                    label="Видеофайл из медиатеки" 
                     value={data.videoUrl || ''} 
-                    isRequired={data.isRequiredWatch} 
-                    onRequiredChange={(val) => update(id, { isRequiredWatch: val })} 
                     onChange={e => update(id, { videoUrl: e.target.value })} 
+                    placeholder="https://.../video.mp4"
                 />
             </SettingsSection>
 
@@ -751,48 +1048,60 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                     {answers.map((ans, index) => (
                         <div 
                             key={ans.id} 
-                            className={`flex items-center gap-2 p-3 rounded-lg border transition-colors ${
+                            className={`p-3 rounded-lg border transition-colors ${
                                 correctOptions.includes(ans.id)
                                     ? 'bg-green-50 border-green-200'
                                     : 'bg-slate-50 border-slate-200'
                             }`}
                         >
-                            {/* Чекбокс */}
-                            <button
-                                onClick={() => toggleCorrect(ans.id)}
-                                className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                                    correctOptions.includes(ans.id)
-                                        ? 'bg-green-500 border-green-500 text-white'
-                                        : 'bg-white border-gray-300 hover:border-green-400'
-                                }`}
-                                title={correctOptions.includes(ans.id) ? 'Убрать из правильных' : 'Отметить как правильный'}
-                            >
-                                {correctOptions.includes(ans.id) && (
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            <div className="flex items-center gap-2">
+                                {/* Чекбокс */}
+                                <button
+                                    onClick={() => toggleCorrect(ans.id)}
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                        correctOptions.includes(ans.id)
+                                            ? 'bg-green-500 border-green-500 text-white'
+                                            : 'bg-white border-gray-300 hover:border-green-400'
+                                    }`}
+                                    title={correctOptions.includes(ans.id) ? 'Убрать из правильных' : 'Отметить как правильный'}
+                                >
+                                    {correctOptions.includes(ans.id) && (
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    )}
+                                </button>
+
+                                {/* Текст ответа */}
+                                <input
+                                    id={`multiple-choice-answer-text-${id}-${ans.id}`}
+                                    name={`multiple-choice-answer-text-${id}-${ans.id}`}
+                                    type="text"
+                                    value={ans.text}
+                                    onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                    className="flex-grow bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400"
+                                    placeholder="Текст варианта..."
+                                />
+
+                                {/* Кнопка удаления */}
+                                <button
+                                    onClick={() => removeAnswer(index)}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                                    title="Удалить вариант"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                                     </svg>
-                                )}
-                            </button>
-
-                            {/* Текст ответа */}
-                            <input
-                                type="text"
-                                value={ans.text}
-                                onChange={(e) => handleAnswerChange(index, e.target.value)}
-                                className="flex-grow bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400"
-                                placeholder="Текст варианта..."
-                            />
-
-                            {/* Кнопка удаления */}
-                            <button 
-                                onClick={() => removeAnswer(index)} 
-                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                                title="Удалить вариант"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                                </svg>
-                            </button>
+                                </button>
+                            </div>
+                            <div className="mt-3">
+                                <UrlInput
+                                    label="Изображение варианта"
+                                    value={ans.imageUrl || ''}
+                                    onChange={(e) => updateAnswer(index, { imageUrl: e.target.value })}
+                                    placeholder="URL или выберите из медиатеки"
+                                />
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -883,6 +1192,101 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                 </div>
             )}
 
+            <SettingsSection title="Экранная викторина">
+                <HelperText>Эти параметры применяются только к этому экрану множественного выбора. Значение "Наследовать" берет настройку из глобального дизайна шаблона.</HelperText>
+                <Select
+                    label="Композиция этого экрана"
+                    value={screenQuiz.layout || 'inherit'}
+                    onChange={e => updateScreenQuiz({ layout: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizLayout })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто</option>
+                    <option value="media-right">Медиа справа</option>
+                    <option value="media-left">Медиа слева</option>
+                    <option value="media-top">Медиа сверху</option>
+                    <option value="image-grid">Сетка изображений</option>
+                    <option value="question-only">Только вопрос</option>
+                    <option value="hero-media">Большое медиа</option>
+                </Select>
+                <Select
+                    label="Таймер на этом экране"
+                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Показать</option>
+                    <option value="hide">Скрыть</option>
+                </Select>
+                <Input
+                    label="Длительность таймера, сек"
+                    type="number"
+                    min="5"
+                    max="180"
+                    value={screenQuiz.timerSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
+                    placeholder="Наследовать"
+                />
+                <Select
+                    label="Показ перед таймером"
+                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Включить</option>
+                    <option value="hide">Выключить</option>
+                </Select>
+                <Select
+                    label="Темп озвучивания"
+                    value={screenQuiz.introTiming || 'inherit'}
+                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто</option>
+                    <option value="fast">Быстро</option>
+                    <option value="calm">Спокойно</option>
+                    <option value="manual">Ручной</option>
+                </Select>
+                <Select
+                    label="Режим монтажной ленты"
+                    value={screenQuiz.timelineMode || 'inherit'}
+                    onChange={e => updateScreenQuiz({ timelineMode: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizTimelineMode })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="auto">Авто по шоу-ритму</option>
+                    <option value="timeline">Ручная монтажная лента</option>
+                </Select>
+                <Input
+                    label="Удержание перед таймером, сек"
+                    type="number"
+                    min="0"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.holdSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Раскрытие ответа, сек"
+                    type="number"
+                    min="0.3"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.revealSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Переход, мс"
+                    type="number"
+                    min="80"
+                    max="2000"
+                    step="20"
+                    value={screenQuiz.transitionMs ?? ''}
+                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
+                    placeholder="Наследовать"
+                />
+            </SettingsSection>
+
             {/* Кнопка */}
             <SettingsSection title="Кнопка">
                 <Input 
@@ -897,7 +1301,7 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
         </div>
     );
 });
-const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData>, update: Function }) => {
+const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <div className="space-y-8">
@@ -913,8 +1317,19 @@ const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData
     );
 });
 
-const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: Function }) => {
+const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
+    const screenQuiz = data.screenQuiz || {};
+    const updateScreenQuiz = (patch: Partial<NonNullable<InfoNodeData['screenQuiz']>>) => {
+        const next = { ...screenQuiz, ...patch };
+        Object.keys(next).forEach((key) => {
+            if (next[key as keyof typeof next] === undefined) {
+                delete next[key as keyof typeof next];
+            }
+        });
+        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
+    };
+
     return (
         <div className="space-y-8">
             <SettingsSection title="Настройки информационного блока">
@@ -922,7 +1337,7 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                 <Textarea label="Описание" value={data.description || ''} onChange={e => update(id, { description: e.target.value })} rows={6} />
                 <MarkdownPreview text={data.description} />
                 <UrlInput label="Картинка" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} />
-                <VideoUrlInput label="Видео (RuTube)" value={data.videoUrl || ''} isRequired={data.isRequiredWatch} onRequiredChange={(val) => update(id, { isRequiredWatch: val })} onChange={e => update(id, { videoUrl: e.target.value })} />
+                <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
             </SettingsSection>
             <SettingsSection title="Фон узла">
@@ -933,12 +1348,63 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                     placeholder="Переопределить глобальный фон"
                 />
             </SettingsSection>
+            <SettingsSection title="Экранная викторина">
+                <HelperText>Локальные настройки этого информационного экрана в шаблоне "Экранная викторина".</HelperText>
+                <Select
+                    label="Таймер на этом экране"
+                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Показать</option>
+                    <option value="hide">Скрыть</option>
+                </Select>
+                <Input
+                    label="Длительность таймера, сек"
+                    type="number"
+                    min="5"
+                    max="180"
+                    value={screenQuiz.timerSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ timerSeconds: parseOptionalNumber(e.target.value, 5, 180, 30) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Удержание перед таймером, сек"
+                    type="number"
+                    min="0"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.holdSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Пауза после сцены, сек"
+                    type="number"
+                    min="0.3"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.revealSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Переход, мс"
+                    type="number"
+                    min="80"
+                    max="2000"
+                    step="20"
+                    value={screenQuiz.transitionMs ?? ''}
+                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
+                    placeholder="Наследовать"
+                />
+            </SettingsSection>
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
 
-const AchievementSettings = React.memo(({ node, update }: { node: Node<AchievementNodeData>, update: Function }) => {
+const AchievementSettings = React.memo(({ node, update }: { node: Node<AchievementNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Настройки достижения">
@@ -949,7 +1415,7 @@ const AchievementSettings = React.memo(({ node, update }: { node: Node<Achieveme
     );
 });
 
-const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>, update: Function }) => {
+const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Изменение очков">
@@ -963,7 +1429,7 @@ const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>,
     );
 });
 
-const VariableSettings = React.memo(({ node, update }: { node: Node<VariableNodeData>, update: Function }) => {
+const VariableSettings = React.memo(({ node, update }: { node: Node<VariableNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Работа с переменной">
@@ -980,7 +1446,7 @@ const VariableSettings = React.memo(({ node, update }: { node: Node<VariableNode
     );
 });
 
-const ConditionSettings = React.memo(({ node, update }: { node: Node<ConditionNodeData>, update: Function }) => {
+const ConditionSettings = React.memo(({ node, update }: { node: Node<ConditionNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <SettingsSection title="Настройка условия">
@@ -999,7 +1465,7 @@ const ConditionSettings = React.memo(({ node, update }: { node: Node<ConditionNo
     );
 });
 
-const GoToSettings = React.memo(({ node, update }: { node: Node<GoToNodeData>, update: Function }) => {
+const GoToSettings = React.memo(({ node, update }: { node: Node<GoToNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const nodeOptions = useDerivedNodes(
         (nodes) => nodes
@@ -1027,7 +1493,7 @@ const GoToSettings = React.memo(({ node, update }: { node: Node<GoToNodeData>, u
     );
 });
 
-const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>, update: Function }) => {
+const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const nodeOptions = useDerivedNodes(
         (nodes) => nodes
@@ -1075,7 +1541,7 @@ const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>,
     );
 });
 
-const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectInfoNodeData>, update: Function }) => {
+const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectInfoNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { title = '', description = '' } = data;
     const fields: FormField[] = data.fields ?? [];
@@ -1127,22 +1593,85 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
     );
 });
 
-const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: Function }) => {
+const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
+    const screenQuiz = data.screenQuiz || {};
+    const updateScreenQuiz = (patch: Partial<NonNullable<FeedbackNodeData['screenQuiz']>>) => {
+        const next = { ...screenQuiz, ...patch };
+        Object.keys(next).forEach((key) => {
+            if (next[key as keyof typeof next] === undefined) {
+                delete next[key as keyof typeof next];
+            }
+        });
+        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
+    };
+
     return (
         <div className="space-y-8">
             <SettingsSection title="Настройки сообщения">
                 <Input label="Заголовок (опционально)" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст сообщения" value={data.message || ''} onChange={e => update(id, { message: e.target.value })} rows={4} />
                 <UrlInput label="URL изображения (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} placeholder="https://example.com/image.png" />
+                <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
+            </SettingsSection>
+            <SettingsSection title="Экранная викторина">
+                <HelperText>Локальные настройки этого экрана обратной связи в шаблоне "Экранная викторина".</HelperText>
+                <Select
+                    label="Таймер на этом экране"
+                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
+                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
+                >
+                    <option value="inherit">Наследовать</option>
+                    <option value="show">Показать</option>
+                    <option value="hide">Скрыть</option>
+                </Select>
+                <Input
+                    label="Длительность таймера, сек"
+                    type="number"
+                    min="5"
+                    max="180"
+                    value={screenQuiz.timerSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ timerSeconds: parseOptionalNumber(e.target.value, 5, 180, 30) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Удержание перед таймером, сек"
+                    type="number"
+                    min="0"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.holdSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Пауза после сцены, сек"
+                    type="number"
+                    min="0.3"
+                    max="8"
+                    step="0.1"
+                    value={screenQuiz.revealSeconds ?? ''}
+                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
+                    placeholder="Наследовать"
+                />
+                <Input
+                    label="Переход, мс"
+                    type="number"
+                    min="80"
+                    max="2000"
+                    step="20"
+                    value={screenQuiz.transitionMs ?? ''}
+                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
+                    placeholder="Наследовать"
+                />
             </SettingsSection>
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
 
-const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNodeData>, update: Function }) => {
+const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '' } = data;
     const events: TimelineEvent[] = data.events ?? [];
@@ -1186,6 +1715,8 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
                                 <button onClick={() => moveEvent(index, 'down')} disabled={index === events.length - 1} className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed">▼</button>
                             </div>
                             <input
+                                id={`sort-event-text-${id}-${event.id}`}
+                                name={`sort-event-text-${id}-${event.id}`}
                                 type="text"
                                 value={event.text}
                                 onChange={(e) => handleEventTextChange(index, e.target.value)}
@@ -1210,7 +1741,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
     );
 });
 
-const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNodeData>, update: Function }) => {
+const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { question = '' } = data;
     const leftColumn: MatchColumnItem[] = data.leftColumn ?? [];
@@ -1218,20 +1749,25 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     const correctPairs: MatchPair[] = data.correctPairs ?? [];
 
     const handleColumnChange = (columnIndex: 'leftColumn' | 'rightColumn', itemIndex: number, prop: 'text' | 'imageUrl', value: string) => {
-        const newColumn = [...data[columnIndex]];
+        const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
+        const newColumn = [...column];
+        if (!newColumn[itemIndex]) return;
         newColumn[itemIndex] = { ...newColumn[itemIndex], [prop]: value };
         update(id, { [columnIndex]: newColumn });
     };
 
     const addColumnItem = (columnIndex: 'leftColumn' | 'rightColumn') => {
         const prefix = columnIndex === 'leftColumn' ? 'l' : 'r';
-        const newItem: MatchColumnItem = { id: `${prefix}-${Date.now()}`, text: `Элемент ${data[columnIndex].length + 1}`, imageUrl: '' };
-        update(id, { [columnIndex]: [...data[columnIndex], newItem] });
+        const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
+        const newItem: MatchColumnItem = { id: `${prefix}-${Date.now()}`, text: `Элемент ${column.length + 1}`, imageUrl: '' };
+        update(id, { [columnIndex]: [...column, newItem] });
     };
 
     const removeColumnItem = (columnIndex: 'leftColumn' | 'rightColumn', itemIndex: number) => {
-        const itemIdToRemove = data[columnIndex][itemIndex].id;
-        const newColumn = data[columnIndex].filter((_: MatchColumnItem, i: number) => i !== itemIndex);
+        const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
+        const itemIdToRemove = column[itemIndex]?.id;
+        if (!itemIdToRemove) return;
+        const newColumn = column.filter((_: MatchColumnItem, i: number) => i !== itemIndex);
         const newPairs = correctPairs.filter(p => p.leftId !== itemIdToRemove && p.rightId !== itemIdToRemove);
         update(id, { [columnIndex]: newColumn, correctPairs: newPairs });
     };
@@ -1272,7 +1808,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
                         <UrlInput
                             label="URL изображения (необязательно)"
                             value={item.imageUrl || ''}
-                            onChange={(e: any) => handleColumnChange(key, index, 'imageUrl', e.target.value)}
+                            onChange={(e) => handleColumnChange(key, index, 'imageUrl', e.target.value)}
                         />
                         <button onClick={() => removeColumnItem(key, index)} className="w-full text-xs text-red-600 hover:text-red-800 font-medium pt-3 border-t border-gray-200 text-left">Удалить элемент</button>
                     </div>
@@ -1298,12 +1834,12 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
                 <div className="space-y-2">
                     {correctPairs.map((pair, index) => (
                         <div key={index} className="flex items-center gap-2 p-2 bg-white border border-gray-200/80 rounded-lg">
-                            <select value={pair.leftId} onChange={(e) => handlePairChange(index, 'leftId', e.target.value)} className="w-full bg-slate-50 border-slate-200/80 rounded-md text-xs py-2 px-2 text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <select id={`matching-pair-left-${id}-${index}`} name={`matching-pair-left-${id}-${index}`} value={pair.leftId} onChange={(e) => handlePairChange(index, 'leftId', e.target.value)} className="w-full bg-slate-50 border-slate-200/80 rounded-md text-xs py-2 px-2 text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <option value="">-- Лево --</option>
                                 {leftColumn.map(item => <option key={item.id} value={item.id}>{item.text || 'Изображение'}</option>)}
                             </select>
                             <span className="text-gray-400 font-bold">=</span>
-                            <select value={pair.rightId} onChange={(e) => handlePairChange(index, 'rightId', e.target.value)} className="w-full bg-slate-50 border-slate-200/80 rounded-md text-xs py-2 px-2 text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <select id={`matching-pair-right-${id}-${index}`} name={`matching-pair-right-${id}-${index}`} value={pair.rightId} onChange={(e) => handlePairChange(index, 'rightId', e.target.value)} className="w-full bg-slate-50 border-slate-200/80 rounded-md text-xs py-2 px-2 text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <option value="">-- Право --</option>
                                 {rightColumn.map(item => <option key={item.id} value={item.id}>{item.text || 'Изображение'}</option>)}
                             </select>
@@ -1324,7 +1860,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     );
 });
 
-const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNodeData>, update: Function }) => {
+const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     return (
         <div className="space-y-8">
@@ -1343,7 +1879,7 @@ const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNo
     );
 });
 
-const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNodeData>, update: Function }) => {
+const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
     const { maxTotal = 100 } = data;
     const items: AllocatorItem[] = data.items ?? [];
@@ -1360,7 +1896,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
 
     const removeItem = (idx: number) => update(id, { items: items.filter((_, i) => i !== idx) });
 
-    const updateItem = (idx: number, field: string, value: any) => {
+    const updateItem = (idx: number, field: keyof AllocatorItem, value: AllocatorItem[keyof AllocatorItem]) => {
         const newItems = [...items];
         newItems[idx] = { ...newItems[idx], [field]: value };
         update(id, { items: newItems });
@@ -1404,7 +1940,7 @@ const MOOD_OPTIONS = [
     { value: 'mysterious', label: 'Таинственный', emoji: '🤔', color: 'bg-purple-100 text-purple-700' },
 ];
 
-const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: any }> = React.memo(({ node, update }) => {
+const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: UpdateNodeData }> = React.memo(({ node, update }) => {
     const { data, id } = node;
     const currentMood = MOOD_OPTIONS.find(m => m.value === (data.mood || 'neutral')) || MOOD_OPTIONS[0];
 
@@ -1472,12 +2008,12 @@ const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: any }> 
             </SettingsSection>
 
             <SettingsSection title="Оформление">
-                <Select label="Настроение персонажа" value={data.mood || 'neutral'} onChange={e => update(id, { mood: e.target.value })}>
+                <Select label="Настроение персонажа" value={data.mood || 'neutral'} onChange={e => update(id, { mood: e.target.value as NonNullable<DialogueNodeData['mood']> })}>
                     {MOOD_OPTIONS.map(m => (
                         <option key={m.value} value={m.value}>{m.emoji} {m.label}</option>
                     ))}
                 </Select>
-                <Select label="Выравнивание текста" value={data.textAlign || 'left'} onChange={e => update(id, { textAlign: e.target.value })}>
+                <Select label="Выравнивание текста" value={data.textAlign || 'left'} onChange={e => update(id, { textAlign: e.target.value as NonNullable<DialogueNodeData['textAlign']> })}>
                     <option value="left">По левому краю</option>
                     <option value="center">По центру</option>
                 </Select>

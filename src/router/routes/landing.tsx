@@ -2,7 +2,6 @@ import { createRoute, redirect } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { z } from 'zod';
 import { Route as publicShellRoute } from './publicShell';
-import { useAuthStore } from '../../../store/useAuthStore';
 import { useUIStore } from '../../../store/useUIStore';
 import LandingPage from '../../../components/LandingPage';
 

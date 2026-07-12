@@ -52,5 +52,10 @@ export async function cancelSubscription(): Promise<{
   current_period_end: string;
   cancel_at_period_end: true;
 }> {
-  return await api.cancelSubscription() as any;
+  const result = await api.cancelSubscription();
+  return {
+    ok: true,
+    current_period_end: result.current_period_end,
+    cancel_at_period_end: true,
+  };
 }

@@ -7,6 +7,14 @@ interface Props {
   isLoading: boolean; // Kept for prop compatibility, but not used
 }
 
+function htmlKey(html: string): string {
+  let hash = 0;
+  for (let i = 0; i < html.length; i += 1) {
+    hash = (hash * 31 + html.charCodeAt(i)) | 0;
+  }
+  return `${html.length}-${hash}`;
+}
+
 const HtmlPreviewModal: React.FC<Props> = ({ isOpen, onClose, htmlContent }) => {
   if (!isOpen) return null;
 
@@ -22,6 +30,7 @@ const HtmlPreviewModal: React.FC<Props> = ({ isOpen, onClose, htmlContent }) => 
         </div>
         <div className="flex-grow bg-gray-100 border border-gray-200 rounded-lg overflow-hidden relative">
             <iframe
+              key={htmlKey(htmlContent)}
               srcDoc={htmlContent}
               title="Quiz Preview"
               className="w-full h-full border-0"

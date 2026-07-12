@@ -1,4 +1,4 @@
-import type { QuizState, PathEntry } from './types';
+import type { QuizState } from './types';
 import { MAX_PATH_LENGTH } from './constants';
 
 // ===== ЕДИНСТВЕННАЯ ТОЧКА МУТАЦИИ STATE =====

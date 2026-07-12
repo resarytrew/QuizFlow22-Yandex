@@ -57,27 +57,30 @@ if (-not (Test-Path $DistDir)) {
     throw "$DistDir not found. Build step failed."
 }
 
-Write-Host "==> Syncing immutable assets (cache 1y) to s3://$($env:YC_BUCKET)"
-aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 sync "$DistDir" "s3://$env:YC_BUCKET" `
+Write-Host "==> Syncing immutable hashed assets (cache 1y) to s3://$($env:YC_BUCKET)/assets"
+aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 sync "$DistDir/assets" "s3://$env:YC_BUCKET/assets" `
     --delete `
-    --exclude "*" `
-    --include "assets/*" `
-    --include "*.js" `
-    --include "*.css" `
-    --include "*.woff" `
-    --include "*.woff2" `
-    --include "*.png" `
-    --include "*.jpg" `
-    --include "*.svg" `
     --cache-control "public, max-age=31536000, immutable"
 if ($LASTEXITCODE -ne 0) { throw "aws s3 sync (assets) failed" }
 
-Write-Host "==> Syncing HTML and root files (no-cache)"
-aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 sync "$DistDir" "s3://$env:YC_BUCKET" `
-    --delete `
-    --exclude "assets/*" `
-    --cache-control "public, max-age=0, must-revalidate"
-if ($LASTEXITCODE -ne 0) { throw "aws s3 sync (root) failed" }
+Write-Host "==> Uploading immutable root assets (cache 1y)"
+$immutableRootExtensions = @('.js', '.css', '.woff', '.woff2', '.png', '.jpg', '.jpeg', '.svg', '.webp', '.ico')
+Get-ChildItem -Path $DistDir -File | Where-Object {
+    $immutableRootExtensions -contains $_.Extension.ToLowerInvariant()
+} | ForEach-Object {
+    aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 cp $_.FullName "s3://$env:YC_BUCKET/$($_.Name)" `
+        --cache-control "public, max-age=31536000, immutable"
+    if ($LASTEXITCODE -ne 0) { throw "aws s3 cp (immutable root asset $($_.Name)) failed" }
+}
+
+Write-Host "==> Uploading HTML and root files (no-cache)"
+Get-ChildItem -Path $DistDir -File | Where-Object {
+    -not ($immutableRootExtensions -contains $_.Extension.ToLowerInvariant())
+} | ForEach-Object {
+    aws --endpoint-url="$env:YC_S3_ENDPOINT" s3 cp $_.FullName "s3://$env:YC_BUCKET/$($_.Name)" `
+        --cache-control "public, max-age=0, must-revalidate"
+    if ($LASTEXITCODE -ne 0) { throw "aws s3 cp (root file $($_.Name)) failed" }
+}
 
 Write-Host "==> Applying website configuration"
 aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-website `
@@ -90,6 +93,19 @@ aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-cors `
     --bucket "$env:YC_BUCKET" `
     --cors-configuration "file://$ScriptDir/yandex-cloud/cors-config.json"
 if ($LASTEXITCODE -ne 0) { throw "put-bucket-cors failed" }
+
+$mediaBucket = $env:S3_BUCKET
+if ([string]::IsNullOrEmpty($mediaBucket) -or $mediaBucket -eq 'potok-quiz-assets') {
+    $mediaBucket = $env:YC_BUCKET
+}
+
+if (-not [string]::IsNullOrEmpty($mediaBucket)) {
+    Write-Host "==> Applying media bucket CORS configuration"
+    aws --endpoint-url="$env:YC_S3_ENDPOINT" s3api put-bucket-cors `
+        --bucket "$mediaBucket" `
+        --cors-configuration "file://$ScriptDir/yandex-cloud/assets-cors-config.json"
+    if ($LASTEXITCODE -ne 0) { throw "put-bucket-cors for media bucket failed" }
+}
 
 if (-not [string]::IsNullOrEmpty($env:YC_CDN_RESOURCE_ID)) {
     $yc = Get-Command yc -ErrorAction SilentlyContinue

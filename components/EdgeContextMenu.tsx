@@ -17,6 +17,17 @@ type EffectPreset = {
   category: PresetCategory;
   effect: Effect;
 };
+type CanvasState = ReturnType<typeof useCanvasStore.getState>;
+type CanvasNode = CanvasState['nodes'][number];
+type CanvasEdge = CanvasState['edges'][number];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isPresetCategory(value: unknown): value is PresetCategory {
+  return value === 'resources' || value === 'progress' || value === 'penalty' || value === 'custom';
+}
 
 const safeUUID = () =>
   (globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -24,15 +35,18 @@ const safeUUID = () =>
 const loadPresets = (): EffectPreset[] => {
   try {
     const raw = localStorage.getItem(PRESETS_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
     // backward compat: presets without category
-    return parsed.map((p: any) => ({
-      id: String(p.id || safeUUID()),
-      title: String(p.title || 'Preset'),
-      category: (p.category as PresetCategory) || 'custom',
-      effect: p.effect,
-    }));
+    return parsed.map((p) => {
+      const record = isRecord(p) ? p : {};
+      return {
+      id: String(record.id || safeUUID()),
+      title: String(record.title || 'Preset'),
+      category: isPresetCategory(record.category) ? record.category : 'custom',
+      effect: record.effect as Effect,
+      };
+    });
   } catch {
     return [];
   }
@@ -73,27 +87,28 @@ const opLabels: Record<EffectOp, string> = {
   subtract: 'Вычесть',
 };
 
-const extractVariableSuggestions = (nodes: any[], edges: any[]): string[] => {
+const extractVariableSuggestions = (nodes: CanvasNode[], edges: CanvasEdge[]): string[] => {
   const vars = new Set<string>(['score', 'xp', 'correctCount', 'mistakes', 'reputation']);
 
-  nodes.forEach((n: any) => {
-    if (n.type === 'variableNode' && n.data?.variableName) vars.add(String(n.data.variableName));
+  nodes.forEach((n) => {
+    const data = (n.data ?? {}) as Record<string, unknown>;
+    if (n.type === 'variableNode' && data.variableName) vars.add(String(data.variableName));
     if (n.type === 'scoreNode') vars.add('score');
-    if (n.type === 'collectInfoNode' && Array.isArray(n.data?.fields)) {
-      n.data.fields.forEach((f: any) => f?.variableName && vars.add(String(f.variableName)));
+    if (n.type === 'collectInfoNode' && Array.isArray(data.fields)) {
+      data.fields.forEach((f) => isRecord(f) && f.variableName && vars.add(String(f.variableName)));
     }
-    if (n.type === 'allocatorNode' && Array.isArray(n.data?.items)) {
-      n.data.items.forEach((it: any) => it?.variableName && vars.add(String(it.variableName)));
+    if (n.type === 'allocatorNode' && Array.isArray(data.items)) {
+      data.items.forEach((it) => isRecord(it) && it.variableName && vars.add(String(it.variableName)));
     }
-    if (n.type === 'multipleChoiceNode' && n.data?.variableName) {
-      vars.add(String(n.data.variableName));
+    if (n.type === 'multipleChoiceNode' && data.variableName) {
+      vars.add(String(data.variableName));
     }
   });
 
-  edges.forEach((e: any) => {
+  edges.forEach((e) => {
     const effs = e?.data?.effects;
     if (!Array.isArray(effs)) return;
-    effs.forEach((eff: any) => eff?.variableName && vars.add(String(eff.variableName)));
+    effs.forEach((eff) => isRecord(eff) && eff.variableName && vars.add(String(eff.variableName)));
   });
 
   return Array.from(vars).sort((a, b) => a.localeCompare(b));
@@ -106,7 +121,7 @@ const useVariableSuggestions = (): string[] => {
   );
 
   React.useEffect(() => {
-    return useCanvasStore.subscribe((state: any) => {
+    return useCanvasStore.subscribe((state) => {
       const next = computeRef.current(state.nodes, state.edges);
       setSuggestions(prev => {
         if (prev.length !== next.length) return next;
@@ -119,7 +134,7 @@ const useVariableSuggestions = (): string[] => {
 };
 
 const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClose, onDelete }) => {
-  const edge = useCanvasStore(s => s.edges.find((e: any) => e.id === id));
+  const edge = useCanvasStore(s => s.edges.find((e) => e.id === id));
   const updateEdgeData = useCanvasStore(s => s.updateEdgeData);
   const collapseVariableChainToEffects = useCanvasStore(s => s.collapseVariableChainToEffects);
 
@@ -176,8 +191,6 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isDirty, onClose]);
-
-  if (!edge) return null;
 
   // =========================
   // Helpers
@@ -251,6 +264,8 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
       .filter((p) => (presetCategory === 'all' ? true : p.category === presetCategory))
       .filter((p) => (q ? p.title.toLowerCase().includes(q) : true));
   }, [presets, presetQuery, presetCategory]);
+
+  if (!edge) return null;
 
   const addPresetToEdge = (preset: EffectPreset) => {
     const eff = { ...preset.effect };
@@ -346,7 +361,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
         {/* Label */}
         <div className="border-t border-gray-200/75 pt-3 space-y-2">
           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Метка связи</div>
-          <input
+          <input name="components-edgecontextmenu-349-input"
             className="w-full bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
             value={draftLabel}
             onChange={(e) => {
@@ -366,16 +381,19 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
 
           {/* Search + category */}
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <input name="components-edgecontextmenu-369-input"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetQuery}
               onChange={(e) => setPresetQuery(e.target.value)}
               placeholder="Поиск пресета…"
             />
-            <select
+            <select name="components-edgecontextmenu-375-select"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetCategory}
-              onChange={(e) => setPresetCategory(e.target.value as any)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setPresetCategory(next === 'all' || isPresetCategory(next) ? next : 'all');
+              }}
             >
               <option value="all">Все</option>
               <option value="resources">Ресурсы</option>
@@ -463,13 +481,13 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
 
           {/* Preset title + category */}
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <input name="components-edgecontextmenu-466-input"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetTitle}
               onChange={(e) => setPresetTitle(e.target.value)}
               placeholder="Название для пресета (необязательно)"
             />
-            <select
+            <select name="components-edgecontextmenu-472-select"
               className="bg-slate-50 border border-slate-200/80 rounded-lg py-2 px-3 text-sm"
               value={presetNewCategory}
               onChange={(e) => setPresetNewCategory(e.target.value as PresetCategory)}
@@ -536,14 +554,14 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
               {draftEffects.map((eff, idx) => (
                 <div key={idx} className="bg-slate-50 border border-slate-200/80 rounded-lg p-2 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
-                    <input
+                    <input name="components-edgecontextmenu-539-input"
                       className="bg-white border border-slate-200 rounded-md px-2 py-1.5 text-sm"
                       value={eff.variableName}
                       onChange={(e) => updateEffect(idx, { variableName: e.target.value })}
                       placeholder="variableName (например xp)"
                       list="var-suggestions"
                     />
-                    <select
+                    <select name="components-edgecontextmenu-546-select"
                       className="bg-white border border-slate-200 rounded-md px-2 py-1.5 text-sm"
                       value={eff.op}
                       onChange={(e) => updateEffect(idx, { op: e.target.value as EffectOp })}
@@ -555,7 +573,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
                   </div>
 
                   <div className="flex gap-2 items-center">
-                    <input
+                    <input name="components-edgecontextmenu-558-input"
                       className="flex-1 bg-white border border-slate-200 rounded-md px-2 py-1.5 text-sm"
                       value={String(eff.value ?? '')}
                       onChange={(e) => {

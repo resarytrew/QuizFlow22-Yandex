@@ -104,6 +104,8 @@ const Header: React.FC = () => {
     <>
       {/* ✅ INPUT FILE ВЫНЕСЕН НАРУЖУ - ВСЕГДА В DOM */}
       <input
+        id="quiz-json-import"
+        name="quiz-json-import"
         type="file"
         ref={controller.fileInputRef}
         onChange={controller.handleFileChange}
@@ -212,6 +214,8 @@ const Header: React.FC = () => {
               />
             </svg>
             <input
+              id="current-quiz-name"
+              name="current-quiz-name"
               type="text"
               value={currentQuizName}
               onChange={(e) => setCurrentQuizName(e.target.value)}
@@ -254,6 +258,7 @@ const Header: React.FC = () => {
                 onImportJson={controller.handleImportClick}
                 onExportJson={controller.handleExportJson}
                 onGenerateHtml={controller.handleGenerate}
+                onExportMp4={controller.handleExportMp4}
                 onClearCanvas={() =>
                   controller.setIsConfirmClearModalOpen(true)
                 }

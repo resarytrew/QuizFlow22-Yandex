@@ -66,7 +66,9 @@ export function safeCssUrl(input: unknown, base?: string): string | null {
 // ===== HTML SANITIZATION =====
 
 export function sanitizeHtml(html: string): string {
-  const dp = typeof window !== "undefined" ? (window as any).DOMPurify : null;
+  const dp = typeof window !== "undefined"
+    ? (window as Window & { DOMPurify?: { sanitize: (html: string, options: Record<string, unknown>) => string } }).DOMPurify
+    : null;
 
   if (dp && typeof dp.sanitize === "function") {
     return dp.sanitize(html, {

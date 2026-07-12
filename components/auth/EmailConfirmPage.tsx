@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import type { EmailOtpType } from '@supabase/supabase-js';
 import { Route } from '@/src/router/routes/authConfirm';
 import { supabase, isSupabaseReady } from '../../services/supabaseClient';
 import { useAuthStore } from '../../store/useAuthStore';
+
+const isEmailOtpType = (value: string): value is EmailOtpType =>
+  ['signup', 'invite', 'magiclink', 'recovery', 'email_change', 'email'].includes(value);
 
 const EmailConfirmPage: React.FC = () => {
   const { code, token_hash, type, error, error_description } = Route.useSearch();
@@ -60,10 +64,15 @@ const EmailConfirmPage: React.FC = () => {
           setMessage(e instanceof Error ? e.message : 'Неизвестная ошибка');
         }
       } else if (token_hash && type) {
+        if (!isEmailOtpType(type)) {
+          setStatus('error');
+          setMessage('Неизвестный тип подтверждения email');
+          return;
+        }
         try {
           const { error: verifyError } = await supabase.auth.verifyOtp({
             token_hash,
-            type: type as any,
+            type,
           });
           if (cancelled) return;
           if (verifyError) {

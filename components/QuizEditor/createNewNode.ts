@@ -1,7 +1,7 @@
 import type { Node } from 'reactflow';
 import { CustomNodeType, NodeData } from '../../types';
 
-type FlowNode<T = any> = Node<T>;
+type FlowNode<T = NodeData> = Node<T>;
 
 export interface QuickAddPos {
     screen: { x: number; y: number };

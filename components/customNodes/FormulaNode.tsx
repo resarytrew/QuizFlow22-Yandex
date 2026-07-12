@@ -1,10 +1,8 @@
-
+﻿
 import React from 'react';
+import type { NodeProps } from 'reactflow';
 import BaseNode from './BaseNode.tsx';
 import { FormulaNodeData } from '../../types.ts';
-
-// Mock types
-type NodeProps<T = any> = any;
 
 const FormulaNode: React.FC<NodeProps<FormulaNodeData>> = (props) => {
   const { data } = props;

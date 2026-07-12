@@ -42,8 +42,8 @@ const AdminFinancesPage: React.FC = () => {
           <p className="mt-3 text-sm text-white/50">Платежи ЮKassa, возвраты и активные подписки.</p>
         </div>
         <form onSubmit={submit} className="flex w-full max-w-2xl gap-2 rounded-full border border-white/10 bg-white/[0.06] p-2">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID платежа или описание" className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none" />
-          <select value={status} onChange={(e) => { setStatus(e.target.value as PaymentStatus | 'all'); setPage(1); }} className="rounded-full border border-white/10 bg-black/40 px-4 text-sm">
+          <input name="components-admin-adminfinancespage-45-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID платежа или описание" className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none" />
+          <select name="components-admin-adminfinancespage-46-select" value={status} onChange={(e) => { setStatus(e.target.value as PaymentStatus | 'all'); setPage(1); }} className="rounded-full border border-white/10 bg-black/40 px-4 text-sm">
             <option value="all">Все статусы</option>
             {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
