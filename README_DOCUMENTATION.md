@@ -2212,7 +2212,7 @@ yc iam access-key create --service-account-name quiz-deployer
 yc storage bucket create --name <project>-static
 
 # (Опц.) Включить static website hosting
-yc storage bucket update --name <project>-static --website-settings '{"index": "index.html", "error": "index.html"}'
+yc storage bucket update --name <project>-static --website-settings '{"index": "index.html", "error": "404.html"}'
 ```
 
 #### 2. Подключить CDN (опц.)

@@ -131,7 +131,8 @@ describe('featured quiz full-version access', () => {
 describe('landing navigation', () => {
   it('follows the visible section order and includes pricing', () => {
     expect(LANDING_NAV_ITEMS).toEqual([
-      { label: 'Лучшие квизы', target: 'templates' },
+      { label: 'Решения', target: 'solutions' },
+      { label: 'Примеры', target: 'templates' },
       { label: 'Возможности', target: 'features' },
       { label: 'Лаборатория', target: 'scenario-lab' },
       { label: 'Об авторе', target: 'author' },

@@ -1,10 +1,29 @@
+# Search and AI discovery are allowed on public content.
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /editor/
+Disallow: /dashboard/
+Disallow: /billing/
+Disallow: /admin/
+Disallow: /play/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /editor/
+Disallow: /dashboard/
+Disallow: /billing/
+Disallow: /admin/
+Disallow: /play/
+
 User-agent: *
+Allow: /
 Disallow: /editor/
 Disallow: /dashboard/
 Disallow: /billing/
 Disallow: /admin/
 Disallow: /settings/
 Disallow: /play/
+Disallow: /auth/
 Disallow: /__quiz_engine.js
 
 Sitemap: https://mykviz.ru/sitemap.xml

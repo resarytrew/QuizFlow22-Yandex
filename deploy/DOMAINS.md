@@ -58,8 +58,8 @@ Automatic renewal always uses the primary domain.
 Check both domains after DNS propagation:
 
 1. HTTPS certificate is valid.
-2. `/` and hash routes such as `/#/dashboard` load the same build.
+2. `/`, `/docs/`, `/templates/` and `/solutions/.../` return their prerendered HTML; application routes such as `/dashboard` load the noindex SPA fallback.
 3. Sign up, sign in, password reset, and email confirmation work.
 4. AI requests have no CORS errors.
 5. YooKassa checkout returns to the application.
-6. `index.html` is not cached permanently; hashed assets are immutable.
+6. HTML files and `404.html` are not cached permanently; hashed assets are immutable.

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DOCUMENTATION, DocBlock } from '../data/documentationData.ts';
@@ -19,7 +19,11 @@ const getPageText = (blocks: DocBlock[]): string =>
 
 const normalize = (value: string): string => value.toLowerCase().trim();
 
-const getInitialPageId = (): string => allPages[0]?.id ?? 'introduction';
+const getInitialPageId = (pathname = ''): string => {
+  const routePageId = pathname.match(/^\/docs\/([^/]+)\/?$/)?.[1];
+  if (routePageId && allPages.some((page) => page.id === routePageId)) return routePageId;
+  return allPages[0]?.id ?? 'introduction';
+};
 
 const CodeBlock: React.FC<{ code: string; language?: string }> = ({ code, language }) => {
   const [copied, setCopied] = useState(false);
@@ -182,7 +186,9 @@ const ContentRenderer: React.FC<{ blocks: DocBlock[] }> = ({ blocks }) => (
 );
 
 const Documentation: React.FC = () => {
-  const [activePageId, setActivePageId] = useState(getInitialPageId);
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [activePageId, setActivePageId] = useState(() => getInitialPageId(pathname));
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -214,7 +220,12 @@ const Documentation: React.FC = () => {
   const setPage = (pageId: string) => {
     setActivePageId(pageId);
     setSearchQuery('');
+    void navigate({ to: '/docs/$docId', params: { docId: pageId } });
   };
+
+  useEffect(() => {
+    setActivePageId(getInitialPageId(pathname));
+  }, [pathname]);
 
   useEffect(() => {
     window.scrollTo(0, 0);

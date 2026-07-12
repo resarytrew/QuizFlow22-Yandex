@@ -106,4 +106,7 @@ if [ -n "${YC_CDN_RESOURCE_ID:-}" ] && command -v yc >/dev/null 2>&1; then
   yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --path '/*'
 fi
 
+echo "==> Notifying IndexNow about deployed SEO pages"
+node scripts/submit-indexnow.mjs
+
 echo "==> Done. Site URL: https://$YC_BUCKET.website.yandexcloud.net"

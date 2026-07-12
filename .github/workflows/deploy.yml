@@ -3,6 +3,9 @@ name: Deploy to Yandex Cloud
 on:
   push:
     branches: [main]
+  schedule:
+    # Refresh prerendered public scenarios and sitemap every night (05:15 MSK).
+    - cron: '15 2 * * *'
   workflow_dispatch:
     inputs:
       deploy_functions:
@@ -58,6 +61,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_YANDEX_METRIKA_ID: ${{ vars.VITE_YANDEX_METRIKA_ID }}
         run: npm run build
 
       - name: Configure AWS credentials for Yandex Object Storage
@@ -146,6 +150,9 @@ jobs:
           YC_CDN_RESOURCE_ID: ${{ secrets.YC_CDN_RESOURCE_ID }}
         run: |
           yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --path '/*'
+
+      - name: Notify IndexNow about deployed SEO pages
+        run: node scripts/submit-indexnow.mjs
 
   deploy-functions:
     runs-on: ubuntu-latest

@@ -115,4 +115,7 @@ if (-not [string]::IsNullOrEmpty($env:YC_CDN_RESOURCE_ID)) {
     }
 }
 
+Write-Host "==> Notifying IndexNow about deployed SEO pages"
+node scripts/submit-indexnow.mjs
+
 Write-Host "==> Done. Site URL: https://$env:YC_BUCKET.website.yandexcloud.net"
