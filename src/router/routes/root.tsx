@@ -12,6 +12,8 @@ import { useAutosaveStore } from '../../../store/useAutosaveStore';
 import { useQuizDataStore } from '../../../store/useQuizDataStore';
 import PreferencesApplicator from '../../../components/PreferencesApplicator';
 import { AppErrorBoundary } from '../../../components/AppErrorBoundary';
+import SeoRouteHead from '../../seo/SeoRouteHead';
+import SeoAnalytics from '../../seo/SeoAnalytics';
 
 // ─── Router Context ───────────────────────────────────────────────────────────
 // Передаётся в RouterProvider и доступен в beforeLoad/loader каждого маршрута.
@@ -59,7 +61,7 @@ function RootLayout() {
   useEffect(() => {
     if (!session) return;
     const interval = window.setInterval(() => {
-      if (window.location.hash.startsWith('#/editor')) {
+      if (window.location.pathname.startsWith('/editor')) {
         autosaveCurrentQuiz();
       }
     }, 2 * 60 * 1000);
@@ -68,6 +70,8 @@ function RootLayout() {
 
   return (
     <AppErrorBoundary>
+      <SeoRouteHead />
+      <SeoAnalytics />
       <PreferencesApplicator />
       <Toaster
           position="top-center"

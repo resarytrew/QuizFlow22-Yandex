@@ -8,9 +8,12 @@ import { Route as editorShellRoute } from './routes/editorShell';
 // Public surface (внутри __publicShell)
 import { Route as landingRoute } from './routes/landing';
 import { Route as docsRoute } from './routes/docs';
+import { Route as docArticleRoute } from './routes/docArticle';
 import { Route as guideRoute } from './routes/guide';
 import { Route as templatesRoute } from './routes/templates';
 import { Route as publicQuizzesRoute } from './routes/publicQuizzes';
+import { Route as publicScenarioRoute } from './routes/publicScenario';
+import { Route as solutionRoute } from './routes/solution';
 import { Route as welcomeRoute } from './routes/welcome';
 import { Route as contestRoute } from './routes/contest';
 import { Route as contestIndexRoute } from './routes/contestIndex';
@@ -54,9 +57,12 @@ export const routeTree = rootRoute.addChildren([
   publicShellRoute.addChildren([
     landingRoute,
     docsRoute,
+    docArticleRoute,
     guideRoute,
     templatesRoute,
     publicQuizzesRoute,
+    publicScenarioRoute,
+    solutionRoute,
     welcomeRoute,
     contestRoute.addChildren([
       contestIndexRoute,

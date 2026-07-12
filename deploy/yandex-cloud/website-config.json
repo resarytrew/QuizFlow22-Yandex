@@ -3,6 +3,6 @@
     "Suffix": "index.html"
   },
   "ErrorDocument": {
-    "Key": "index.html"
+    "Key": "404.html"
   }
 }

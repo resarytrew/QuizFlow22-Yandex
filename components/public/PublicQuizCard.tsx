@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useUIStore } from '../../store/useUIStore';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 import GalleryCard from '../ui/GalleryCard.tsx';
+import { Link } from '@tanstack/react-router';
 
 interface Props {
   quiz: PublicQuiz;
@@ -46,15 +47,6 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const setAuthModalOpen = useUIStore(s => s.setAuthModalOpen);
   const cloneAndEditPublicQuiz = useQuizDataStore(s => s.cloneAndEditPublicQuiz);
 
-  const getPlayUrl = (quizId: string) => {
-    // See ShareModal.tsx for why ?play=<id> is preferred over #/play/<id>.
-    const url = new URL(window.location.origin);
-    url.pathname = '/play.html';
-    url.search = `?play=${encodeURIComponent(quizId)}`;
-    url.hash = '';
-    return url.toString();
-  };
-
   const handleCopy = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -85,10 +77,9 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
 
   return (
     <GalleryCard className="flex flex-col h-full">
-      <a
-        href={getPlayUrl(quiz.id)}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        to="/scenarios/$quizId"
+        params={{ quizId: quiz.id }}
         onClick={(e) => e.stopPropagation()}
         className="relative block overflow-hidden shrink-0"
       >
@@ -114,7 +105,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
             Пройти
           </span>
         </div>
-      </a>
+      </Link>
 
       <div className="p-4 flex-1 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-1">
