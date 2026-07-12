@@ -2255,7 +2255,30 @@ AWS_DEFAULT_REGION=ru-central1
 1. Проверяет `.env`
 2. `npm ci`
 3. `npm run build`
-4. `aws s3 sync dist/ s3://$YC_BUCKET --endpoint-url=$AWS_ENDPOINT_URL --delete --cache-control "public, max-age=31536000, immutable"`
+4. Синхронизирует `dist/assets/` как immutable assets (`Cache-Control: public, max-age=31536000, immutable`)
+5. Загружает корневые immutable assets (`.js`, `.css`, `.svg`, изображения, шрифты)
+6. Рекурсивно загружает HTML/root-файлы с `Cache-Control: public, max-age=0, must-revalidate`, включая вложенные SEO-страницы (`business/index.html`, `hr/onboarding/index.html` и т.д.)
+7. Применяет website/CORS-конфигурацию и отправляет URL в IndexNow
+
+### SEO и статические landing pages
+
+Коммерческие SEO-страницы не должны зависеть от hash-router. `npm run build` после Vite-сборки запускает `scripts/prerender-seo.mjs`, который генерирует отдельные статические HTML-входы с собственными `title`, `description`, H1, use cases, шаблонами, FAQ, CTA и JSON-LD schema.org (`SoftwareApplication`, `Product`, `FAQPage`).
+
+Индексируемые страницы:
+
+- `/business/`
+- `/business/lead-quiz/`
+- `/business/client-brief/`
+- `/business/product-selector/`
+- `/hr/onboarding/`
+- `/hr/assessment/`
+- `/education/`
+- `/events/`
+- `/templates/`
+
+SEO-данные лежат в `src/seo/seoPages.json`, каталог и schema собираются в `src/seo/seoCatalog.ts`, runtime-head для SPA-роутов — в `src/seo/SeoRouteHead.tsx`. Новую SEO-страницу добавляют в `seoPages.json`, подключают маршрут в `src/router/routes/seoStatic.tsx` или профильный route-файл, затем проверяют `npm run build` и наличие HTML в `dist/<route>/index.html`.
+
+Важно для деплоя: вложенные HTML-файлы должны загружаться рекурсивно. Если `/business/` или `/templates/` отдают обычный SPA fallback `index.html`, значит deploy-скрипт не загрузил `dist/business/index.html` / `dist/templates/index.html`.
 
 #### 5. CI/CD через GitHub Actions
 
@@ -2321,7 +2344,7 @@ supabase db push
 
 ## 21. Roadmap (план развития)
 
-Документ актуален на **08.06.2026**. Roadmap разделён на **технический долг** (из security-аудита) и **продуктовые планы** (фичи). Phase 2/3/5(P0) завершены — подробности в §21.1 и §21.5.
+Документ актуален на **12.07.2026**. Roadmap разделён на **технический долг** (из security-аудита) и **продуктовые планы** (фичи). Phase 2/3/5(P0) завершены — подробности в §21.1 и §21.5.
 
 ### 21.1 Технический долг (security-аудит Phase 2-6)
 
@@ -2515,6 +2538,8 @@ npm run test:coverage      # V8 coverage
 ---
 
 ## Changelog документации
+
+- **12.07.2026 (SEO static pages + deploy fix)** — добавлена SEO-архитектура для коммерческих страниц `/business/`, `/business/lead-quiz/`, `/business/client-brief/`, `/business/product-selector/`, `/hr/onboarding/`, `/hr/assessment/`, `/education/`, `/events/`, `/templates/`. `npm run build` запускает `scripts/prerender-seo.mjs`, генерирует HTML-входы, sitemap и schema.org (`SoftwareApplication`, `Product`, `FAQPage`). Deploy-скрипты обновлены: HTML/root-файлы загружаются рекурсивно с no-cache, чтобы вложенные prerender-страницы не заменялись SPA fallback.
 
 - **02.07.2026 (ESLint gate)** — добавлен настоящий ESLint flat config (`eslint.config.js`) для frontend-кода: recommended JS/TypeScript, React Hooks и React Refresh. `npm run lint` теперь выполняет `typecheck` + `lint:eslint`, а `npm run verify` получает ESLint как обязательный gate. Исправлены первые блокирующие ошибки правил hooks/no-constant-binary-expression/no-unused-expressions/no-empty.
 
