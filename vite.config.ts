@@ -139,7 +139,7 @@ function readRequestBody(req: NodeJS.ReadableStream): Promise<string> {
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      base: './',
+      base: '/',
       server: {
         port: 3000,
         // host intentionally omitted: do NOT bind 0.0.0.0 by default in

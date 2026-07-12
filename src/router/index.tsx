@@ -1,5 +1,5 @@
 import {
-  createHashHistory,
+  createBrowserHistory,
   createRouter,
   RouterProvider,
 } from '@tanstack/react-router';
@@ -12,14 +12,24 @@ import type { RouterContext } from './routes/root';
 
 // ─── Router Instance ──────────────────────────────────────────────────────────
 //
-// Hash history (createHashHistory): URL = https://mykviz.ru/#/path
-// - не зависит от Yandex SPA fallback (ErrorDocument)
-// - все share-ссылки и redirect-ы остаются работоспособными
-// - в Phase B можно мигрировать на createBrowserHistory() + Yandex fallback
+// Public pages use normal, crawlable URLs. The deployment generates real
+// directory index files for every SEO route, while Yandex Object Storage's
+// ErrorDocument keeps dynamic application routes functional.
+
+function migrateLegacyHashUrl() {
+  if (typeof window === 'undefined') return;
+  const legacyRoute = window.location.hash.match(/^#(\/.*)$/)?.[1];
+  if (!legacyRoute) return;
+
+  const nextUrl = `${legacyRoute}${window.location.search}`;
+  window.history.replaceState(window.history.state, '', nextUrl);
+}
+
+migrateLegacyHashUrl();
 
 export const router = createRouter({
   routeTree,
-  history: createHashHistory(),
+  history: createBrowserHistory(),
   defaultPreload: 'intent',
   defaultPreloadStaleTime: 0,
   context: {

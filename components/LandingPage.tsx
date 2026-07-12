@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import AuthModal from "./modals/AuthModal.tsx";
 import MagneticButton from "./MagneticButton.tsx";
 import LandingPricingSection from "./landing/LandingPricingSection.tsx";
+import LandingSolutionsSection from "./landing/LandingSolutionsSection.tsx";
 import { useUIStore } from "../store/useUIStore.ts";
 import { useAppNavigation } from "@/src/router/useAppNavigation";
 import { Link } from "@tanstack/react-router";
@@ -372,7 +373,8 @@ const scrollToSection = (id: string) => {
 };
 
 export const LANDING_NAV_ITEMS = [
-  { label: "Лучшие квизы", target: "templates" },
+  { label: "Решения", target: "solutions" },
+  { label: "Примеры", target: "templates" },
   { label: "Возможности", target: "features" },
   { label: "Лаборатория", target: "scenario-lab" },
   { label: "Об авторе", target: "author" },
@@ -566,26 +568,26 @@ const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
           {/* Left: Main content (7 cols - golden ratio) */}
           <div className="lg:col-span-7 lg:pr-12">
             <Reveal>
-              <Label className="mb-8">Конструктор интерактивных историй</Label>
+              <Label className="mb-8">No-code конструктор интерактивных сценариев</Label>
             </Reveal>
 
             <Reveal delay={100}>
               <Heading
                 level={1}
-                accent="в путешествие"
+                accent="к результату"
                 className="text-stone-950 mb-8"
               >
-                Превратите урок
+                Создавайте сценарии
               </Heading>
             </Reveal>
 
             <Reveal delay={200}>
               <p className="text-xl md:text-2xl text-stone-700/85 leading-relaxed mb-10 max-w-xl font-light">
-                Визуальный редактор для создания{" "}
+                Брифы, подборщики, аттестации, интерактивные уроки и{" "}
                 <span className="font-medium text-stone-950">
-                  нелинейных квизов
+                  ветвящиеся квизы
                 </span>
-                , симуляций и ветвящихся сценариев. Без единой строки кода.
+                {" "}на одном визуальном холсте. Без программирования.
               </p>
             </Reveal>
 
@@ -596,7 +598,7 @@ const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
                   className="group relative px-8 py-4 text-lg font-bold text-black bg-gradient-to-r from-amber-300 to-orange-400 rounded-full overflow-hidden transition-transform hover:scale-105"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    Создать квиз
+                    Создать сценарий
                     <svg
                       className="w-5 h-5 transition-transform group-hover:translate-x-1"
                       fill="none"
@@ -668,7 +670,7 @@ const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
                   {[
                     ["no-code", "собирается мышью"],
                     ["logic", "условия и баллы"],
-                    ["publish", "готово к уроку"],
+                    ["publish", "готово к публикации"],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -697,10 +699,10 @@ const HeroSection = ({ onCTA }: { onCTA: () => void }) => {
 // ============================================
 const StatsSection = () => {
   const stats = [
-    { value: "1K+", label: "Квизов создано", icon: "01" },
-    { value: "5K+", label: "Активных учеников", icon: "02" },
-    { value: "4.9", label: "Средняя оценка", icon: "03" },
-    { value: "99%", label: "Uptime", icon: "04" },
+    { value: "No-code", label: "Визуальный редактор", icon: "01" },
+    { value: "IF", label: "Условия и ветвления", icon: "02" },
+    { value: "FX", label: "Переменные и формулы", icon: "03" },
+    { value: "HTML", label: "Автономный запуск", icon: "04" },
   ];
 
   return (
@@ -746,7 +748,7 @@ const features = [
     icon: "VG",
     title: "Визуальный граф",
     description:
-      "Создавайте сценарии как художник — соединяя узлы на холсте. Каждая связь — это путь ученика.",
+      "Соединяйте этапы на холсте и проектируйте путь клиента, сотрудника, ученика или участника.",
     color: "from-stone-800 to-stone-950",
     shadowColor: "shadow-stone-900/15",
   },
@@ -755,7 +757,7 @@ const features = [
     icon: "IF",
     title: "Умная логика",
     description:
-      "Условия, переменные, таймеры. Квиз адаптируется под каждого ученика индивидуально.",
+      "Условия, переменные, формулы и таймеры адаптируют сценарий под ответы каждого человека.",
     color: "from-amber-400 to-orange-500",
     shadowColor: "shadow-amber-500/20",
   },
@@ -764,7 +766,7 @@ const features = [
     icon: "XP",
     title: "Геймификация",
     description:
-      "Очки, достижения, инвентарь. Превратите обучение в приключение с наградами.",
+      "Очки, достижения и инвентарь помогают поддерживать вовлечённость в обучении и коммуникации.",
     color: "from-rose-500 to-orange-500",
     shadowColor: "shadow-rose-700/15",
   },
@@ -1159,9 +1161,9 @@ const FeaturesSection = () => {
           </Reveal>
           <Reveal delay={100}>
             <Heading level={2} className="text-stone-950 mb-6">
-              Всё что нужно для
+              Всё, что нужно для
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-700 to-rose-700 italic">
-                интерактивного обучения
+                интерактивных сценариев
               </span>
             </Heading>
           </Reveal>
@@ -1447,22 +1449,22 @@ const steps = [
   {
     num: "01",
     title: "Создайте узлы",
-    desc: "Каждый узел — экран квиза: вопрос, информация, развилка.",
+    desc: "Каждый узел — этап сценария: вопрос, информация, форма, расчёт или результат.",
   },
   {
     num: "02",
     title: "Соедините связями",
-    desc: "Протяните линии между узлами, создавая путь ученика.",
+    desc: "Протяните линии между узлами, создавая персональные маршруты.",
   },
   {
     num: "03",
     title: "Добавьте логику",
-    desc: "Условия, переменные, таймеры — квиз становится умным.",
+    desc: "Условия, переменные, формулы и таймеры делают сценарий адаптивным.",
   },
   {
     num: "04",
     title: "Опубликуйте",
-    desc: "Один клик — и квиз готов. Делитесь ссылкой или файлом.",
+    desc: "Проверьте результат и поделитесь сценарием ссылкой или автономным файлом.",
   },
 ];
 
@@ -1945,7 +1947,7 @@ const TemplateGallery = ({ onRequireAuthForQuiz }: TemplateGalleryProps) => {
             </Reveal>
             <Reveal delay={100}>
               <Heading level={2} className="text-stone-950">
-                Лучшие квизы
+                Лучшие сценарии
               </Heading>
             </Reveal>
           </div>
@@ -2361,9 +2363,8 @@ const FinalCTA = ({ onCTA }: { onCTA: () => void }) => (
 
       <Reveal delay={200}>
         <p className="text-xl text-stone-600 mb-12 max-w-xl mx-auto">
-          Присоединяйтесь к{" "}
-          <span className="text-stone-950 font-semibold">10,000+</span>{" "}
-          новаторам в образовании. Бесплатно и без ограничений.
+          Начните с готового шаблона или чистого холста. Первый сценарий можно
+          создать бесплатно, без банковской карты.
         </p>
       </Reveal>
 
@@ -2375,7 +2376,7 @@ const FinalCTA = ({ onCTA }: { onCTA: () => void }) => (
                                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
           >
             <span className="flex items-center gap-3">
-              Создать аккаунт
+              Создать сценарий
               <svg
                 className="w-5 h-5 transition-transform group-hover:translate-x-1"
                 fill="none"
@@ -2438,7 +2439,7 @@ const Footer: React.FC = () => {
               <span className="text-xl font-bold text-stone-950">Поток</span>
             </div>
             <p className="text-stone-600 text-sm leading-relaxed">
-              Конструктор интерактивных историй для современного образования.
+              Визуальный конструктор интерактивных сценариев для бизнеса и образования.
             </p>
           </div>
 
@@ -2451,7 +2452,7 @@ const Footer: React.FC = () => {
                   onClick: () => scrollToSection("features"),
                 },
                 {
-                  label: "Лучшие квизы",
+                  label: "Лучшие сценарии",
                   onClick: () => scrollToSection("templates"),
                 },
                 { label: "Тарифы", onClick: () => scrollToSection("pricing") },
@@ -2505,7 +2506,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-stone-500">
-          <p>© 2024 Поток. Сделано для образования.</p>
+          <p>© 2026 Поток. Интерактивные сценарии без программирования.</p>
           <div className="flex gap-6">
             <span className="text-stone-400">Конфиденциальность</span>
             <span className="text-stone-400">Условия</span>
@@ -2600,7 +2601,7 @@ const Header = ({ isScrolled }: { isScrolled: boolean }) => {
                 to="/editor"
                 className="px-5 py-2.5 text-sm font-bold text-black bg-gradient-to-r from-amber-300 to-orange-400 hover:from-amber-200 hover:to-orange-300 rounded-full transition-all shadow-lg shadow-amber-500/20"
               >
-                Создать квиз
+                Создать сценарий
               </Link>
               <Link
                 to="/dashboard"
@@ -2664,6 +2665,7 @@ const LandingPage: React.FC = () => {
       <main className="flex-1">
         <HeroSection onCTA={handleCTA} />
         <StatsSection />
+        <LandingSolutionsSection />
         <TemplateGallery onRequireAuthForQuiz={handleRequireAuthForQuiz} />
         <FeaturesSection />
         <ScenarioLabSection />

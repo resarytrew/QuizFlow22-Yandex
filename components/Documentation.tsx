@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { DOCUMENTATION, DocPage, DocCategory, DocBlock } from '../data/documentationData.ts';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 
 // --- Helper Components for Content Rendering ---
 
@@ -127,9 +127,21 @@ const ContentRenderer = ({ blocks }: { blocks: DocBlock[] }) => {
 // --- Main Documentation Component ---
 
 const Documentation: React.FC = () => {
-    const [activePageId, setActivePageId] = useState<string>('introduction');
+    const navigate = useNavigate();
+    const pathname = useRouterState({ select: state => state.location.pathname });
+    const routePageId = pathname.match(/^\/docs\/([^/]+)\/?$/)?.[1] ?? 'introduction';
+    const [activePageId, setActivePageId] = useState<string>(routePageId);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile state
+
+    const openPage = (pageId: string) => {
+        setActivePageId(pageId);
+        void navigate({ to: '/docs/$docId', params: { docId: pageId } });
+    };
+
+    useEffect(() => {
+        setActivePageId(routePageId);
+    }, [routePageId]);
 
     // Determine active page data
     const activePage = useMemo(() => {
@@ -215,7 +227,7 @@ const Documentation: React.FC = () => {
                                             searchResults.map((res, i) => (
                                                 <button
                                                     key={i}
-                                                    onClick={() => { setActivePageId(res.pageId); setSearchQuery(''); }}
+                                                    onClick={() => { openPage(res.pageId); setSearchQuery(''); }}
                                                     className="w-full text-left px-4 py-3 hover:bg-indigo-50 transition-colors border-b border-slate-100 last:border-0"
                                                 >
                                                     <div className="text-sm font-medium text-slate-900">{res.title}</div>
@@ -240,7 +252,7 @@ const Documentation: React.FC = () => {
                                         {category.pages.map(page => (
                                             <button
                                                 key={page.id}
-                                                onClick={() => setActivePageId(page.id)}
+                                                onClick={() => openPage(page.id)}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                                                     activePageId === page.id 
                                                         ? 'bg-indigo-50 text-indigo-700' 
@@ -293,7 +305,7 @@ const Documentation: React.FC = () => {
                         <div className="mt-16 pt-8 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             {navLinks.prev ? (
                                 <button
-                                    onClick={() => setActivePageId(navLinks.prev!.id)}
+                                    onClick={() => openPage(navLinks.prev!.id)}
                                     className="group flex flex-col items-start p-6 rounded-2xl border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all text-left"
                                 >
                                     <span className="text-xs font-semibold text-slate-400 mb-1 group-hover:text-indigo-500 transition-colors">← Назад</span>
@@ -303,7 +315,7 @@ const Documentation: React.FC = () => {
 
                             {navLinks.next && (
                                 <button
-                                    onClick={() => setActivePageId(navLinks.next!.id)}
+                                    onClick={() => openPage(navLinks.next!.id)}
                                     className="group flex flex-col items-end p-6 rounded-2xl border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all text-right"
                                 >
                                     <span className="text-xs font-semibold text-slate-400 mb-1 group-hover:text-indigo-500 transition-colors">Далее →</span>

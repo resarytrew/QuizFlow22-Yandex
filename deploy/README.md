@@ -115,11 +115,13 @@ chmod +x deploy/deploy.sh
 ./deploy/deploy.ps1
 ```
 
-Скрипт сделает: `npm ci` → `npm run build` → `aws s3 sync ./dist` → применит website + CORS конфиги → опционально сбросит CDN-кэш.
+Скрипт сделает: `npm ci` → `npm run build` → сгенерирует SEO-HTML и sitemap → `aws s3 sync ./dist` → применит website + CORS конфиги → опционально сбросит CDN-кэш.
 
 ## 4. CI/CD через GitHub Actions
 
-Workflow `.github/workflows/deploy.yml` запускается на каждый push в `main`.
+Workflow `.github/workflows/deploy.yml` запускается на каждый push в `main` и раз в сутки.
+Ночная сборка обновляет пререндеренные страницы публичных сценариев, sitemap и после
+загрузки файлов отправляет актуальные URL в IndexNow.
 
 ### Секреты в репозитории (Settings → Secrets and variables → Actions)
 
@@ -128,6 +130,7 @@ Workflow `.github/workflows/deploy.yml` запускается на каждый
 | `VITE_SUPABASE_URL` | URL проекта Supabase |
 | `VITE_SUPABASE_ANON_KEY` | Anon-ключ Supabase |
 | `VITE_API_URL` | URL Yandex API Gateway, например `https://<id>.apigw.yandexcloud.net/api` |
+| `VITE_YANDEX_METRIKA_ID` | Actions variable с ID счётчика Метрики; можно оставить пустой |
 | `YC_BUCKET` | имя бакета |
 | `YC_S3_ACCESS_KEY_ID` | static access key (см. 1.2) |
 | `YC_S3_SECRET_ACCESS_KEY` | static secret key (см. 1.2) |
@@ -144,6 +147,8 @@ OAuth-токен для `yc` создаётся через https://oauth.yandex.
 - **Через CDN:** `https://<cdn-domain>`
 - **Health-check:** открыть DevTools → Network → убедиться что:
   - `index.html` приходит с `Cache-Control: max-age=0`
+  - `/docs/`, `/templates/` и `/solutions/.../` возвращают `200` и собственные title/canonical
+  - неизвестный или служебный deep link получает SPA-содержимое из `404.html` с `noindex`
   - `assets/*.js` приходит с `Cache-Control: max-age=31536000, immutable`
   - Запросы к Supabase возвращают `200 OK`
 

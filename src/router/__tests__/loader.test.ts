@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const single = vi.fn();
-const eqUser = vi.fn(() => ({ single }));
-const eqId = vi.fn(() => ({ eq: eqUser, single }));
-const select = vi.fn(() => ({ eq: eqId }));
-const from = vi.fn(() => ({ select }));
+const getQuiz = vi.fn();
 const loadQuiz = vi.fn();
 const createNewQuiz = vi.fn();
 const setPendingTemplate = vi.fn();
@@ -18,11 +14,8 @@ const setEdges = vi.fn();
 
 let pendingTemplate: any = null;
 
-vi.mock('../../../services/supabaseClient', () => ({
-  supabase: { from },
-  isSupabaseReady: true,
-  supabaseUrl: '',
-  supabaseAnonKey: '',
+vi.mock('../../../services/apiClient', () => ({
+  api: { getQuiz },
 }));
 
 vi.mock('../../../store/useQuizDataStore', () => ({
@@ -53,13 +46,13 @@ vi.mock('../../../components/QuizPlayer', () => ({ default: () => null }));
 describe('router loaders', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    single.mockReset();
+    getQuiz.mockReset();
     pendingTemplate = null;
   });
 
   it('loads an owned quiz for the editor', async () => {
     const quiz = { id: 'quiz-1', user_id: 'user-1', quiz_data: {} };
-    single.mockResolvedValueOnce({ data: quiz, error: null });
+    getQuiz.mockResolvedValueOnce(quiz);
     const { Route } = await import('../routes/editorQuiz');
 
     await (Route.options.loader as Function)({
@@ -69,9 +62,7 @@ describe('router loaders', () => {
       },
     });
 
-    expect(from).toHaveBeenCalledWith('quizzes');
-    expect(eqId).toHaveBeenCalledWith('id', 'quiz-1');
-    expect(eqUser).toHaveBeenCalledWith('user_id', 'user-1');
+    expect(getQuiz).toHaveBeenCalledWith('quiz-1');
     expect(loadQuiz).toHaveBeenCalledWith(quiz);
   });
 
@@ -114,17 +105,44 @@ describe('router loaders', () => {
     const { loadQuizForPlayer } = await import('../routes/playQuiz');
 
     await expect(loadQuizForPlayer('not-a-uuid')).rejects.toBeDefined();
-    expect(from).not.toHaveBeenCalled();
+    expect(getQuiz).not.toHaveBeenCalled();
   });
 
   it('loads only a published quiz for the player', async () => {
-    const quiz = { id: '550e8400-e29b-41d4-a716-446655440000' };
-    single.mockResolvedValueOnce({ data: quiz, error: null });
+    const quiz = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      visibility: 'public',
+    };
+    getQuiz.mockResolvedValueOnce(quiz);
     const { loadQuizForPlayer } = await import('../routes/playQuiz');
 
     await expect(loadQuizForPlayer(quiz.id)).resolves.toEqual(quiz);
 
-    expect(eqId).toHaveBeenCalledWith('id', quiz.id);
-    expect(eqUser).toHaveBeenCalledWith('is_published', true);
+    expect(getQuiz).toHaveBeenCalledWith(quiz.id);
+  });
+
+  it('loads only public quizzes for an indexable scenario page', async () => {
+    const quiz = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: 'Public scenario',
+      visibility: 'public',
+      quiz_data: { nodes: [], edges: [] },
+    };
+    getQuiz.mockResolvedValueOnce(quiz);
+    const { Route } = await import('../routes/publicScenario');
+
+    await expect((Route.options.loader as Function)({
+      params: { quizId: quiz.id },
+    })).resolves.toEqual(quiz);
+  });
+
+  it('resolves existing documentation articles and rejects unknown ids', async () => {
+    const { Route } = await import('../routes/docArticle');
+    expect((Route.options.loader as Function)({
+      params: { docId: 'variables' },
+    })).toEqual({ docId: 'variables' });
+    expect(() => (Route.options.loader as Function)({
+      params: { docId: 'missing-article' },
+    })).toThrow();
   });
 });
