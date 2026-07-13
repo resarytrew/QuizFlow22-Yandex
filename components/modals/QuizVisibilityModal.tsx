@@ -5,7 +5,6 @@ import { useQuizDataStore } from '../../store/useQuizDataStore';
 import { useEntitlementStore } from '../../store/useEntitlementStore';
 import { Link } from '@tanstack/react-router';
 import { MAX_QUIZ_KEYWORDS, normalizeQuizKeywords, quizKeywordsToInput } from '../../utils/quizKeywords';
-import { checkDesignQuality } from '../../src/designMode/designQualityChecker';
 
 interface Props {
   isOpen: boolean;
@@ -109,13 +108,6 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
     };
 
     const keywords = normalizeQuizKeywords(keywordsText);
-    const publishQuality = visibility === 'private'
-        ? null
-        : checkDesignQuality(quiz.quiz_data.designSettings, {
-            breakpoint: 'mobile',
-            templateId: quiz.quiz_data.templateId,
-        });
-    const hasBlockingQualityErrors = Boolean(publishQuality && publishQuality.errors > 0);
 
     if (!isOpen) return null;
 
@@ -306,29 +298,6 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                             </div>
                         </div>
 
-                        {publishQuality && publishQuality.issues.length > 0 && (
-                            <div className={`rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border p-5 ${
-                                hasBlockingQualityErrors ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
-                            }`}>
-                                <h3 className={`mb-2 text-sm font-bold ${hasBlockingQualityErrors ? 'text-red-800' : 'text-amber-900'}`}>
-                                    Проверка дизайна перед публикацией
-                                </h3>
-                                <p className={`text-sm ${hasBlockingQualityErrors ? 'text-red-700' : 'text-amber-800'}`}>
-                                    {publishQuality.errors} ошибок, {publishQuality.warnings} предупреждений, {publishQuality.recommendations} рекомендаций.
-                                </p>
-                                <ul className="mt-3 space-y-1 text-xs font-semibold text-stone-700">
-                                    {publishQuality.issues.slice(0, 4).map((item) => (
-                                        <li key={item.id}>- {item.message}</li>
-                                    ))}
-                                </ul>
-                                {!hasBlockingQualityErrors && (
-                                    <p className="mt-3 text-xs font-medium text-amber-800">
-                                        Предупреждения не блокируют публикацию, но лучше проверить мобильный экран.
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
                         {/* Shareable URL — only for unlisted and public */}
                         {visibility !== 'private' && (
                             <div className="rounded-[1.35rem_0.45rem_1.35rem_0.45rem] border border-stone-200 bg-[#fffaf0] p-5 shadow-[0_12px_36px_rgba(68,64,60,0.06)]">
@@ -506,7 +475,7 @@ const QuizVisibilityModal: React.FC<Props> = ({ isOpen, onClose, quiz }) => {
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={isSaving || isLocked(visibility) || hasBlockingQualityErrors}
+                            disabled={isSaving || isLocked(visibility)}
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-950 px-6 py-3.5 text-sm font-semibold text-amber-50 transition-colors hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {isSaving ? (

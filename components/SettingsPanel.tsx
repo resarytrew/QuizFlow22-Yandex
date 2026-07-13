@@ -8,8 +8,6 @@ import DesignPanel from './DesignPanel.tsx';
 import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
-import DesignOverviewPanel from './designMode/DesignOverviewPanel.tsx';
-import DesignElementInspector from './designMode/DesignElementInspector.tsx';
 
 type UpdateNodeData = (id: string, data: Partial<NodeData>) => void;
 
@@ -2034,33 +2032,10 @@ const SettingsPanel: React.FC = () => {
     const updateNodeData = useCanvasStore(s => s.updateNodeData);
     const setSelectedNode = useCanvasStore(s => s.setSelectedNode);
     const closeSettingsPanel = useUIStore(s => s.closeSettingsPanel);
-    const isDesignPanelOpen = useUIStore(s => s.isDesignPanelOpen);
-    const closeDesignPanel = useUIStore(s => s.closeDesignPanel);
-    const editorMode = useUIStore(s => s.editorMode);
-    const selectedDesignElement = useUIStore(s => s.selectedDesignElement);
-    const setSelectedDesignElement = useUIStore(s => s.setSelectedDesignElement);
 
     const closePanel = () => {
         setSelectedNode(null);
         closeSettingsPanel();
-    };
-
-    const isVisualDesignMode = editorMode === 'design';
-    const isShowingDesignPanel = !isVisualDesignMode && (isDesignPanelOpen || !selectedNode);
-    const closeDesignView = () => {
-        if (isVisualDesignMode) {
-            if (selectedDesignElement) {
-                setSelectedDesignElement(null);
-                return;
-            }
-            closeSettingsPanel();
-            return;
-        }
-        if (selectedNode) {
-            closeDesignPanel();
-            return;
-        }
-        closePanel();
     };
 
     const settingsContent = useMemo(() => {
@@ -2114,31 +2089,25 @@ const SettingsPanel: React.FC = () => {
     return (
         <aside className="w-96 h-full bg-white border-l border-gray-200/75 shadow-sm overflow-hidden">
             <div className="w-full h-full p-6 overflow-y-auto relative">
-                {(isShowingDesignPanel || isVisualDesignMode) && (
+                {!selectedNode && (
                     <button
                         type="button"
-                        onClick={closeDesignView}
+                        onClick={closePanel}
                         className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                        aria-label={isVisualDesignMode && selectedDesignElement ? 'Закрыть инспектор элемента' : selectedNode ? 'Закрыть дизайн и вернуться к ноде' : 'Закрыть панель настроек'}
-                        title={isVisualDesignMode && selectedDesignElement ? 'Закрыть инспектор' : selectedNode ? 'Вернуться к настройкам ноды' : 'Закрыть панель настроек'}
+                        aria-label="Закрыть панель настроек"
+                        title="Закрыть панель настроек"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 )}
-                {isVisualDesignMode ? (
-                    selectedDesignElement ? (
-                        <DesignElementInspector selection={selectedDesignElement} />
-                    ) : (
-                        <DesignOverviewPanel />
-                    )
-                ) : isShowingDesignPanel ? (
+                {!selectedNode ? (
                     <DesignPanel />
                 ) : (
                     <>
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h2 className="text-lg font-bold font-manrope text-gray-800">Настройки узла</h2>
-                                <p className="text-sm text-gray-500">{getNodeTypeName(selectedNode!.type as CustomNodeType)}</p>
+                                <p className="text-sm text-gray-500">{getNodeTypeName(selectedNode.type as CustomNodeType)}</p>
                             </div>
                             <button type="button" onClick={closePanel} aria-label="Закрыть панель настроек" title="Закрыть панель настроек" className="p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -2150,13 +2119,13 @@ const SettingsPanel: React.FC = () => {
                             <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2">
                                 <div className="flex flex-col min-w-0">
                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">ID</span>
-                                     <code className="text-xs font-mono text-gray-600 truncate select-all" title={selectedNode!.id}>
-                                        {selectedNode!.id}
+                                     <code className="text-xs font-mono text-gray-600 truncate select-all" title={selectedNode.id}>
+                                        {selectedNode.id}
                                      </code>
                                 </div>
                                 <button 
                                     onClick={() => {
-                                        navigator.clipboard.writeText(selectedNode!.id);
+                                        navigator.clipboard.writeText(selectedNode.id);
                                         toast.success('ID скопирован');
                                     }}
                                     className="ml-2 p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-md transition-all shadow-sm"

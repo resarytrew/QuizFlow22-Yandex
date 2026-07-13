@@ -200,7 +200,6 @@ function buildPayload(input: GenerateQuizHtmlInput): QuizPayload {
     templateId: input.templateId ?? DEFAULT_TEMPLATE_ID,
     currentQuizName: input.currentQuizName ?? "",
     startNodeId: input.startNodeId,
-    previewBridge: input.previewBridge,
     apiBaseUrl: getApiBaseUrl(),
   };
 }

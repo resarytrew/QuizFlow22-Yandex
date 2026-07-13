@@ -10,5 +10,5 @@
     "sourceMap": true,
     "lib": ["ES2015", "DOM"]
   },
-  "include": ["./**/*.ts", "../previewBridge/**/*.ts"]
+  "include": ["./**/*.ts"]
 }

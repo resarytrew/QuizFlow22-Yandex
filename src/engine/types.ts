@@ -285,7 +285,7 @@ export type ScreenQuizIntroTiming = 'auto' | 'fast' | 'calm' | 'manual';
 export type ScreenQuizTimelineMode = 'auto' | 'timeline';
 
 export interface ScreenQuizSettings {
-  backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel' | 'finance-express';
+  backgroundPreset?: 'none' | 'pop' | 'candy' | 'aqua' | 'yellow' | 'travel';
   backgroundImageUrl?: string;
   backgroundColor?: string;
   accentColor?: string;

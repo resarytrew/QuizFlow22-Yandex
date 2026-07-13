@@ -18,18 +18,12 @@ export interface GenerateQuizHtmlInput {
   readonly templateId?: QuizTemplateId;
   readonly currentQuizName?: string;
   readonly startNodeId?: string;
-  readonly previewBridge?: PreviewBridgeConfig;
 }
 
 export interface GlobalTimer {
   readonly enabled: boolean;
   readonly duration: number;
   readonly onTimeoutNodeId: string | null;
-}
-
-export interface PreviewBridgeConfig {
-  readonly enabled: boolean;
-  readonly version: 1;
 }
 
 // ─── Internal ────────────────────────────────────────────────────────

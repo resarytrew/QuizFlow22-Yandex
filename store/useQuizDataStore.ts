@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { createElement } from 'react';
 import {
   GlobalTimer,
   DesignSettings,
@@ -17,16 +16,26 @@ import { useCanvasStore } from './useCanvasStore';
 import { useAuthStore } from './useAuthStore';
 import { storeEvents } from './storeEvents';
 import { normalizeQuizKeywords } from '../utils/quizKeywords';
-import {
-  cloneDesignSettings,
-  DEFAULT_DESIGN_SETTINGS,
-  DeepPartial,
-  getTemplateDesignBase,
-  mergeDefined,
-  normalizeDesignSettings,
-  resolveDesign,
-  DesignBrandKit,
-} from '../src/design/designResolver';
+
+function deepMerge<T extends object>(target: T, source: Partial<T>): T {
+  const result = { ...target };
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const val = source[key];
+    if (
+      val !== null &&
+      val !== undefined &&
+      typeof val === 'object' &&
+      !Array.isArray(val) &&
+      typeof result[key] === 'object' &&
+      result[key] !== null
+    ) {
+      result[key] = deepMerge(result[key] as object, val as object) as T[keyof T];
+    } else if (val !== undefined) {
+      result[key] = val as T[keyof T];
+    }
+  }
+  return result;
+}
 
 const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'default',
@@ -47,36 +56,6 @@ function normalizeTemplateId(value: unknown): QuizTemplateId {
     : 'default';
 }
 
-export type DesignStatus = 'applied' | 'modified' | 'custom';
-
-interface DesignMeta {
-  activeStyleId: string | null;
-  activeStylePreset: DeepPartial<DesignSettings> | null;
-  status: DesignStatus;
-}
-
-interface DesignHistoryEntry {
-  before: DesignSettings;
-  after: DesignSettings;
-  beforeMeta: DesignMeta;
-  afterMeta: DesignMeta;
-  label: string;
-  coalesceKey?: string;
-}
-
-interface DesignHistoryState {
-  past: DesignHistoryEntry[];
-  future: DesignHistoryEntry[];
-}
-
-interface DesignUpdateOptions {
-  label?: string;
-  coalesceKey?: string;
-  preserveStyleStatus?: boolean;
-}
-
-const DESIGN_HISTORY_LIMIT = 50;
-
 interface QuizDataStoreState {
   currentQuizId: string | null;
   setCurrentQuizId: (id: string | null) => void;
@@ -90,22 +69,7 @@ interface QuizDataStoreState {
   globalTimer: GlobalTimer;
   setGlobalTimer: (timer: Partial<GlobalTimer>) => void;
   designSettings: DesignSettings;
-  designStatus: DesignStatus;
-  activeDesignStyleId: string | null;
-  activeDesignStylePreset: DeepPartial<DesignSettings> | null;
-  designHistory: DesignHistoryState;
-  canUndoDesign: boolean;
-  canRedoDesign: boolean;
-  updateDesignSettings: (settings: DeepPartial<DesignSettings>, options?: DesignUpdateOptions) => void;
-  applyDesignStylePreset: (id: string, stylePreset: DeepPartial<DesignSettings>) => void;
-  applyDesignPalette: (palette: DeepPartial<DesignSettings>) => void;
-  applyBrandKit: (brandKit: DesignBrandKit, options?: { id?: string; name?: string; preserveLayout?: boolean; preserveOverrides?: boolean }) => void;
-  undoDesignChange: () => void;
-  redoDesignChange: () => void;
-  resetDesignProperty: (path: string) => void;
-  resetDesignSection: (section: keyof DesignSettings) => void;
-  resetDesignScreen: () => void;
-  resetAllDesign: () => void;
+  updateDesignSettings: (settings: Partial<DesignSettings>) => void;
 
   userQuizzes: Quiz[];
   setUserQuizzes: (quizzes: Quiz[]) => void;
@@ -151,13 +115,20 @@ const createInitialState = () => ({
     duration: 0,
     onTimeoutNodeId: null,
   } as GlobalTimer,
-  designSettings: cloneDesignSettings(DEFAULT_DESIGN_SETTINGS),
-  designStatus: 'custom' as DesignStatus,
-  activeDesignStyleId: null as string | null,
-  activeDesignStylePreset: null as DeepPartial<DesignSettings> | null,
-  designHistory: { past: [], future: [] } as DesignHistoryState,
-  canUndoDesign: false,
-  canRedoDesign: false,
+  designSettings: {
+    brand: { logoUrl: '', brandName: '', primaryColor: '#2f5d50', accentColor: '#b9852b', neutralColor: '#1d1a16', experiencePreset: 'conversational' },
+    background: { color: '#f6f3ee', imageUrl: '', overlayColor: '#f6f3ee', overlayOpacity: 0, mode: 'solid', gradientFrom: '#f6f3ee', gradientTo: '#ebe5db', imageFit: 'cover', texture: 'grain' },
+    typography: { fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", displayFontFamily: "'Newsreader', Georgia, serif", headingColor: '#1d1a16', bodyTextColor: '#615d54', headingWeight: 650, bodyWeight: 450, headingScale: 1, bodyScale: 1, lineHeight: 1.55, letterSpacing: 0, headingLineHeight: 1.04, paragraphWidth: 680 },
+    layout: { preset: 'classic', interfacePreset: 'studio', contentWidth: 920, cardRadius: 28, cardPadding: 32, cardOpacity: 0.94, mediaPosition: 'top', surfaceStyle: 'paper', questionAlign: 'left', verticalAlign: 'center', density: 'balanced', chrome: 'full', blocks: { topbar: true, brand: true, logo: true, title: true, progress: true, timer: true, description: true, media: true, achievements: true, variables: true, stats: true, resultStats: true, backgroundDecor: true } },
+    questionCard: { backgroundColor: '#fffefa', borderColor: '#dfd8cc', textColor: '#24211c', radius: 28, padding: 32, shadow: 'none', mediaPosition: 'top', mediaWidth: 42, mediaRadius: 22, mediaFit: 'cover' },
+    buttons: { backgroundColor: '#2f5d50', textColor: '#ffffff', hoverBackgroundColor: '#25493f', hoverTextColor: '#ffffff', borderRadius: 18, style: 'solid', height: 52, shadow: 'soft', fontWeight: 800, width: 'auto', textTransform: 'none' },
+    answerCards: { backgroundColor: '#fffefa', textColor: '#24211c', hoverBackgroundColor: '#f7f4ed', hoverTextColor: '#171512', selectedBackgroundColor: '#e5f0ea', selectedTextColor: '#183b32', borderRadius: 18, style: 'card', borderColor: '#dfd8cc', selectedBorderColor: '#2f5d50', spacing: 12, markerStyle: 'letters', columns: 1, minHeight: 58, mediaAspectRatio: 'auto' },
+    progress: { style: 'bar', position: 'top', color: '#2f5d50', trackColor: '#e4ded2', showPercent: true, showStepLabel: true, height: 8 },
+    result: { preset: 'card', backgroundColor: '#fffefa', textColor: '#1d1a16', accentColor: '#2f5d50', showScore: true, showShare: true, scoreStyle: 'badge' },
+    advanced: { customCss: '', reducedMotion: false, highContrast: false },
+    screenQuiz: { backgroundPreset: 'pop', backgroundImageUrl: '', backgroundColor: '#9a4bdb', accentColor: '#ffc928', secondaryColor: '#7c5ce7', panelColor: '#f1eef6', answerColor: '#eeeeec', inkColor: '#050305', correctColor: '#18c900', borderWidth: 10, radius: 54, decorIntensity: 1, motion: 'premium', layout: 'auto', timerSeconds: 30, showTimer: true, showStoryTimer: true, timelineMode: 'auto', holdSeconds: 1.2, revealSeconds: 1.4, transitionMs: 340, introEnabled: true, introTiming: 'auto', introQuestionMs: 2800, introAnswerMs: 1800, introMediaMs: 900, introGapMs: 280 },
+    sound: { volume: 0.5 },
+  } as DesignSettings,
   userQuizzes: [] as Quiz[],
   isQuizzesLoading: false,
   analyticsQuizId: null as string | null,
@@ -180,126 +151,6 @@ function normalizeQuizVisibility(value: unknown): QuizVisibility {
   return value === 'private' || value === 'unlisted' || value === 'public'
     ? value
     : 'public';
-}
-
-function designsEqual(left: DesignSettings, right: DesignSettings): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function currentDesignMeta(state: Pick<QuizDataStoreState, 'activeDesignStyleId' | 'activeDesignStylePreset' | 'designStatus'>): DesignMeta {
-  return {
-    activeStyleId: state.activeDesignStyleId,
-    activeStylePreset: state.activeDesignStylePreset ?? null,
-    status: state.designStatus,
-  };
-}
-
-function baselineForDesign(state: QuizDataStoreState): DesignSettings {
-  return resolveDesign({
-    defaults: DEFAULT_DESIGN_SETTINGS,
-    template: getTemplateDesignBase(state.templateId),
-    stylePreset: state.activeDesignStylePreset ?? undefined,
-  });
-}
-
-function withHistoryFlags(history: DesignHistoryState) {
-  return {
-    designHistory: history,
-    canUndoDesign: history.past.length > 0,
-    canRedoDesign: history.future.length > 0,
-  };
-}
-
-function pushDesignHistory(
-  history: DesignHistoryState,
-  entry: DesignHistoryEntry,
-): DesignHistoryState {
-  const last = history.past.at(-1);
-  const shouldCoalesce = Boolean(last && entry.coalesceKey && last.coalesceKey === entry.coalesceKey);
-  const past = shouldCoalesce
-    ? [...history.past.slice(0, -1), { ...entry, before: last!.before, beforeMeta: last!.beforeMeta }]
-    : [...history.past, entry].slice(-DESIGN_HISTORY_LIMIT);
-  return { past, future: [] };
-}
-
-function commitDesignChange(
-  state: QuizDataStoreState,
-  nextDesign: DesignSettings,
-  nextMeta: DesignMeta,
-  options: DesignUpdateOptions = {},
-) {
-  if (designsEqual(state.designSettings, nextDesign)) return {};
-
-  const entry: DesignHistoryEntry = {
-    before: cloneDesignSettings(state.designSettings),
-    after: cloneDesignSettings(nextDesign),
-    beforeMeta: currentDesignMeta(state),
-    afterMeta: nextMeta,
-    label: options.label ?? 'Design change',
-    coalesceKey: options.coalesceKey,
-  };
-  const history = pushDesignHistory(state.designHistory, entry);
-
-  return {
-    designSettings: nextDesign,
-    activeDesignStyleId: nextMeta.activeStyleId,
-    activeDesignStylePreset: nextMeta.activeStylePreset,
-    designStatus: nextMeta.status,
-    ...withHistoryFlags(history),
-  };
-}
-
-function readDesignPath(source: unknown, path: string): unknown {
-  return path.split('.').reduce<unknown>((value, key) => (
-    value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined
-  ), source);
-}
-
-function writeDesignPath(target: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
-  const [head, ...tail] = path.split('.');
-  if (!head) return target;
-  if (tail.length === 0) {
-    return { ...target, [head]: value };
-  }
-  const current = target[head];
-  return {
-    ...target,
-    [head]: writeDesignPath(
-      current && typeof current === 'object' && !Array.isArray(current)
-        ? current as Record<string, unknown>
-        : {},
-      tail.join('.'),
-      value,
-    ),
-  };
-}
-
-function restoreDesignMeta(meta: DesignMeta) {
-  return {
-    activeDesignStyleId: meta.activeStyleId,
-    activeDesignStylePreset: meta.activeStylePreset,
-    designStatus: meta.status,
-  };
-}
-
-function undoPresetToast(get: () => QuizDataStoreState): void {
-  toast((toastItem) =>
-    createElement(
-      'button',
-      {
-        type: 'button',
-        onClick: () => {
-          get().undoDesignChange();
-          toast.dismiss(toastItem.id);
-        },
-        style: {
-          fontWeight: 700,
-          color: '#1c1917',
-        },
-      },
-      'Отменить применение пресета',
-    ),
-  );
 }
 
 export function createQuizSummary(row: QuizSummaryRow): Quiz {
@@ -349,179 +200,10 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
   setGlobalTimer: (timer) =>
     set((state) => ({ globalTimer: { ...state.globalTimer, ...timer } })),
 
-  updateDesignSettings: (settings, options) =>
-    set((state) => {
-      const merged = mergeDefined(state.designSettings, settings);
-      const nextDesign = normalizeDesignSettings(merged, DEFAULT_DESIGN_SETTINGS);
-      const status: DesignStatus = options?.preserveStyleStatus
-        ? state.designStatus
-        : state.activeDesignStyleId
-          ? 'modified'
-          : 'custom';
-      return commitDesignChange(
-        state,
-        nextDesign,
-        {
-          activeStyleId: state.activeDesignStyleId,
-          activeStylePreset: state.activeDesignStylePreset,
-          status,
-        },
-        options,
-      );
-    }),
-
-  applyDesignStylePreset: (id, stylePreset) =>
-    set((state) => {
-      const nextDesign = resolveDesign({
-        defaults: DEFAULT_DESIGN_SETTINGS,
-        template: getTemplateDesignBase(state.templateId),
-        stylePreset,
-      });
-      const result = commitDesignChange(
-        state,
-        nextDesign,
-        {
-          activeStyleId: id,
-          activeStylePreset: structuredClone(stylePreset),
-          status: 'applied',
-        },
-        { label: 'Apply design style' },
-      );
-      if (Object.keys(result).length > 0) {
-        toast.success('Стиль применён');
-        undoPresetToast(get);
-      }
-      return result;
-    }),
-
-  applyDesignPalette: (palette) =>
-    set((state) => {
-      const merged = mergeDefined(state.designSettings, palette);
-      const nextDesign = normalizeDesignSettings(merged, DEFAULT_DESIGN_SETTINGS);
-      return commitDesignChange(
-        state,
-        nextDesign,
-        {
-          activeStyleId: state.activeDesignStyleId,
-          activeStylePreset: state.activeDesignStylePreset,
-          status: state.activeDesignStyleId ? 'modified' : 'custom',
-        },
-        { label: 'Apply design palette' },
-      );
-    }),
-
-  applyBrandKit: (brandKit, options) =>
-    set((state) => {
-      const patch: DeepPartial<DesignSettings> = {
-        brand: {
-          logoUrl: brandKit.logoUrl ?? undefined,
-          primaryColor: brandKit.primaryColor ?? undefined,
-          accentColor: brandKit.accentColor ?? undefined,
-          neutralColor: brandKit.neutralColor ?? undefined,
-        },
-        typography: {
-          fontFamily: brandKit.fontFamily ?? undefined,
-          displayFontFamily: brandKit.displayFontFamily ?? undefined,
-        },
-      };
-      const merged = mergeDefined(state.designSettings, patch);
-      const nextDesign = normalizeDesignSettings(merged, DEFAULT_DESIGN_SETTINGS);
-      return commitDesignChange(
-        state,
-        nextDesign,
-        {
-          activeStyleId: state.activeDesignStyleId,
-          activeStylePreset: state.activeDesignStylePreset,
-          status: state.activeDesignStyleId ? 'modified' : 'custom',
-        },
-        { label: `Apply Brand Kit${options?.name ? `: ${options.name}` : ''}` },
-      );
-    }),
-
-  undoDesignChange: () =>
-    set((state) => {
-      const entry = state.designHistory.past.at(-1);
-      if (!entry) return {};
-      const history = {
-        past: state.designHistory.past.slice(0, -1),
-        future: [entry, ...state.designHistory.future].slice(0, DESIGN_HISTORY_LIMIT),
-      };
-      return {
-        designSettings: cloneDesignSettings(entry.before),
-        ...restoreDesignMeta(entry.beforeMeta),
-        ...withHistoryFlags(history),
-      };
-    }),
-
-  redoDesignChange: () =>
-    set((state) => {
-      const [entry, ...future] = state.designHistory.future;
-      if (!entry) return {};
-      const history = {
-        past: [...state.designHistory.past, entry].slice(-DESIGN_HISTORY_LIMIT),
-        future,
-      };
-      return {
-        designSettings: cloneDesignSettings(entry.after),
-        ...restoreDesignMeta(entry.afterMeta),
-        ...withHistoryFlags(history),
-      };
-    }),
-
-  resetDesignProperty: (path) =>
-    set((state) => {
-      const baseline = baselineForDesign(state);
-      const value = readDesignPath(baseline, path);
-      const patch = writeDesignPath({}, path, value) as DeepPartial<DesignSettings>;
-      const nextDesign = normalizeDesignSettings(
-        mergeDefined(state.designSettings, patch),
-        DEFAULT_DESIGN_SETTINGS,
-      );
-      return commitDesignChange(
-        state,
-        nextDesign,
-        {
-          activeStyleId: state.activeDesignStyleId,
-          activeStylePreset: state.activeDesignStylePreset,
-          status: state.activeDesignStyleId ? 'modified' : 'custom',
-        },
-        { label: `Reset ${path}` },
-      );
-    }),
-
-  resetDesignSection: (section) =>
-    set((state) => {
-      const baseline = baselineForDesign(state);
-      const nextDesign = normalizeDesignSettings(
-        mergeDefined(state.designSettings, { [section]: baseline[section] } as DeepPartial<DesignSettings>),
-        DEFAULT_DESIGN_SETTINGS,
-      );
-      return commitDesignChange(
-        state,
-        nextDesign,
-        {
-          activeStyleId: state.activeDesignStyleId,
-          activeStylePreset: state.activeDesignStylePreset,
-          status: state.activeDesignStyleId ? 'modified' : 'custom',
-        },
-        { label: `Reset ${String(section)}` },
-      );
-    }),
-
-  resetDesignScreen: () =>
-    get().resetDesignSection('screenQuiz'),
-
-  resetAllDesign: () =>
-    set((state) => commitDesignChange(
-      state,
-      cloneDesignSettings(DEFAULT_DESIGN_SETTINGS),
-      {
-        activeStyleId: null,
-        activeStylePreset: null,
-        status: 'custom',
-      },
-      { label: 'Reset all design' },
-    )),
+  updateDesignSettings: (settings) =>
+    set((state) => ({
+      designSettings: deepMerge(state.designSettings, settings),
+    })),
 
   setUserQuizzes: (quizzes) => set({ userQuizzes: quizzes }),
   setAnalyticsQuizId: (id) => set({ analyticsQuizId: id }),
@@ -772,7 +454,6 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
 
   loadQuiz: (quiz) => {
     const defaults = createInitialState();
-    const templateId = normalizeTemplateId(quiz.quiz_data.templateId);
     storeEvents.emit('QUIZ_LOADED', {
       nodes: quiz.quiz_data.nodes || [],
       edges: quiz.quiz_data.edges || [],
@@ -786,18 +467,11 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         ...defaults.globalTimer,
         ...(quiz.quiz_data.globalTimer ?? {}),
       },
-      designSettings: resolveDesign({
-        defaults: DEFAULT_DESIGN_SETTINGS,
-        template: getTemplateDesignBase(templateId),
-        overrides: quiz.quiz_data.designSettings ?? {},
-      }),
-      templateId,
-      activeDesignStyleId: null,
-      activeDesignStylePreset: null,
-      designStatus: 'custom',
-      designHistory: { past: [], future: [] },
-      canUndoDesign: false,
-      canRedoDesign: false,
+      designSettings: deepMerge(
+        defaults.designSettings,
+        quiz.quiz_data.designSettings ?? {},
+      ),
+      templateId: normalizeTemplateId(quiz.quiz_data.templateId),
     });
   },
 
@@ -986,7 +660,6 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
 
   restoreFromAutosave: (data) => {
     const defaults = createInitialState();
-    const templateId = normalizeTemplateId(data.templateId);
     storeEvents.emit('AUTOSAVE_RESTORE', data);
     set({
       currentQuizId: data.currentQuizId ?? null,
@@ -994,19 +667,9 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         ...defaults.globalTimer,
         ...(data.globalTimer ?? {}),
       },
-      designSettings: resolveDesign({
-        defaults: DEFAULT_DESIGN_SETTINGS,
-        template: getTemplateDesignBase(templateId),
-        overrides: data.designSettings ?? {},
-      }),
-      templateId,
+      designSettings: deepMerge(defaults.designSettings, data.designSettings ?? {}),
+      templateId: normalizeTemplateId(data.templateId),
       currentQuizName: data.currentQuizName,
-      activeDesignStyleId: null,
-      activeDesignStylePreset: null,
-      designStatus: 'custom',
-      designHistory: { past: [], future: [] },
-      canUndoDesign: false,
-      canRedoDesign: false,
     });
   },
 

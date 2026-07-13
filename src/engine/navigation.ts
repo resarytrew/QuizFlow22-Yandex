@@ -20,7 +20,6 @@ import {
 } from "./constants";
 import { executeLogic } from "./logic";
 import { playNodeEntrySound } from "./media";
-import { notifyPreviewNodeChanged } from "./previewBridge";
 import { renderError, renderNode } from "./render";
 import { updateHUD } from "./hud";
 
@@ -106,5 +105,4 @@ function processNodeUnsafe(nodeId: string): void {
   renderNode(node, { resolveNextNode, processNode });
   updateHUD();
   playNodeEntrySound(node.data.soundSettings?.onEntry);
-  notifyPreviewNodeChanged(nodeId);
 }

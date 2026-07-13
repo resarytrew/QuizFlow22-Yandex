@@ -63,7 +63,6 @@ function extractFromPayload(
       payload.currentQuizName ?? payload.name ?? "",
     ),
     startNodeId: toOptionalString(payload.startNodeId),
-    previewBridge: toPreviewBridge(payload.previewBridge),
   };
 }
 
@@ -128,12 +127,4 @@ function toTemplateId(value: unknown): QuizTemplateId {
     return value as QuizTemplateId;
   }
   return DEFAULT_TEMPLATE_ID;
-}
-
-function toPreviewBridge(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
-  const obj = value as Record<string, unknown>;
-  return obj.enabled === true && obj.version === 1
-    ? { enabled: true, version: 1 as const }
-    : undefined;
 }

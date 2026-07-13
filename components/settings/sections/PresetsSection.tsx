@@ -117,8 +117,8 @@ export const PresetsSection: React.FC = () => {
 
   return (
     <Section
-      title="Пресеты рабочего пространства"
-      description="Сохраните текущие настройки редактора как шаблон и применяйте его в один клик."
+      title="Пресеты"
+      description="Сохраните текущие настройки как шаблон и применяйте его в один клик."
     >
       <div className="flex flex-wrap items-center gap-2">
         {!showNew ? (

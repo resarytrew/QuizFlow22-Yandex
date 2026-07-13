@@ -54,42 +54,4 @@ describe('usePreferencesStore', () => {
     expect(usePreferencesStore.getState().preferences).toEqual(DEFAULT_PREFERENCES);
     expect(usePreferencesStore.getState().presets).toHaveLength(1);
   });
-
-  it('rehydrates old localStorage preferences without renaming stored keys', async () => {
-    localStorage.setItem(
-      'potok-preferences',
-      JSON.stringify({
-        state: {
-          preferences: {
-            showGrid: false,
-            nodeSize: 'lg',
-          },
-          presets: [
-            {
-              id: 'legacy-preset',
-              name: 'Legacy workspace',
-              preferences: {
-                showGrid: false,
-              },
-              createdAt: 1,
-            },
-          ],
-          activePresetId: 'legacy-preset',
-        },
-        version: 1,
-      }),
-    );
-
-    await usePreferencesStore.persist.rehydrate();
-
-    expect(usePreferencesStore.getState().preferences.showGrid).toBe(false);
-    expect(usePreferencesStore.getState().preferences.nodeSize).toBe('lg');
-    expect(usePreferencesStore.getState().preferences.boardPattern).toBe(
-      DEFAULT_PREFERENCES.boardPattern,
-    );
-    expect(usePreferencesStore.getState().presets[0].id).toBe('legacy-preset');
-    expect(usePreferencesStore.getState().presets[0].preferences.boardPattern).toBe(
-      DEFAULT_PREFERENCES.boardPattern,
-    );
-  });
 });
