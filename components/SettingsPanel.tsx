@@ -2038,6 +2038,7 @@ const SettingsPanel: React.FC = () => {
     const closeDesignPanel = useUIStore(s => s.closeDesignPanel);
     const editorMode = useUIStore(s => s.editorMode);
     const selectedDesignElement = useUIStore(s => s.selectedDesignElement);
+    const setSelectedDesignElement = useUIStore(s => s.setSelectedDesignElement);
 
     const closePanel = () => {
         setSelectedNode(null);
@@ -2048,6 +2049,10 @@ const SettingsPanel: React.FC = () => {
     const isShowingDesignPanel = !isVisualDesignMode && (isDesignPanelOpen || !selectedNode);
     const closeDesignView = () => {
         if (isVisualDesignMode) {
+            if (selectedDesignElement) {
+                setSelectedDesignElement(null);
+                return;
+            }
             closeSettingsPanel();
             return;
         }
@@ -2114,8 +2119,8 @@ const SettingsPanel: React.FC = () => {
                         type="button"
                         onClick={closeDesignView}
                         className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                        aria-label={selectedNode ? 'Закрыть дизайн и вернуться к ноде' : 'Закрыть панель настроек'}
-                        title={selectedNode ? 'Вернуться к настройкам ноды' : 'Закрыть панель настроек'}
+                        aria-label={isVisualDesignMode && selectedDesignElement ? 'Закрыть инспектор элемента' : selectedNode ? 'Закрыть дизайн и вернуться к ноде' : 'Закрыть панель настроек'}
+                        title={isVisualDesignMode && selectedDesignElement ? 'Закрыть инспектор' : selectedNode ? 'Вернуться к настройкам ноды' : 'Закрыть панель настроек'}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>

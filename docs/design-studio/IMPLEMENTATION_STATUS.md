@@ -4,6 +4,85 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 7: contextual Design Element Inspector.
+
+Status: completed locally.
+
+Commit target: `feat: add contextual design element inspector`.
+
+## Stage 7 Completed
+
+- Reworked the design-mode right panel around the requested flow:
+  - `DesignOverviewPanel` is shown when no visual element is selected;
+  - `DesignElementInspector` is shown for the selected visual element;
+  - node settings stay hidden in design mode;
+  - closing the inspector clears only the selected design element and keeps design mode open;
+  - returning to flow mode restores the selected node settings.
+- Added schema-driven contextual inspectors by `DesignElementRole` instead of a large duplicated switch:
+  - question title and description typography;
+  - media source, fit, ratio, size, radius and alt text;
+  - question card surface settings;
+  - answer layout and answer card settings;
+  - primary action settings;
+  - progress settings;
+  - result settings;
+  - background settings;
+  - semantic element order.
+- Added reusable inspector building blocks:
+  - `DesignScopeControl`;
+  - `DesignPropertySource`;
+  - `DesignResetActions`;
+  - schema-driven `DesignControl`;
+  - `inspectorSchemas`.
+- Added scoped design override helpers:
+  - global design updates;
+  - node type overrides;
+  - current node overrides;
+  - compact element override patches;
+  - reset property, reset element and reset current-screen helpers.
+- Added compact override storage under `designSettings.elementOverrides` without copying full `DesignSettings` into nodes.
+- Preserved and normalized compact extras in `DesignResolver`:
+  - `elementOverrides`;
+  - semantic `layout.elementOrder`.
+- Added inheritance/source indicators for inspector properties:
+  - template;
+  - style;
+  - global design;
+  - node type;
+  - current screen.
+- Wired inspector changes through existing `DesignHistory`:
+  - inspector edits;
+  - coalesced range controls;
+  - reset actions;
+  - undo/redo compatibility.
+- Kept Player architecture unchanged:
+  - no second renderer;
+  - no bitmap/canvas replacement;
+  - no separate route;
+  - no new editor shell;
+  - no drag, resize or free-layout implementation in this stage.
+
+## Stage 7 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+| `npm test -- --run src/designMode/designElementOverrides.test.ts components/SettingsPanel.designMode.test.tsx store/useQuizDesignHistory.test.ts components/designMode/DesignModeToolbar.test.tsx components/LivePreview.test.tsx src/previewBridge/protocol.test.ts src/designMode/elementRegistry.test.ts` | Passed | 7 files, 38 tests passed. Existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 80 files, 665 tests passed. Expected stderr appears in existing negative-path tests. Existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+| `npm test -- --run src/designMode/designElementOverrides.test.ts components/SettingsPanel.designMode.test.tsx components/designMode/DesignModeToolbar.test.tsx` | Passed | 3 files, 15 tests passed after final inspector control cleanup. |
+
+## Stage 7 Known Limitations
+
+- Scoped node type and current-node overrides are stored, resolved and tested in the inspector layer, but Player rendering still primarily consumes global `DesignSettings`; applying all scoped overrides at render time is a later integration step.
+- Some role-specific metadata fields can now be edited and saved as compact element overrides before every template visibly consumes them.
+- Element selection remains supported only for the templates enabled in Stage 6: `default`, `newyear` and `screenQuiz`. Other templates continue to open safely through overview settings.
+- Drag, resize, constrained Canva mode and free layout remain intentionally out of scope.
+
+## Previous Stage 6
+
 Stage 6: visual element selection in Live Preview.
 
 Status: completed locally.

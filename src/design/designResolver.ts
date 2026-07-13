@@ -1,4 +1,5 @@
 import type { DesignSettings, QuizTemplateId } from '../../types';
+import type { DesignElementRole } from '../previewBridge/designElements';
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Array<infer U>
@@ -24,6 +25,21 @@ export interface ResolveDesignInput {
   brandKit?: DesignBrandKit;
   overrides?: DeepPartial<DesignSettings>;
 }
+
+type DesignElementOverrideBucket = Partial<Record<DesignElementRole, Record<string, unknown>>>;
+
+interface DesignElementOverrideState {
+  global?: DesignElementOverrideBucket;
+  nodeTypes?: Record<string, DesignElementOverrideBucket>;
+  nodes?: Record<string, DesignElementOverrideBucket>;
+}
+
+type DesignSettingsWithElementExtras = DesignSettings & {
+  elementOverrides?: DesignElementOverrideState;
+  layout?: DesignSettings['layout'] & {
+    elementOrder?: DesignElementRole[];
+  };
+};
 
 export const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
   brand: {
@@ -237,6 +253,72 @@ const enumSets = {
   screenQuizIntroTiming: enumValues(['auto', 'fast', 'calm', 'manual'] as const),
 };
 
+const DESIGN_ELEMENT_ROLE_VALUES = new Set<DesignElementRole>([
+  'canvas-background',
+  'quiz-shell',
+  'topbar',
+  'brand',
+  'logo',
+  'quiz-title',
+  'progress',
+  'timer',
+  'question-card',
+  'question-title',
+  'question-description',
+  'media',
+  'answers-container',
+  'answer-card',
+  'primary-action',
+  'achievements',
+  'variables',
+  'stats',
+  'result-card',
+  'result-title',
+  'result-score',
+  'result-action',
+]);
+
+function normalizeElementOrder(value: unknown): DesignElementRole[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const order = value.filter((item): item is DesignElementRole => (
+    typeof item === 'string' && DESIGN_ELEMENT_ROLE_VALUES.has(item as DesignElementRole)
+  ));
+  return order.length > 0 ? order : undefined;
+}
+
+function normalizeOverrideBucket(value: unknown): DesignElementOverrideBucket | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const bucket: DesignElementOverrideBucket = {};
+  for (const [role, patch] of Object.entries(value)) {
+    if (!DESIGN_ELEMENT_ROLE_VALUES.has(role as DesignElementRole) || !isPlainObject(patch)) continue;
+    bucket[role as DesignElementRole] = structuredClone(patch);
+  }
+  return Object.keys(bucket).length > 0 ? bucket : undefined;
+}
+
+function normalizeOverrideBucketRecord(value: unknown): Record<string, DesignElementOverrideBucket> | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const record: Record<string, DesignElementOverrideBucket> = {};
+  for (const [key, bucket] of Object.entries(value)) {
+    if (!/^[a-zA-Z0-9_.:-]+$/.test(key)) continue;
+    const normalized = normalizeOverrideBucket(bucket);
+    if (normalized) record[key] = normalized;
+  }
+  return Object.keys(record).length > 0 ? record : undefined;
+}
+
+function normalizeElementOverrides(value: unknown): DesignElementOverrideState | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const global = normalizeOverrideBucket(value.global);
+  const nodeTypes = normalizeOverrideBucketRecord(value.nodeTypes);
+  const nodes = normalizeOverrideBucketRecord(value.nodes);
+  const normalized: DesignElementOverrideState = {};
+  if (global) normalized.global = global;
+  if (nodeTypes) normalized.nodeTypes = nodeTypes;
+  if (nodes) normalized.nodes = nodes;
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
 export function cloneDesignSettings(settings: DesignSettings): DesignSettings {
   return structuredClone(settings);
 }
@@ -251,6 +333,10 @@ export function mergeDefined<T extends object>(target: T, source: DeepPartial<T>
 
   for (const [key, value] of Object.entries(source)) {
     if (value === undefined || value === null) continue;
+    if (key === 'elementOverrides') {
+      result[key] = structuredClone(value);
+      continue;
+    }
     const previous = result[key];
     if (isPlainObject(previous) && isPlainObject(value)) {
       result[key] = mergeDefined(previous, value as DeepPartial<typeof previous>);
@@ -289,8 +375,11 @@ export function normalizeDesignSettings(
 ): DesignSettings {
   const merged = mergeDefined(cloneDesignSettings(defaults), settings);
   const fallback = defaults;
+  const mergedWithExtras = merged as DesignSettingsWithElementExtras;
+  const elementOrder = normalizeElementOrder(mergedWithExtras.layout?.elementOrder);
+  const elementOverrides = normalizeElementOverrides(mergedWithExtras.elementOverrides);
 
-  return {
+  const normalized = {
     brand: {
       logoUrl: stringValue(merged.brand?.logoUrl, fallback.brand?.logoUrl ?? ''),
       brandName: stringValue(merged.brand?.brandName, fallback.brand?.brandName ?? ''),
@@ -352,6 +441,7 @@ export function normalizeDesignSettings(
         resultStats: booleanValue(merged.layout?.blocks?.resultStats, fallback.layout?.blocks?.resultStats ?? true),
         backgroundDecor: booleanValue(merged.layout?.blocks?.backgroundDecor, fallback.layout?.blocks?.backgroundDecor ?? true),
       },
+      ...(elementOrder ? { elementOrder } : {}),
     },
     questionCard: {
       backgroundColor: stringValue(merged.questionCard?.backgroundColor, fallback.questionCard?.backgroundColor ?? '#fffefa'),
@@ -465,6 +555,11 @@ export function normalizeDesignSettings(
       screenQuizTransition: stringValue(merged.sound?.screenQuizTransition, fallback.sound.screenQuizTransition ?? ''),
     },
   };
+
+  return {
+    ...normalized,
+    ...(elementOverrides ? { elementOverrides } : {}),
+  } as DesignSettings;
 }
 
 function brandKitPatch(brandKit: DesignBrandKit | undefined): DeepPartial<DesignSettings> | undefined {
