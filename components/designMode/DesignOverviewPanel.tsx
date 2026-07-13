@@ -1,15 +1,30 @@
 import React from 'react';
 import toast from 'react-hot-toast';
+import { useCanvasStore } from '../../store/useCanvasStore';
 import { useDesignAssetsStore } from '../../store/useDesignAssetsStore';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 import type { DesignSettings, QuizTemplateId } from '../../types';
 import type { DeepPartial } from '../../src/design/designResolver';
 import { DEFAULT_DESIGN_SETTINGS } from '../../src/design/designResolver';
 import {
+  LAYOUT_MEASURED_EVENT,
+  REQUEST_LAYOUT_MEASUREMENT_EVENT,
+} from '../LivePreview';
+import {
   BUILT_IN_DESIGN_STYLES,
   type CustomDesignStyle,
   type IntegratedDesignStyle,
 } from '../../src/designMode/designStyles';
+import {
+  createFreeLayoutDocumentFromMeasurements,
+  createLayoutDocumentPatch,
+  createLayoutModePatch,
+  getScopedLayoutDocument,
+  getLayoutMode,
+  type LayoutMeasurementPayload,
+  type LayoutMode,
+  type LayoutScope,
+} from '../../src/designMode/layoutDocument';
 import { DESIGN_TEMPLATE_CATALOG, getTemplateCatalogEntry } from '../../src/designMode/templateCatalog';
 import DesignThumbnail from './DesignThumbnail';
 
@@ -111,6 +126,23 @@ function BrandKitForm({
   );
 }
 
+function requestLayoutMeasurement(): Promise<LayoutMeasurementPayload | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => {
+      window.removeEventListener(LAYOUT_MEASURED_EVENT, onMeasured as EventListener);
+      resolve(null);
+    }, 900);
+    const onMeasured = (event: CustomEvent<LayoutMeasurementPayload>) => {
+      window.clearTimeout(timeout);
+      window.removeEventListener(LAYOUT_MEASURED_EVENT, onMeasured as EventListener);
+      resolve(event.detail);
+    };
+    window.addEventListener(LAYOUT_MEASURED_EVENT, onMeasured as EventListener, { once: true });
+    window.dispatchEvent(new CustomEvent(REQUEST_LAYOUT_MEASUREMENT_EVENT));
+  });
+}
+
 const DesignOverviewPanel: React.FC = () => {
   const [section, setSection] = React.useState<OverviewSection>('quick');
   const [pendingTemplateId, setPendingTemplateId] = React.useState<QuizTemplateId | null>(null);
@@ -118,7 +150,9 @@ const DesignOverviewPanel: React.FC = () => {
   const [importJson, setImportJson] = React.useState('');
   const [customStyleName, setCustomStyleName] = React.useState('Мой стиль');
   const [customStyleDescription, setCustomStyleDescription] = React.useState('');
+  const [layoutScope, setLayoutScope] = React.useState<LayoutScope>('global');
 
+  const selectedNode = useCanvasStore((state) => state.selectedNode);
   const templateId = useQuizDataStore((state) => state.templateId);
   const setTemplateId = useQuizDataStore((state) => state.setTemplateId);
   const designSettings = useQuizDataStore((state) => state.designSettings);
@@ -161,6 +195,15 @@ const DesignOverviewPanel: React.FC = () => {
   const pendingStyle = pendingStyleId ? allStyles.find((style) => style.id === pendingStyleId) : null;
   const previewTemplateId = pendingTemplateId ?? templateId;
   const previewStyleSettings = pendingStyle?.settings;
+  const layoutContext = {
+    scope: layoutScope,
+    nodeType: selectedNode?.type ?? null,
+    nodeId: selectedNode?.id ?? null,
+  };
+  const currentLayoutMode = getLayoutMode(designSettings, {
+    nodeType: layoutContext.scope === 'nodeType' ? layoutContext.nodeType : null,
+    nodeId: layoutContext.scope === 'node' ? layoutContext.nodeId : null,
+  });
 
   const designStatusLabel = designStatus === 'applied'
     ? 'Стиль применён'
@@ -226,6 +269,40 @@ const DesignOverviewPanel: React.FC = () => {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Ошибка импорта стиля');
     }
+  };
+
+  const changeLayoutMode = async (mode: LayoutMode) => {
+    if (mode === currentLayoutMode) return;
+    if (mode === 'free') {
+      const measurement = await requestLayoutMeasurement();
+      const document = createFreeLayoutDocumentFromMeasurements(measurement ?? {
+        viewport: { width: 1280, height: 720, safeArea: { top: 0, right: 0, bottom: 0, left: 0 } },
+        elements: [],
+      });
+      updateDesignSettings(
+        createLayoutModePatch(designSettings, layoutContext, 'free', document) as DeepPartial<DesignSettings>,
+        { label: 'Enable free layout' },
+      );
+      toast.success(measurement ? 'Свободный макет создан из размеров Preview' : 'Свободный макет создан как черновик');
+      return;
+    }
+
+    const confirmed = typeof window === 'undefined'
+      ? true
+      : window.confirm('Вернуться к автоматическому макету? Свободный макет будет сохранён как черновик.');
+    if (!confirmed) return;
+    const freeDocument = getScopedLayoutDocument(designSettings, layoutContext) ?? createFreeLayoutDocumentFromMeasurements({
+      viewport: { width: 1280, height: 720, safeArea: { top: 0, right: 0, bottom: 0, left: 0 } },
+      elements: [],
+    }, { mode: 'free' });
+    const draftPatch = createLayoutDocumentPatch(designSettings, layoutContext, freeDocument, { draft: true });
+    const autoPatch = createLayoutModePatch(
+      { ...designSettings, layoutDocuments: draftPatch.layoutDocuments } as DesignSettings,
+      layoutContext,
+      'auto',
+    );
+    updateDesignSettings(autoPatch as DeepPartial<DesignSettings>, { label: 'Return to auto layout' });
+    toast.success('Автоматический макет восстановлен, free layout сохранён как черновик');
   };
 
   return (
@@ -462,6 +539,45 @@ const DesignOverviewPanel: React.FC = () => {
 
       {section === 'general' && (
         <section className="space-y-4">
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div>
+              <div className="text-sm font-bold text-slate-900">Макет</div>
+              <div className="mt-1 text-xs text-slate-500">Свободный режим пока создаёт безопасную модель координат без drag и resize.</div>
+            </div>
+            <Field label="Применить к">
+              <select
+                value={layoutScope}
+                onChange={(event) => setLayoutScope(event.target.value as LayoutScope)}
+                className={inputClass()}
+              >
+                <option value="global">Всему квизу</option>
+                <option value="nodeType" disabled={!selectedNode?.type}>Всем экранам этого типа</option>
+                <option value="node" disabled={!selectedNode?.id}>Только текущему экрану</option>
+              </select>
+            </Field>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Макет">
+              <button
+                type="button"
+                aria-pressed={currentLayoutMode === 'auto'}
+                onClick={() => void changeLayoutMode('auto')}
+                className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                  currentLayoutMode === 'auto' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Автоматический
+              </button>
+              <button
+                type="button"
+                aria-pressed={currentLayoutMode === 'free'}
+                onClick={() => void changeLayoutMode('free')}
+                className={`rounded-lg px-3 py-2 text-sm font-bold transition ${
+                  currentLayoutMode === 'free' ? 'bg-indigo-600 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Свободный
+              </button>
+            </div>
+          </div>
           <Field label="Ширина контента">
             <input type="range" min={320} max={1600} value={layout.contentWidth ?? 920} onChange={(event) => updateDesignSettings({ layout: { contentWidth: Number(event.target.value) } }, { label: 'Update content width', coalesceKey: 'overview-content-width' })} className="w-full" />
           </Field>

@@ -1,5 +1,9 @@
 import type { DesignSettings, QuizTemplateId } from '../../types';
 import type { DesignElementRole } from '../previewBridge/designElements';
+import {
+  normalizeLayoutDocumentState,
+  type LayoutDocumentState,
+} from '../designMode/layoutDocument';
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Array<infer U>
@@ -36,6 +40,7 @@ interface DesignElementOverrideState {
 
 type DesignSettingsWithElementExtras = DesignSettings & {
   elementOverrides?: DesignElementOverrideState;
+  layoutDocuments?: LayoutDocumentState;
   layout?: DesignSettings['layout'] & {
     elementOrder?: DesignElementRole[];
   };
@@ -333,7 +338,7 @@ export function mergeDefined<T extends object>(target: T, source: DeepPartial<T>
 
   for (const [key, value] of Object.entries(source)) {
     if (value === undefined || value === null) continue;
-    if (key === 'elementOverrides') {
+    if (key === 'elementOverrides' || key === 'layoutDocuments') {
       result[key] = structuredClone(value);
       continue;
     }
@@ -378,6 +383,7 @@ export function normalizeDesignSettings(
   const mergedWithExtras = merged as DesignSettingsWithElementExtras;
   const elementOrder = normalizeElementOrder(mergedWithExtras.layout?.elementOrder);
   const elementOverrides = normalizeElementOverrides(mergedWithExtras.elementOverrides);
+  const layoutDocuments = normalizeLayoutDocumentState(mergedWithExtras.layoutDocuments);
 
   const normalized = {
     brand: {
@@ -559,6 +565,7 @@ export function normalizeDesignSettings(
   return {
     ...normalized,
     ...(elementOverrides ? { elementOverrides } : {}),
+    ...(layoutDocuments ? { layoutDocuments } : {}),
   } as DesignSettings;
 }
 

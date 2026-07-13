@@ -1,8 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DesignOverviewPanel from './DesignOverviewPanel';
 import { useDesignAssetsStore } from '../../store/useDesignAssetsStore';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
+import { LAYOUT_MEASURED_EVENT, REQUEST_LAYOUT_MEASUREMENT_EVENT } from '../LivePreview';
+import { getLayoutMode } from '../../src/designMode/layoutDocument';
 
 vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), {
@@ -105,5 +107,31 @@ describe('DesignOverviewPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Сохранить дизайн как стиль' }));
 
     expect(useDesignAssetsStore.getState().customStyles[0].name).toBe('My custom style');
+  });
+
+  it('switches automatic layout to free layout through measured preview data', async () => {
+    window.addEventListener(REQUEST_LAYOUT_MEASUREMENT_EVENT, () => {
+      window.dispatchEvent(new CustomEvent(LAYOUT_MEASURED_EVENT, {
+        detail: {
+          viewport: { width: 1000, height: 500 },
+          elements: [
+            {
+              id: 'question-card',
+              role: 'question-card',
+              nodeId: null,
+              rect: { x: 100, y: 50, width: 500, height: 200 },
+            },
+          ],
+        },
+      }));
+    }, { once: true });
+
+    render(<DesignOverviewPanel />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Общие параметры' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Свободный' }));
+
+    await waitFor(() => expect(getLayoutMode(useQuizDataStore.getState().designSettings)).toBe('free'));
+    expect(useQuizDataStore.getState().canUndoDesign).toBe(true);
   });
 });

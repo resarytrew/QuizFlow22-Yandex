@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useQuizDataStore } from './useQuizDataStore';
+import {
+  createFreeLayoutDocumentFromMeasurements,
+  createLayoutModePatch,
+  getLayoutMode,
+} from '../src/designMode/layoutDocument';
 
 vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), {
@@ -136,5 +141,27 @@ describe('useQuizDataStore design history', () => {
     expect(state.activeDesignStyleId).toBeNull();
     expect(state.designStatus).toBe('custom');
     expect(state.canUndoDesign).toBe(false);
+  });
+
+  it('undoes free layout mode transitions', () => {
+    const freeDocument = createFreeLayoutDocumentFromMeasurements({
+      viewport: { width: 1000, height: 500 },
+      elements: [
+        { id: 'media', role: 'media', nodeId: null, rect: { x: 100, y: 80, width: 300, height: 180 } },
+      ],
+    });
+
+    useQuizDataStore.getState().updateDesignSettings(
+      createLayoutModePatch(useQuizDataStore.getState().designSettings, { scope: 'global' }, 'free', freeDocument) as never,
+      { label: 'Enable free layout' },
+    );
+
+    expect(getLayoutMode(useQuizDataStore.getState().designSettings)).toBe('free');
+
+    useQuizDataStore.getState().undoDesignChange();
+    expect(getLayoutMode(useQuizDataStore.getState().designSettings)).toBe('auto');
+
+    useQuizDataStore.getState().redoDesignChange();
+    expect(getLayoutMode(useQuizDataStore.getState().designSettings)).toBe('free');
   });
 });

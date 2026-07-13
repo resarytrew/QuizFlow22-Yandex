@@ -14,7 +14,8 @@ export type PreviewParentMessageType =
   | "DESIGN_REPLACE"
   | "NAVIGATE_TO_NODE"
   | "SET_PREVIEW_MODE"
-  | "RESET_PREVIEW_STATE";
+  | "RESET_PREVIEW_STATE"
+  | "MEASURE_LAYOUT_ELEMENTS";
 
 export type PreviewPlayerMessageType =
   | "PREVIEW_READY"
@@ -22,7 +23,8 @@ export type PreviewPlayerMessageType =
   | "PREVIEW_STATE_CHANGED"
   | "PREVIEW_ERROR"
   | "DESIGN_ELEMENT_SELECTED"
-  | "DESIGN_ELEMENT_SELECTION_CLEARED";
+  | "DESIGN_ELEMENT_SELECTION_CLEARED"
+  | "LAYOUT_ELEMENTS_MEASURED";
 
 export type PreviewDeviceMode = "desktop" | "tablet" | "mobile" | "fullscreen";
 
@@ -71,6 +73,36 @@ export interface PreviewDesignElementSelectedPayload {
   readonly nodeId: string | null;
 }
 
+export interface PreviewLayoutElementMeasurement {
+  readonly id: string;
+  readonly role: DesignElementRole;
+  readonly nodeId: string | null;
+  readonly rect: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly order?: number;
+}
+
+export interface PreviewLayoutMeasurementPayload {
+  readonly viewport: {
+    readonly width: number;
+    readonly height: number;
+    readonly scrollX?: number;
+    readonly scrollY?: number;
+    readonly devicePixelRatio?: number;
+    readonly safeArea?: {
+      readonly top: number;
+      readonly right: number;
+      readonly bottom: number;
+      readonly left: number;
+    };
+  };
+  readonly elements: PreviewLayoutElementMeasurement[];
+}
+
 const PARENT_TYPES = new Set<PreviewParentMessageType>([
   "PREVIEW_INIT",
   "DESIGN_PATCH",
@@ -78,6 +110,7 @@ const PARENT_TYPES = new Set<PreviewParentMessageType>([
   "NAVIGATE_TO_NODE",
   "SET_PREVIEW_MODE",
   "RESET_PREVIEW_STATE",
+  "MEASURE_LAYOUT_ELEMENTS",
 ]);
 
 const PLAYER_TYPES = new Set<PreviewPlayerMessageType>([
@@ -87,6 +120,7 @@ const PLAYER_TYPES = new Set<PreviewPlayerMessageType>([
   "PREVIEW_ERROR",
   "DESIGN_ELEMENT_SELECTED",
   "DESIGN_ELEMENT_SELECTION_CLEARED",
+  "LAYOUT_ELEMENTS_MEASURED",
 ]);
 
 export function createParentPreviewMessage<TType extends PreviewParentMessageType, TPayload>(
@@ -176,5 +210,53 @@ export function toDesignElementSelectedPayload(value: unknown): PreviewDesignEle
     elementId,
     role: value.role,
     nodeId,
+  };
+}
+
+function finiteNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+export function toLayoutMeasurementPayload(value: unknown): PreviewLayoutMeasurementPayload | null {
+  if (!isPlainRecord(value)) return null;
+  if (!isPlainRecord(value.viewport) || !Array.isArray(value.elements)) return null;
+  const width = finiteNumber(value.viewport.width);
+  const height = finiteNumber(value.viewport.height);
+  if (width <= 0 || height <= 0) return null;
+  const elements: PreviewLayoutElementMeasurement[] = [];
+  for (const raw of value.elements.slice(0, 80)) {
+    if (!isPlainRecord(raw) || !isPlainRecord(raw.rect)) continue;
+    const id = sanitizeDesignElementId(raw.id);
+    if (!id || !isDesignElementRole(raw.role)) continue;
+    elements.push({
+      id,
+      role: raw.role,
+      nodeId: toSafeNodeId(raw.nodeId),
+      rect: {
+        x: finiteNumber(raw.rect.x),
+        y: finiteNumber(raw.rect.y),
+        width: Math.max(0, finiteNumber(raw.rect.width)),
+        height: Math.max(0, finiteNumber(raw.rect.height)),
+      },
+      ...(typeof raw.order === "number" && Number.isFinite(raw.order) ? { order: raw.order } : {}),
+    });
+  }
+  return {
+    viewport: {
+      width,
+      height,
+      scrollX: finiteNumber(value.viewport.scrollX),
+      scrollY: finiteNumber(value.viewport.scrollY),
+      devicePixelRatio: finiteNumber(value.viewport.devicePixelRatio, 1),
+      safeArea: isPlainRecord(value.viewport.safeArea)
+        ? {
+            top: finiteNumber(value.viewport.safeArea.top),
+            right: finiteNumber(value.viewport.safeArea.right),
+            bottom: finiteNumber(value.viewport.safeArea.bottom),
+            left: finiteNumber(value.viewport.safeArea.left),
+          }
+        : { top: 0, right: 0, bottom: 0, left: 0 },
+    },
+    elements,
   };
 }

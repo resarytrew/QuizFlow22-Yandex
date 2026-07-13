@@ -7,6 +7,7 @@ import {
   createParentPreviewMessage,
   isAllowedPreviewOrigin,
   isPreviewPlayerMessage,
+  toLayoutMeasurementPayload,
   toDesignElementSelectedPayload,
   type PreviewDesignElementSelectedPayload,
   type PreviewDeviceMode,
@@ -21,6 +22,8 @@ import {
 
 const STRUCTURE_DEBOUNCE_MS = 400;
 const VISUAL_SELECTION_TEMPLATE_IDS = new Set(['default', 'newyear', 'screenQuiz']);
+export const REQUEST_LAYOUT_MEASUREMENT_EVENT = 'quizflow:request-layout-measurement';
+export const LAYOUT_MEASURED_EVENT = 'quizflow:layout-measured';
 
 const DEVICE_VIEWPORTS: Record<PreviewDeviceMode, { label: string; width?: number; height?: number }> = {
   desktop: { label: 'Desktop', width: 1280, height: 820 },
@@ -383,6 +386,15 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   }, [controlledDeviceMode, onDeviceModeChange]);
 
   useEffect(() => {
+    const onLayoutMeasurementRequest = () => {
+      if (!bridgeReady) return;
+      postPreviewMessage('MEASURE_LAYOUT_ELEMENTS');
+    };
+    window.addEventListener(REQUEST_LAYOUT_MEASUREMENT_EVENT, onLayoutMeasurementRequest);
+    return () => window.removeEventListener(REQUEST_LAYOUT_MEASUREMENT_EVENT, onLayoutMeasurementRequest);
+  }, [bridgeReady, postPreviewMessage]);
+
+  useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
       const frameWindow = iframeRef.current?.contentWindow;
       if (!frameWindow || event.source !== frameWindow) return;
@@ -409,6 +421,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({
         setSelectedDesignElement(selection);
       } else if (event.data.type === 'DESIGN_ELEMENT_SELECTION_CLEARED') {
         setSelectedDesignElement(null);
+      } else if (event.data.type === 'LAYOUT_ELEMENTS_MEASURED') {
+        const measurement = toLayoutMeasurementPayload(event.data.payload);
+        if (!measurement) return;
+        window.dispatchEvent(new CustomEvent(LAYOUT_MEASURED_EVENT, { detail: measurement }));
       }
     };
 

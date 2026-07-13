@@ -10,10 +10,15 @@ import {
   isPreviewParentMessage,
   toDesignSettingsPayload,
   toSafeNodeId,
+  type PreviewLayoutMeasurementPayload,
   type PreviewDeviceMode,
   type PreviewErrorPayload,
   type PreviewStatePayload,
 } from "../previewBridge/protocol";
+import {
+  isDesignElementRole,
+  sanitizeDesignElementId,
+} from "../previewBridge/designElements";
 
 type NavigateTo = (nodeId: string) => void;
 
@@ -30,6 +35,9 @@ interface PreviewBridgeConfig {
 
 let activeWindow: Window | null = null;
 let targetOrigin: string | null = null;
+const designDataPrefix = "data-" + "design-";
+const designElementIdAttribute = designDataPrefix + "element-id";
+const designNodeIdDatasetKey = "designNodeId";
 
 function isBridgeEnabled(quizData: QuizData): boolean {
   const config = (quizData as { previewBridge?: PreviewBridgeConfig }).previewBridge;
@@ -52,7 +60,10 @@ function mergeDefined<T extends Record<string, unknown>>(base: T, patch: Record<
   return next as T;
 }
 
-function postToParent<TPayload>(type: "PREVIEW_READY" | "PREVIEW_NODE_CHANGED" | "PREVIEW_STATE_CHANGED" | "PREVIEW_ERROR", payload?: TPayload): void {
+function postToParent<TPayload>(
+  type: "PREVIEW_READY" | "PREVIEW_NODE_CHANGED" | "PREVIEW_STATE_CHANGED" | "PREVIEW_ERROR" | "LAYOUT_ELEMENTS_MEASURED",
+  payload?: TPayload,
+): void {
   if (!activeWindow || !targetOrigin || activeWindow.parent === activeWindow) return;
   activeWindow.parent.postMessage(createPlayerPreviewMessage(type, payload), targetOrigin);
 }
@@ -89,6 +100,44 @@ function readNodeId(payload: unknown): string | null {
 function readMode(payload: unknown): PreviewDeviceMode | null {
   if (!isPlainRecord(payload)) return null;
   return isPreviewDeviceMode(payload.mode) ? payload.mode : null;
+}
+
+export function measureLayoutElements(): PreviewLayoutMeasurementPayload {
+  const selector = `[${designElementIdAttribute}]`;
+  const elements = Array.from(document.querySelectorAll<HTMLElement>(selector))
+    .slice(0, 80)
+    .map((element, order) => {
+      const id = sanitizeDesignElementId(element.dataset.designElementId);
+      const role = element.dataset.designRole;
+      if (!id || !isDesignElementRole(role)) return null;
+      const rect = element.getBoundingClientRect();
+      if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return null;
+      return {
+        id,
+        role,
+        nodeId: toSafeNodeId(element.dataset[designNodeIdDatasetKey]),
+        rect: {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+        order,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  return {
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      devicePixelRatio: window.devicePixelRatio || 1,
+      safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
+    },
+    elements,
+  };
 }
 
 export function notifyPreviewNodeChanged(nodeId: string): void {
@@ -144,6 +193,10 @@ export function setupPreviewBridge(options: PreviewBridgeOptions): () => void {
         case "RESET_PREVIEW_STATE": {
           resetState();
           options.navigateTo(readNodeId(event.data.payload) ?? options.initialNodeId);
+          break;
+        }
+        case "MEASURE_LAYOUT_ELEMENTS": {
+          postToParent<PreviewLayoutMeasurementPayload>("LAYOUT_ELEMENTS_MEASURED", measureLayoutElements());
           break;
         }
       }

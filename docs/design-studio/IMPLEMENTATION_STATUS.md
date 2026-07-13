@@ -4,6 +4,81 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 9: Embedded Canva/free-layout model.
+
+Status: completed locally.
+
+Commit target: `feat: add embedded free-layout model`.
+
+## Stage 9 Completed
+
+- Added a versioned `LayoutDocument` model for embedded Canva/free layout:
+  - `schemaVersion`;
+  - `mode: auto | free`;
+  - `baseViewport`;
+  - semantic `LayoutElement` records;
+  - tablet/mobile breakpoint override shape.
+- Added layout scope support without copying full layouts into every node:
+  - global;
+  - node type;
+  - current node.
+- Added normalization, migration, serialization and validation:
+  - rejects invalid roles;
+  - rejects unsafe element IDs;
+  - clamps coordinates and sizes;
+  - rejects `NaN` and `Infinity`;
+  - limits captured elements to 80;
+  - loads old quizzes without `LayoutDocument`.
+- Added constrained role rules:
+  - background occupies the scene;
+  - question card is required and viewport-constrained;
+  - answers container moves as a group;
+  - primary actions stay reachable;
+  - functional elements cannot rotate;
+  - text and inputs remain DOM.
+- Added logical coordinate conversion from measured Preview DOM rectangles:
+  - coordinates are normalized to `baseViewport`;
+  - preview zoom/device scale does not affect saved values;
+  - iframe offset is not persisted.
+- Extended `PreviewBridge` with editor-only measurement messages:
+  - parent -> Player: `MEASURE_LAYOUT_ELEMENTS`;
+  - Player -> parent: `LAYOUT_ELEMENTS_MEASURED`.
+- Added DOM measurement in the existing Player bridge via `getBoundingClientRect`.
+- Wired the existing `LivePreview` to forward editor-only measurement requests and responses.
+- Added the requested `Макет` switch inside the existing `DesignOverviewPanel`:
+  - `Автоматический`;
+  - `Свободный`;
+  - scope selector for global/node type/current node.
+- Wired auto/free transitions through existing `DesignHistory`:
+  - auto -> free creates a measured `LayoutDocument`;
+  - free -> auto asks for confirmation;
+  - free layout can be preserved as a draft;
+  - undo/redo restores the previous mode.
+- Added architecture documentation:
+  - `docs/design-studio/CANVA_MODE_ARCHITECTURE.md`.
+
+## Stage 9 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors after model/UI integration. |
+| `npm test -- --run src/designMode/layoutDocument.test.ts src/previewBridge/protocol.test.ts src/engine/__tests__/previewBridge.test.ts components/designMode/DesignOverviewPanel.test.tsx store/useQuizDesignHistory.test.ts` | Passed | 5 files, 32 tests passed. |
+| `npm test -- --run services/quizGenerator/__tests__/designSelectionExport.test.ts src/engine/__tests__/previewBridge.test.ts` | Passed | Verifies free-layout measurement support does not leak editor selection attributes into standalone HTML export. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 84 files, 693 tests passed. Expected stderr appears in existing negative-path tests. Existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+
+## Stage 9 Known Limitations
+
+- Drag and resize are intentionally not implemented.
+- Free-layout rendering is not applied to Player visuals yet; this stage creates the safe model and capture path only.
+- Breakpoint overrides are normalized and serializable, but no responsive editing UI exists yet.
+- Unsupported templates may produce fewer measurable elements, but they continue to open safely.
+- Returning to auto mode stores a draft document, but there is no dedicated draft manager UI yet.
+
+## Previous Stage 8
+
 Stage 8: Design Overview, styles and Brand Kit.
 
 Status: completed locally.
