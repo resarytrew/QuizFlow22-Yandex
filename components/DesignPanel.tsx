@@ -275,11 +275,24 @@ function safeHex(value: unknown, fallback = '#000000'): string {
   return typeof value === 'string' && HEX_RE.test(value) ? value : fallback;
 }
 
-const Section = ({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) => (
+const Section = ({
+  title,
+  children,
+  note,
+  action,
+}: {
+  title: string;
+  children: React.ReactNode;
+  note?: string;
+  action?: React.ReactNode;
+}) => (
   <section className="rounded-[1.25rem_0.45rem_1.25rem_0.45rem] border border-stone-200/80 bg-[#fffdf8] p-4 shadow-[0_14px_36px_rgba(68,64,60,0.06)]">
-    <div className="mb-4">
-      <h3 className="font-serif text-xl font-semibold tracking-[-0.035em] text-stone-950">{title}</h3>
-      {note && <p className="mt-1 text-xs leading-5 text-stone-500">{note}</p>}
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <h3 className="font-serif text-xl font-semibold tracking-[-0.035em] text-stone-950">{title}</h3>
+        {note && <p className="mt-1 text-xs leading-5 text-stone-500">{note}</p>}
+      </div>
+      {action}
     </div>
     <div className="space-y-4">{children}</div>
   </section>
@@ -477,7 +490,6 @@ const screenQuizDefaults: Required<ScreenQuizSettings> = {
   introGapMs: 280,
 };
 
-
 const TimelineMeter = ({
   questionMs,
   mediaMs,
@@ -541,6 +553,16 @@ const DesignPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DesignTab>('quickStart');
   const designSettings = useQuizDataStore((state) => state.designSettings);
   const updateDesignSettings = useQuizDataStore((state) => state.updateDesignSettings);
+  const applyDesignStylePreset = useQuizDataStore((state) => state.applyDesignStylePreset);
+  const applyDesignPalette = useQuizDataStore((state) => state.applyDesignPalette);
+  const undoDesignChange = useQuizDataStore((state) => state.undoDesignChange);
+  const redoDesignChange = useQuizDataStore((state) => state.redoDesignChange);
+  const resetDesignSection = useQuizDataStore((state) => state.resetDesignSection);
+  const resetDesignScreen = useQuizDataStore((state) => state.resetDesignScreen);
+  const resetAllDesign = useQuizDataStore((state) => state.resetAllDesign);
+  const designStatus = useQuizDataStore((state) => state.designStatus);
+  const canUndoDesign = useQuizDataStore((state) => state.canUndoDesign);
+  const canRedoDesign = useQuizDataStore((state) => state.canRedoDesign);
   const templateId = useQuizDataStore((state) => state.templateId);
   const setTemplateId = useQuizDataStore((state) => state.setTemplateId);
   const isPreviewModeActive = useUIStore((state) => state.isPreviewModeActive);
@@ -559,13 +581,17 @@ const DesignPanel: React.FC = () => {
     [ds],
   );
 
-  const updateSection = <T extends keyof DesignSettings>(section: T, patch: Partial<NonNullable<DesignSettings[T]>>) => {
+  const updateSection = <T extends keyof DesignSettings>(
+    section: T,
+    patch: Partial<NonNullable<DesignSettings[T]>>,
+    options?: Parameters<typeof updateDesignSettings>[1],
+  ) => {
     updateDesignSettings({
       [section]: {
         ...(designSettings[section] as object),
         ...patch,
       },
-    } as Partial<DesignSettings>);
+    } as Partial<DesignSettings>, options);
   };
 
   const applyLayoutPreset = (preset: (typeof layoutPresets)[number]) => {
@@ -576,22 +602,22 @@ const DesignPanel: React.FC = () => {
         padding: preset.values.cardPadding,
         mediaPosition: preset.values.mediaPosition,
       },
-    } as Partial<DesignSettings>);
+    } as Partial<DesignSettings>, { label: 'Apply layout style' });
   };
 
   const applyInterfacePreset = (preset: (typeof interfacePresets)[number]) => {
     updateDesignSettings({
       ...interfacePresetStyles[preset.id],
       layout: preset.values,
-    } as Partial<DesignSettings>);
+    } as Partial<DesignSettings>, { label: 'Apply interface style' });
   };
 
   const applyExperiencePreset = (preset: (typeof experiencePresets)[number]) => {
-    updateDesignSettings(preset.settings as Partial<DesignSettings>);
+    applyDesignStylePreset(preset.id, preset.settings);
   };
 
   const applyPalettePreset = (palette: (typeof palettePresets)[number]) => {
-    updateDesignSettings({
+    applyDesignPalette({
       brand: { primaryColor: palette.primary, accentColor: palette.accent, neutralColor: palette.neutral },
       background: { color: palette.bg, gradientFrom: palette.bg, gradientTo: palette.bg },
       buttons: { backgroundColor: palette.primary, hoverBackgroundColor: palette.neutral },
@@ -612,9 +638,62 @@ const DesignPanel: React.FC = () => {
   };
 
   const screenQuiz = { ...screenQuizDefaults, ...(ds.screenQuiz || {}) };
-  const updateScreenQuiz = (patch: Partial<ScreenQuizSettings>) => {
-    updateSection('screenQuiz', patch);
+  const updateScreenQuiz = (
+    patch: Partial<ScreenQuizSettings>,
+    options?: Parameters<typeof updateDesignSettings>[1],
+  ) => {
+    updateSection('screenQuiz', patch, options);
   };
+  const applyScreenQuizShowStyle = (backgroundPreset: NonNullable<ScreenQuizSettings['backgroundPreset']>) => {
+    updateScreenQuiz({ backgroundPreset }, { label: 'Apply screen style' });
+  };
+
+  const designStatusLabel = {
+    applied: 'Стиль применён',
+    modified: 'Стиль изменён',
+    custom: 'Пользовательский дизайн',
+  }[designStatus];
+
+  const HistoryControls = (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-[11px] font-bold text-stone-600">
+        {designStatusLabel}
+      </span>
+      <button
+        type="button"
+        onClick={undoDesignChange}
+        disabled={!canUndoDesign}
+        className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-bold text-stone-700 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Undo
+      </button>
+      <button
+        type="button"
+        onClick={redoDesignChange}
+        disabled={!canRedoDesign}
+        className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-bold text-stone-700 transition hover:border-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Redo
+      </button>
+      <button
+        type="button"
+        onClick={resetAllDesign}
+        className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-bold text-stone-700 transition hover:border-amber-300"
+      >
+        Сбросить всё
+      </button>
+    </div>
+  );
+
+  const resetAction = (label: string, onClick: () => void) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 rounded-full border border-stone-200 bg-white px-3 py-1 text-[11px] font-bold text-stone-600 transition hover:border-amber-300 hover:text-stone-950"
+    >
+      {label}
+    </button>
+  );
 
   if (templateId === 'screenQuiz') {
     return (
@@ -634,6 +713,7 @@ const DesignPanel: React.FC = () => {
           >
             {isPreviewModeActive ? 'Вернуться в редактор' : 'Предпросмотр в реальном времени'}
           </button>
+          {HistoryControls}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -655,9 +735,9 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'screen' && (
-        <Section title="Фон и движение" note="Можно выбрать готовый фон-паттерн или поставить собственное изображение из медиатеки.">
-          <Field label="Пресет фона">
-            <Select value={screenQuiz.backgroundPreset} onChange={(e) => updateScreenQuiz({ backgroundPreset: e.target.value as ScreenQuizSettings['backgroundPreset'] })}>
+        <Section title="Фон и движение" note="Можно выбрать готовый фон-паттерн или поставить собственное изображение из медиатеки." action={resetAction('Сбросить экран', resetDesignScreen)}>
+          <Field label="Стиль фона">
+            <Select value={screenQuiz.backgroundPreset} onChange={(e) => applyScreenQuizShowStyle(e.target.value as NonNullable<ScreenQuizSettings['backgroundPreset']>)}>
               <option value="none">Без пресета</option>
               <option value="pop">Pop shapes</option>
               <option value="candy">Candy glow</option>
@@ -690,7 +770,7 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'brand' && (
-        <Section title="Палитра сцены">
+        <Section title="Палитра сцены" action={resetAction('Сбросить', resetDesignScreen)}>
           <Field label="Акцент"><ColorInput value={screenQuiz.accentColor} onChange={(value) => updateScreenQuiz({ accentColor: value })} /></Field>
           <Field label="Второй акцент"><ColorInput value={screenQuiz.secondaryColor} onChange={(value) => updateScreenQuiz({ secondaryColor: value })} /></Field>
           <Field label="Панель вопроса"><ColorInput value={screenQuiz.panelColor} onChange={(value) => updateScreenQuiz({ panelColor: value })} /></Field>
@@ -701,7 +781,7 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'screen' && (
-        <Section title="Макет карточки" note="Авто выбирает экран по типу узла и наличию медиа, ручные режимы фиксируют композицию.">
+        <Section title="Макет карточки" note="Авто выбирает экран по типу узла и наличию медиа, ручные режимы фиксируют композицию." action={resetAction('Сбросить', resetDesignScreen)}>
           <Field label="Композиция">
             <Select value={screenQuiz.layout} onChange={(e) => updateScreenQuiz({ layout: e.target.value as ScreenQuizSettings['layout'] })}>
               <option value="auto">Авто</option>
@@ -815,6 +895,7 @@ const DesignPanel: React.FC = () => {
         >
           {isPreviewModeActive ? 'Вернуться в редактор' : 'Предпросмотр в реальном времени'}
         </button>
+        {HistoryControls}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -861,9 +942,9 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'brand' && (
-          <Section title="Бренд" note="Базовая система идентичности для квиза и будущих бренд-китов.">
+        <Section title="Бренд" note="Базовая система идентичности для квиза и будущих бренд-китов." action={resetAction('Сбросить', () => resetDesignSection('brand'))}>
             <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Профессиональный пресет</div>
+              <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Стиль</div>
               <div className="grid gap-2">
                 {experiencePresets.map((preset) => (
                   <button
@@ -900,7 +981,7 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'screen' && (
-          <Section title="Фон" note="Цвет, градиент, изображение и наложение для общего пространства квиза.">
+          <Section title="Фон" note="Цвет, градиент, изображение и наложение для общего пространства квиза." action={resetAction('Сбросить', () => resetDesignSection('background'))}>
             <Field label="Тип фона">
               <Segmented value={ds.background.mode || 'solid'} onChange={(value) => updateSection('background', { mode: value })} options={[
                 { value: 'solid', label: 'Цвет' },
@@ -933,24 +1014,24 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'brand' && (
-          <Section title="Расширенная типографика" note="Отдельные настройки для интерфейсного и заголовочного шрифта, веса, масштаба и ритма.">
+          <Section title="Расширенная типографика" note="Отдельные настройки для интерфейсного и заголовочного шрифта, веса, масштаба и ритма." action={resetAction('Сбросить', () => resetDesignSection('typography'))}>
             <Field label="Основной шрифт"><Select value={ds.typography.fontFamily} onChange={(e) => updateSection('typography', { fontFamily: e.target.value })}>{fontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</Select></Field>
             <Field label="Шрифт заголовков"><Select value={ds.typography.displayFontFamily || ds.typography.fontFamily} onChange={(e) => updateSection('typography', { displayFontFamily: e.target.value })}>{fontOptions.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}</Select></Field>
             <Field label="Цвет заголовков"><ColorInput value={ds.typography.headingColor} onChange={(value) => updateSection('typography', { headingColor: value })} /></Field>
             <Field label="Цвет текста"><ColorInput value={ds.typography.bodyTextColor} onChange={(value) => updateSection('typography', { bodyTextColor: value })} /></Field>
-            <Field label="Вес заголовков"><RangeInput min={300} max={900} step={50} value={ds.typography.headingWeight || 650} onChange={(value) => updateSection('typography', { headingWeight: value })} /></Field>
-            <Field label="Вес текста"><RangeInput min={300} max={800} step={50} value={ds.typography.bodyWeight || 450} onChange={(value) => updateSection('typography', { bodyWeight: value })} /></Field>
-            <Field label="Масштаб заголовков"><RangeInput min={0.75} max={1.35} step={0.05} value={ds.typography.headingScale || 1} onChange={(value) => updateSection('typography', { headingScale: value })} /></Field>
-            <Field label="Масштаб текста"><RangeInput min={0.85} max={1.25} step={0.05} value={ds.typography.bodyScale || 1} onChange={(value) => updateSection('typography', { bodyScale: value })} /></Field>
-            <Field label="Межстрочный интервал"><RangeInput min={1.15} max={1.9} step={0.05} value={ds.typography.lineHeight || 1.55} onChange={(value) => updateSection('typography', { lineHeight: value })} /></Field>
-            <Field label="Интервал заголовка"><RangeInput min={0.9} max={1.35} step={0.02} value={ds.typography.headingLineHeight || 1.04} onChange={(value) => updateSection('typography', { headingLineHeight: value })} /></Field>
-            <Field label="Ширина абзаца"><RangeInput min={460} max={860} step={20} suffix="px" value={ds.typography.paragraphWidth || 680} onChange={(value) => updateSection('typography', { paragraphWidth: value })} /></Field>
-            <Field label="Трекинг"><RangeInput min={0} max={1.2} step={0.05} suffix="px" value={ds.typography.letterSpacing || 0} onChange={(value) => updateSection('typography', { letterSpacing: value })} /></Field>
+            <Field label="Вес заголовков"><RangeInput min={300} max={900} step={50} value={ds.typography.headingWeight ?? 650} onChange={(value) => updateSection('typography', { headingWeight: value }, { coalesceKey: 'typography.headingWeight' })} /></Field>
+            <Field label="Вес текста"><RangeInput min={300} max={800} step={50} value={ds.typography.bodyWeight ?? 450} onChange={(value) => updateSection('typography', { bodyWeight: value }, { coalesceKey: 'typography.bodyWeight' })} /></Field>
+            <Field label="Масштаб заголовков"><RangeInput min={0.75} max={1.35} step={0.05} value={ds.typography.headingScale ?? 1} onChange={(value) => updateSection('typography', { headingScale: value }, { coalesceKey: 'typography.headingScale' })} /></Field>
+            <Field label="Масштаб текста"><RangeInput min={0.85} max={1.25} step={0.05} value={ds.typography.bodyScale ?? 1} onChange={(value) => updateSection('typography', { bodyScale: value }, { coalesceKey: 'typography.bodyScale' })} /></Field>
+            <Field label="Межстрочный интервал"><RangeInput min={1.15} max={1.9} step={0.05} value={ds.typography.lineHeight ?? 1.55} onChange={(value) => updateSection('typography', { lineHeight: value }, { coalesceKey: 'typography.lineHeight' })} /></Field>
+            <Field label="Интервал заголовка"><RangeInput min={0.9} max={1.35} step={0.02} value={ds.typography.headingLineHeight ?? 1.04} onChange={(value) => updateSection('typography', { headingLineHeight: value }, { coalesceKey: 'typography.headingLineHeight' })} /></Field>
+            <Field label="Ширина абзаца"><RangeInput min={460} max={860} step={20} suffix="px" value={ds.typography.paragraphWidth ?? 680} onChange={(value) => updateSection('typography', { paragraphWidth: value }, { coalesceKey: 'typography.paragraphWidth' })} /></Field>
+            <Field label="Трекинг"><RangeInput min={0} max={1.2} step={0.05} suffix="px" value={ds.typography.letterSpacing ?? 0} onChange={(value) => updateSection('typography', { letterSpacing: value }, { coalesceKey: 'typography.letterSpacing' })} /></Field>
           </Section>
         )}
 
         {activeTab === 'screen' && (
-          <Section title="Пресеты макета экрана" note="Быстро меняют композицию прохождения: ширину, плотность, радиусы и позицию медиа.">
+          <Section title="Стиль экрана" note="Быстро меняет композицию прохождения: ширину, плотность, радиусы и позицию медиа." action={resetAction('Сбросить', () => resetDesignSection('layout'))}>
             <div>
               <div className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-stone-500">Профессиональные макеты интерфейса</div>
               <div className="grid gap-2">
@@ -989,7 +1070,7 @@ const DesignPanel: React.FC = () => {
                 <Field label="Рамка"><ColorInput value={ds.questionCard?.borderColor || '#dfd8cc'} onChange={(value) => updateSection('questionCard', { borderColor: value })} /></Field>
                 <Field label="Скругление"><RangeInput min={0} max={56} step={1} suffix="px" value={ds.questionCard?.radius ?? ds.layout?.cardRadius ?? 28} onChange={(value) => updateSection('questionCard', { radius: value })} /></Field>
                 <Field label="Внутренний отступ"><RangeInput min={16} max={80} step={2} suffix="px" value={ds.questionCard?.padding ?? ds.layout?.cardPadding ?? 32} onChange={(value) => updateSection('questionCard', { padding: value })} /></Field>
-                <Field label="Тень"><Select value={ds.questionCard?.shadow || 'soft'} onChange={(e) => updateSection('questionCard', { shadow: e.target.value as NonNullable<DesignSettings['questionCard']>['shadow'] })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
+                <Field label="Тень"><Select value={ds.questionCard?.shadow ?? 'soft'} onChange={(e) => updateSection('questionCard', { shadow: e.target.value as NonNullable<DesignSettings['questionCard']>['shadow'] })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
                 <Field label="Медиа в карточке"><Select value={ds.questionCard?.mediaPosition || ds.layout?.mediaPosition || 'top'} onChange={(e) => updateSection('questionCard', { mediaPosition: e.target.value as NonNullable<DesignSettings['questionCard']>['mediaPosition'] })}><option value="top">Сверху</option><option value="left">Слева</option><option value="right">Справа</option><option value="background">Фоном</option></Select></Field>
                 <Field label="Ширина медиа"><RangeInput min={28} max={58} step={1} suffix="%" value={ds.questionCard?.mediaWidth ?? 42} onChange={(value) => updateSection('questionCard', { mediaWidth: value })} /></Field>
                 <Field label="Скругление медиа"><RangeInput min={0} max={36} step={1} suffix="px" value={ds.questionCard?.mediaRadius ?? 22} onChange={(value) => updateSection('questionCard', { mediaRadius: value })} /></Field>
@@ -1010,10 +1091,10 @@ const DesignPanel: React.FC = () => {
                 </button>
               ))}
             </div>
-            <Field label="Ширина контента"><RangeInput min={560} max={1180} step={20} suffix="px" value={ds.layout?.contentWidth || 920} onChange={(value) => updateSection('layout', { contentWidth: value })} /></Field>
-            <Field label="Радиус основной карточки"><RangeInput min={0} max={48} step={1} suffix="px" value={ds.layout?.cardRadius || 28} onChange={(value) => updateSection('layout', { cardRadius: value })} /></Field>
-            <Field label="Внутренний отступ"><RangeInput min={16} max={64} step={2} suffix="px" value={ds.layout?.cardPadding || 32} onChange={(value) => updateSection('layout', { cardPadding: value })} /></Field>
-            <Field label="Прозрачность поверхности"><RangeInput min={0.7} max={1} step={0.02} value={ds.layout?.cardOpacity || 0.94} onChange={(value) => updateSection('layout', { cardOpacity: value })} /></Field>
+            <Field label="Ширина контента"><RangeInput min={560} max={1180} step={20} suffix="px" value={ds.layout?.contentWidth ?? 920} onChange={(value) => updateSection('layout', { contentWidth: value }, { coalesceKey: 'layout.contentWidth' })} /></Field>
+            <Field label="Радиус основной карточки"><RangeInput min={0} max={48} step={1} suffix="px" value={ds.layout?.cardRadius ?? 28} onChange={(value) => updateSection('layout', { cardRadius: value }, { coalesceKey: 'layout.cardRadius' })} /></Field>
+            <Field label="Внутренний отступ"><RangeInput min={16} max={64} step={2} suffix="px" value={ds.layout?.cardPadding ?? 32} onChange={(value) => updateSection('layout', { cardPadding: value }, { coalesceKey: 'layout.cardPadding' })} /></Field>
+            <Field label="Прозрачность поверхности"><RangeInput min={0.7} max={1} step={0.02} value={ds.layout?.cardOpacity ?? 0.94} onChange={(value) => updateSection('layout', { cardOpacity: value }, { coalesceKey: 'layout.cardOpacity' })} /></Field>
             <Field label="Позиция медиа"><Select value={ds.layout?.mediaPosition || 'top'} onChange={(e) => updateSection('layout', { mediaPosition: e.target.value as NonNullable<DesignSettings['layout']>['mediaPosition'] })}><option value="top">Сверху</option><option value="left">Слева</option><option value="right">Справа</option><option value="background">Фоном</option></Select></Field>
             <Field label="Поверхность"><Select value={ds.layout?.surfaceStyle || 'paper'} onChange={(e) => updateSection('layout', { surfaceStyle: e.target.value as NonNullable<DesignSettings['layout']>['surfaceStyle'] })}><option value="solid">Чистая карточка</option><option value="paper">Тёплая бумага</option><option value="outline">Тонкий контур</option><option value="glass">Стекло</option><option value="minimal">Без рамки</option></Select></Field>
             <Field label="Выравнивание вопроса"><Segmented value={ds.layout?.questionAlign || 'left'} onChange={(value) => updateSection('layout', { questionAlign: value })} options={[{ value: 'left', label: 'Слева' }, { value: 'center', label: 'По центру' }]} /></Field>
@@ -1023,15 +1104,15 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'elements' && (
-          <Section title="Кнопки" note="Стиль основных действий: начать, далее, отправить, перейти.">
+          <Section title="Кнопки" note="Стиль основных действий: начать, далее, отправить, перейти." action={resetAction('Сбросить', () => resetDesignSection('buttons'))}>
             <Field label="Стиль"><Select value={ds.buttons.style || 'solid'} onChange={(e) => updateSection('buttons', { style: e.target.value as NonNullable<DesignSettings['buttons']>['style'] })}><option value="solid">Solid</option><option value="outline">Outline</option><option value="ghost">Ghost</option><option value="soft">Soft</option><option value="premium">Premium</option></Select></Field>
             <Field label="Фон"><ColorInput value={ds.buttons.backgroundColor} onChange={(value) => updateSection('buttons', { backgroundColor: value })} /></Field>
             <Field label="Текст"><ColorInput value={ds.buttons.textColor} onChange={(value) => updateSection('buttons', { textColor: value })} /></Field>
             <Field label="Фон при наведении"><ColorInput value={ds.buttons.hoverBackgroundColor} onChange={(value) => updateSection('buttons', { hoverBackgroundColor: value })} /></Field>
             <Field label="Текст при наведении"><ColorInput value={ds.buttons.hoverTextColor} onChange={(value) => updateSection('buttons', { hoverTextColor: value })} /></Field>
-            <Field label="Высота"><RangeInput min={38} max={72} step={1} suffix="px" value={ds.buttons.height || 52} onChange={(value) => updateSection('buttons', { height: value })} /></Field>
+            <Field label="Высота"><RangeInput min={38} max={72} step={1} suffix="px" value={ds.buttons.height ?? 52} onChange={(value) => updateSection('buttons', { height: value }, { coalesceKey: 'buttons.height' })} /></Field>
             <Field label="Скругление"><RangeInput min={0} max={36} step={1} suffix="px" value={ds.buttons.borderRadius} onChange={(value) => updateSection('buttons', { borderRadius: value })} /></Field>
-            <Field label="Вес текста"><RangeInput min={400} max={900} step={50} value={ds.buttons.fontWeight || 800} onChange={(value) => updateSection('buttons', { fontWeight: value })} /></Field>
+            <Field label="Вес текста"><RangeInput min={400} max={900} step={50} value={ds.buttons.fontWeight ?? 800} onChange={(value) => updateSection('buttons', { fontWeight: value }, { coalesceKey: 'buttons.fontWeight' })} /></Field>
             <Field label="Ширина"><Segmented value={ds.buttons.width || 'auto'} onChange={(value) => updateSection('buttons', { width: value })} options={[{ value: 'auto', label: 'По контенту' }, { value: 'full', label: 'На всю ширину' }]} /></Field>
             <Field label="Регистр"><Segmented value={ds.buttons.textTransform || 'none'} onChange={(value) => updateSection('buttons', { textTransform: value })} options={[{ value: 'none', label: 'Обычный' }, { value: 'uppercase', label: 'Верхний' }]} /></Field>
             <Field label="Тень"><Select value={ds.buttons.shadow || 'soft'} onChange={(e) => updateSection('buttons', { shadow: e.target.value as NonNullable<DesignSettings['buttons']>['shadow'] })}><option value="none">Без тени</option><option value="soft">Мягкая</option><option value="strong">Выраженная</option></Select></Field>
@@ -1039,7 +1120,7 @@ const DesignPanel: React.FC = () => {
         )}
 
         {activeTab === 'elements' && (
-          <Section title="Ответы" note="Визуальная система вариантов ответа, выбранных состояний и расстояний.">
+          <Section title="Ответы" note="Визуальная система вариантов ответа, выбранных состояний и расстояний." action={resetAction('Сбросить', () => resetDesignSection('answerCards'))}>
             <Field label="Стиль"><Select value={ds.answerCards.style || 'card'} onChange={(e) => updateSection('answerCards', { style: e.target.value as NonNullable<DesignSettings['answerCards']>['style'] })}><option value="card">Карточки</option><option value="list">Список</option><option value="tiles">Плитка</option><option value="minimal">Минимальный</option></Select></Field>
             <Field label="Фон"><ColorInput value={ds.answerCards.backgroundColor} onChange={(value) => updateSection('answerCards', { backgroundColor: value })} /></Field>
             <Field label="Текст"><ColorInput value={ds.answerCards.textColor} onChange={(value) => updateSection('answerCards', { textColor: value })} /></Field>
@@ -1049,29 +1130,29 @@ const DesignPanel: React.FC = () => {
             <Field label="Выбранный текст"><ColorInput value={ds.answerCards.selectedTextColor} onChange={(value) => updateSection('answerCards', { selectedTextColor: value })} /></Field>
             <Field label="Выбранная рамка"><ColorInput value={ds.answerCards.selectedBorderColor || ds.buttons.backgroundColor} onChange={(value) => updateSection('answerCards', { selectedBorderColor: value })} /></Field>
             <Field label="Скругление"><RangeInput min={0} max={36} step={1} suffix="px" value={ds.answerCards.borderRadius} onChange={(value) => updateSection('answerCards', { borderRadius: value })} /></Field>
-            <Field label="Расстояние"><RangeInput min={4} max={28} step={1} suffix="px" value={ds.answerCards.spacing || 12} onChange={(value) => updateSection('answerCards', { spacing: value })} /></Field>
+            <Field label="Расстояние"><RangeInput min={4} max={28} step={1} suffix="px" value={ds.answerCards.spacing ?? 12} onChange={(value) => updateSection('answerCards', { spacing: value }, { coalesceKey: 'answerCards.spacing' })} /></Field>
             <Field label="Колонки"><Segmented value={String(ds.answerCards.columns || 1)} onChange={(value) => updateSection('answerCards', { columns: Number(value) as 1 | 2 | 3 })} options={[{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }]} /></Field>
-            <Field label="Минимальная высота"><RangeInput min={44} max={120} step={2} suffix="px" value={ds.answerCards.minHeight || 58} onChange={(value) => updateSection('answerCards', { minHeight: value })} /></Field>
+            <Field label="Минимальная высота"><RangeInput min={44} max={120} step={2} suffix="px" value={ds.answerCards.minHeight ?? 58} onChange={(value) => updateSection('answerCards', { minHeight: value }, { coalesceKey: 'answerCards.minHeight' })} /></Field>
             <Field label="Пропорция медиа"><Select value={ds.answerCards.mediaAspectRatio || 'auto'} onChange={(e) => updateSection('answerCards', { mediaAspectRatio: e.target.value as NonNullable<DesignSettings['answerCards']>['mediaAspectRatio'] })}><option value="auto">Авто</option><option value="16/9">16:9</option><option value="4/3">4:3</option><option value="1/1">1:1</option></Select></Field>
             <Field label="Маркеры"><Select value={ds.answerCards.markerStyle || 'letters'} onChange={(e) => updateSection('answerCards', { markerStyle: e.target.value as NonNullable<DesignSettings['answerCards']>['markerStyle'] })}><option value="none">Без маркеров</option><option value="letters">A/B/C</option><option value="numbers">1/2/3</option></Select></Field>
           </Section>
         )}
 
         {activeTab === 'elements' && (
-          <Section title="Прогресс" note="Настройка отображения прогресса прохождения.">
+          <Section title="Прогресс" note="Настройка отображения прогресса прохождения." action={resetAction('Сбросить', () => resetDesignSection('progress'))}>
             <Field label="Стиль"><Select value={ds.progress?.style || 'bar'} onChange={(e) => updateSection('progress', { style: e.target.value as NonNullable<DesignSettings['progress']>['style'] })}><option value="bar">Линия</option><option value="steps">Шаги</option><option value="ring">Кольцо</option><option value="hidden">Скрыть</option></Select></Field>
             <Field label="Позиция"><Select value={ds.progress?.position || 'top'} onChange={(e) => updateSection('progress', { position: e.target.value as NonNullable<DesignSettings['progress']>['position'] })}><option value="top">Сверху</option><option value="bottom">Снизу</option><option value="inside">Внутри карточки</option></Select></Field>
             <Field label="Цвет прогресса"><ColorInput value={ds.progress?.color || ds.buttons.backgroundColor} onChange={(value) => updateSection('progress', { color: value })} /></Field>
             <Field label="Цвет трека"><ColorInput value={ds.progress?.trackColor || '#e4ded2'} onChange={(value) => updateSection('progress', { trackColor: value })} /></Field>
-            <Field label="Высота линии"><RangeInput min={3} max={16} step={1} suffix="px" value={ds.progress?.height || 8} onChange={(value) => updateSection('progress', { height: value })} /></Field>
+            <Field label="Высота линии"><RangeInput min={3} max={16} step={1} suffix="px" value={ds.progress?.height ?? 8} onChange={(value) => updateSection('progress', { height: value }, { coalesceKey: 'progress.height' })} /></Field>
             <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Показывать проценты</span><Toggle checked={ds.progress?.showPercent !== false} onChange={(value) => updateSection('progress', { showPercent: value })} /></div>
             <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Показывать шаг</span><Toggle checked={ds.progress?.showStepLabel !== false} onChange={(value) => updateSection('progress', { showStepLabel: value })} /></div>
           </Section>
         )}
 
         {activeTab === 'elements' && (
-          <Section title="Результат" note="Брендирование финального экрана и отчёта прохождения.">
-            <Field label="Пресет"><Select value={ds.result?.preset || 'card'} onChange={(e) => updateSection('result', { preset: e.target.value as NonNullable<DesignSettings['result']>['preset'] })}><option value="card">Карточка</option><option value="certificate">Сертификат</option><option value="report">Отчёт</option><option value="landing">Лендинг</option></Select></Field>
+          <Section title="Результат" note="Брендирование финального экрана и отчёта прохождения." action={resetAction('Сбросить', () => resetDesignSection('result'))}>
+            <Field label="Стиль"><Select value={ds.result?.preset || 'card'} onChange={(e) => updateSection('result', { preset: e.target.value as NonNullable<DesignSettings['result']>['preset'] })}><option value="card">Карточка</option><option value="certificate">Сертификат</option><option value="report">Отчёт</option><option value="landing">Лендинг</option></Select></Field>
             <Field label="Фон результата"><ColorInput value={ds.result?.backgroundColor || ds.answerCards.backgroundColor} onChange={(value) => updateSection('result', { backgroundColor: value })} /></Field>
             <Field label="Текст результата"><ColorInput value={ds.result?.textColor || ds.typography.headingColor} onChange={(value) => updateSection('result', { textColor: value })} /></Field>
             <Field label="Акцент результата"><ColorInput value={ds.result?.accentColor || ds.buttons.backgroundColor} onChange={(value) => updateSection('result', { accentColor: value })} /></Field>
@@ -1084,7 +1165,7 @@ const DesignPanel: React.FC = () => {
         {activeTab === 'advanced' && (
           <div className="space-y-4">
             <SoundSection />
-            <Section title="Дополнительно" note="Тонкие настройки для доступности и scoped CSS. CSS применяется только внутри плеера/публичного HTML.">
+            <Section title="Дополнительно" note="Тонкие настройки для доступности и scoped CSS. CSS применяется только внутри плеера/публичного HTML." action={resetAction('Сбросить', () => resetDesignSection('advanced'))}>
               <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Уменьшить анимации</span><Toggle checked={Boolean(ds.advanced?.reducedMotion)} onChange={(value) => updateSection('advanced', { reducedMotion: value })} /></div>
               <div className="flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf7f0] p-3"><span className="text-sm font-semibold">Повышенный контраст</span><Toggle checked={Boolean(ds.advanced?.highContrast)} onChange={(value) => updateSection('advanced', { highContrast: value })} /></div>
               <Field label="Custom CSS" hint="Для продвинутого брендирования. Не используйте внешние скрипты.">

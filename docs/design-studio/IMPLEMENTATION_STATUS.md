@@ -4,11 +4,57 @@ Date: 2026-07-13
 
 ## Current Stage
 
-Stage 2: simplify design settings navigation.
+Stage 3: deterministic presets, undo/redo and reset.
 
 Status: completed locally.
 
-Commit target: `refactor: simplify design settings navigation`.
+Commit target: `feat: add deterministic design presets and history`.
+
+## Stage 3 Completed
+
+- Added `DesignResolver` as a pure layer resolver:
+  - defaults;
+  - template base;
+  - full normalized style preset;
+  - Brand Kit logo/colors/fonts;
+  - manual overrides.
+- Added normalization for legacy partial `DesignSettings`, invalid enum values, nullable values and valid zero numeric values.
+- Replaced design loading from `deepMerge` with resolver-based normalization for saved quizzes and autosave restore.
+- Added design metadata:
+  - `Стиль применён`;
+  - `Стиль изменён`;
+  - `Пользовательский дизайн`.
+- Added `DesignHistory` to the quiz data store:
+  - undo;
+  - redo;
+  - 50-entry limit;
+  - coalescing by `coalesceKey` for slider-style operations;
+  - preset application as one history step;
+  - palette application as one history step.
+- Added reset operations:
+  - property;
+  - section;
+  - screen quiz screen settings;
+  - full design.
+- Added a toast action labelled `Отменить применение пресета`.
+- Unified visible terminology toward `Стиль` while keeping old internal fields for compatibility.
+- Fixed design-panel numeric fallbacks from `||` to `??` where zero is valid.
+- Added tests for deterministic resolution, layer order, legacy migration, undo/redo, slider coalescing, resets, style-after-style behavior, modified style status and zero border radius.
+
+## Stage 3 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- --run src/design/designResolver.test.ts store/useQuizDesignHistory.test.ts store/useQuizDataStore.test.ts components/DesignPanel.test.tsx` | Passed | 4 files, 14 tests passed. |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+
+## Stage 3 Known Limitations
+
+- Brand Kit is supported by `DesignResolver`, but a dedicated Brand Kit UI/import surface is not implemented yet.
+- Reset property is implemented in the store; the current UI exposes section, screen and full-design reset controls first.
+- Slider coalescing is keyed by store operation (`coalesceKey`); a later Design Studio can add explicit pointer start/end grouping.
+
+## Previous Stage 2
 
 ## Stage 2 Completed
 

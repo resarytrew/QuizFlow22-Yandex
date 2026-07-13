@@ -1,0 +1,115 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useQuizDataStore } from './useQuizDataStore';
+
+vi.mock('react-hot-toast', () => ({
+  default: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+}));
+
+describe('useQuizDataStore design history', () => {
+  beforeEach(() => {
+    useQuizDataStore.getState().reset();
+  });
+
+  it('undoes and redoes manual design updates', () => {
+    useQuizDataStore.getState().updateDesignSettings({
+      buttons: { borderRadius: 0 },
+    });
+
+    expect(useQuizDataStore.getState().designSettings.buttons.borderRadius).toBe(0);
+    expect(useQuizDataStore.getState().canUndoDesign).toBe(true);
+
+    useQuizDataStore.getState().undoDesignChange();
+    expect(useQuizDataStore.getState().designSettings.buttons.borderRadius).toBe(18);
+    expect(useQuizDataStore.getState().canRedoDesign).toBe(true);
+
+    useQuizDataStore.getState().redoDesignChange();
+    expect(useQuizDataStore.getState().designSettings.buttons.borderRadius).toBe(0);
+  });
+
+  it('coalesces repeated slider updates into one history entry', () => {
+    useQuizDataStore.getState().updateDesignSettings(
+      { layout: { cardRadius: 4 } },
+      { coalesceKey: 'layout.cardRadius' },
+    );
+    useQuizDataStore.getState().updateDesignSettings(
+      { layout: { cardRadius: 8 } },
+      { coalesceKey: 'layout.cardRadius' },
+    );
+    useQuizDataStore.getState().updateDesignSettings(
+      { layout: { cardRadius: 12 } },
+      { coalesceKey: 'layout.cardRadius' },
+    );
+
+    expect(useQuizDataStore.getState().designHistory.past).toHaveLength(1);
+    expect(useQuizDataStore.getState().designSettings.layout?.cardRadius).toBe(12);
+
+    useQuizDataStore.getState().undoDesignChange();
+    expect(useQuizDataStore.getState().designSettings.layout?.cardRadius).toBe(28);
+  });
+
+  it('applies one style after another without inheriting previous style leftovers', () => {
+    useQuizDataStore.getState().applyDesignStylePreset('style-a', {
+      brand: { experiencePreset: 'minimal' },
+      layout: { cardRadius: 0 },
+      buttons: { borderRadius: 0 },
+    });
+    useQuizDataStore.getState().applyDesignStylePreset('style-b', {
+      brand: { experiencePreset: 'assessment' },
+      layout: { cardRadius: 32 },
+    });
+
+    const state = useQuizDataStore.getState();
+    expect(state.activeDesignStyleId).toBe('style-b');
+    expect(state.designStatus).toBe('applied');
+    expect(state.designSettings.layout?.cardRadius).toBe(32);
+    expect(state.designSettings.buttons.borderRadius).toBe(18);
+  });
+
+  it('marks an active style as modified after manual overrides', () => {
+    useQuizDataStore.getState().applyDesignStylePreset('style-a', {
+      layout: { cardRadius: 4 },
+    });
+    useQuizDataStore.getState().updateDesignSettings({
+      layout: { cardRadius: 10 },
+    });
+
+    expect(useQuizDataStore.getState().designStatus).toBe('modified');
+    expect(useQuizDataStore.getState().activeDesignStyleId).toBe('style-a');
+  });
+
+  it('resets a property to the active style baseline', () => {
+    useQuizDataStore.getState().applyDesignStylePreset('style-a', {
+      layout: { cardRadius: 6 },
+    });
+    useQuizDataStore.getState().updateDesignSettings({
+      layout: { cardRadius: 20 },
+    });
+
+    useQuizDataStore.getState().resetDesignProperty('layout.cardRadius');
+
+    expect(useQuizDataStore.getState().designSettings.layout?.cardRadius).toBe(6);
+  });
+
+  it('resets a section, screen settings and the entire design', () => {
+    useQuizDataStore.getState().updateDesignSettings({
+      background: { color: '#000000' },
+      screenQuiz: { radius: 0 },
+    });
+
+    useQuizDataStore.getState().resetDesignSection('background');
+    expect(useQuizDataStore.getState().designSettings.background.color).toBe('#f6f3ee');
+
+    useQuizDataStore.getState().resetDesignScreen();
+    expect(useQuizDataStore.getState().designSettings.screenQuiz?.radius).toBe(54);
+
+    useQuizDataStore.getState().updateDesignSettings({ buttons: { borderRadius: 0 } });
+    useQuizDataStore.getState().resetAllDesign();
+    expect(useQuizDataStore.getState().designSettings.buttons.borderRadius).toBe(18);
+    expect(useQuizDataStore.getState().designStatus).toBe('custom');
+  });
+});
