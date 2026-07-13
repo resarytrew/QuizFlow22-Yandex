@@ -490,6 +490,27 @@ const screenQuizDefaults: Required<ScreenQuizSettings> = {
   introGapMs: 280,
 };
 
+const screenQuizShowStyles: Partial<Record<NonNullable<ScreenQuizSettings['backgroundPreset']>, Partial<ScreenQuizSettings>>> = {
+  'finance-express': {
+    backgroundImageUrl: '',
+    backgroundColor: '#02092f',
+    accentColor: '#ffc42d',
+    secondaryColor: '#00b7ff',
+    panelColor: '#f4f8ff',
+    answerColor: '#fbfdff',
+    inkColor: '#06164a',
+    correctColor: '#21c86a',
+    borderWidth: 7,
+    radius: 44,
+    decorIntensity: 1.18,
+    motion: 'premium',
+    transitionEffect: 'glitch-cut',
+    layout: 'auto',
+    showTimer: true,
+    showStoryTimer: true,
+  },
+};
+
 const TimelineMeter = ({
   questionMs,
   mediaMs,
@@ -645,7 +666,10 @@ const DesignPanel: React.FC = () => {
     updateSection('screenQuiz', patch, options);
   };
   const applyScreenQuizShowStyle = (backgroundPreset: NonNullable<ScreenQuizSettings['backgroundPreset']>) => {
-    updateScreenQuiz({ backgroundPreset }, { label: 'Apply screen style' });
+    updateScreenQuiz({
+      backgroundPreset,
+      ...(screenQuizShowStyles[backgroundPreset] || {}),
+    }, { label: 'Apply screen style' });
   };
 
   const designStatusLabel = {
@@ -744,6 +768,7 @@ const DesignPanel: React.FC = () => {
               <option value="aqua">Aqua burst</option>
               <option value="yellow">Yellow show</option>
               <option value="travel">Travel paper</option>
+              <option value="finance-express">Finance Express</option>
             </Select>
           </Field>
           <Field label="Изображение фона" hint="Если указано изображение, оно станет основой сцены, а пресет останется декоративным слоем.">

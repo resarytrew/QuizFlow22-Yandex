@@ -1800,6 +1800,248 @@ const screenQuizTemplate = `
       min-height: clamp(13rem, 30dvh, 21rem);
     }
 
+    .sq-info-card,
+    .sq-feedback-card,
+    .sq-info-card.has-media,
+    .sq-feedback-card.has-media {
+      width: min(100%, 86rem);
+      min-height: clamp(24rem, 55dvh, 38rem);
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1.05rem, 2vw, 1.9rem);
+      padding: clamp(1.2rem, 2vw, 2rem);
+      border-width: calc(var(--sq-border) * 0.54);
+      border-radius: calc(var(--sq-radius) * 0.5);
+      background:
+        linear-gradient(115deg, rgba(255,255,255,0.96) 0 42%, rgba(255,255,255,0.76) 42.2% 100%),
+        repeating-linear-gradient(135deg, color-mix(in srgb, var(--sq-accent) 12%, transparent) 0 1px, transparent 1px 22px),
+        color-mix(in srgb, var(--sq-panel) 90%, #fff);
+      box-shadow:
+        0 10px 0 rgba(5,3,5,0.18),
+        0 30px 70px rgba(5,3,5,0.18);
+    }
+
+    .sq-feedback-card,
+    .sq-feedback-card.has-media {
+      background:
+        linear-gradient(115deg, rgba(255,255,255,0.96) 0 42%, rgba(255,255,255,0.72) 42.2% 100%),
+        repeating-linear-gradient(135deg, color-mix(in srgb, var(--sq-correct) 12%, transparent) 0 1px, transparent 1px 22px),
+        color-mix(in srgb, var(--sq-correct) 12%, var(--sq-panel));
+    }
+
+    .sq-info-card.has-media,
+    .sq-feedback-card.has-media {
+      grid-template-columns: minmax(0, 1.04fr) minmax(19rem, 0.72fr);
+    }
+
+    .sq-info-card::before,
+    .sq-feedback-card::before {
+      opacity: 0.42;
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--sq-ink) 9%, transparent) 0 1px, transparent 1px 100%),
+        linear-gradient(0deg, color-mix(in srgb, var(--sq-ink) 7%, transparent) 0 1px, transparent 1px 100%);
+      background-size: 4.6rem 4.6rem;
+    }
+
+    .sq-story-main,
+    .sq-feedback-card .sq-story-main,
+    .sq-info-card.has-media .sq-story-main,
+    .sq-feedback-card.has-media .sq-story-main {
+      align-content: center;
+      gap: clamp(1rem, 1.8dvh, 1.55rem);
+      padding: clamp(2.05rem, 4vw, 4.8rem);
+      border-radius: calc(var(--sq-radius) * 0.28);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.28)),
+        color-mix(in srgb, var(--sq-panel) 34%, transparent);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.62),
+        inset 0 -1px 0 rgba(5,3,5,0.08);
+    }
+
+    .sq-story-header {
+      display: grid;
+      gap: clamp(0.72rem, 1.2dvh, 1.08rem);
+      max-width: min(100%, 64rem);
+    }
+
+    .sq-story-label,
+    .sq-info-card .sq-story-label,
+    .sq-feedback-card .sq-story-label {
+      display: inline-flex !important;
+      width: fit-content;
+      align-items: center;
+      gap: 0.55rem;
+      border: calc(var(--sq-border) * 0.2) solid var(--sq-ink);
+      border-radius: 999px;
+      background: var(--sq-accent);
+      color: var(--sq-ink);
+      padding: clamp(0.38rem, 0.65vw, 0.62rem) clamp(0.72rem, 1.05vw, 1.05rem);
+      font-family: "Rubik Mono One", "Russo One", sans-serif;
+      font-size: clamp(0.68rem, 0.82vw, 0.92rem);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 0 rgba(5,3,5,0.12);
+    }
+
+    .sq-feedback-card .sq-story-label {
+      background: var(--sq-correct);
+    }
+
+    .sq-story-label::before {
+      content: "";
+      width: 0.62em;
+      aspect-ratio: 1;
+      border: 0.18em solid currentColor;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.54);
+    }
+
+    .sq-story-title,
+    .sq-info-card .sq-story-title,
+    .sq-feedback-card .sq-story-title {
+      display: block !important;
+      max-width: 14.5ch;
+      margin: 0;
+      color: var(--sq-ink);
+      font-family: "Russo One", "Nunito", sans-serif;
+      font-size: clamp(2.4rem, 4.7vw, 6.6rem);
+      line-height: 0.92;
+      letter-spacing: 0;
+      text-align: left;
+      text-transform: uppercase;
+      text-wrap: balance;
+      text-shadow: none;
+    }
+
+    .sq-story-title::after,
+    .sq-feedback-card .sq-story-title::after {
+      content: "";
+      display: block;
+      width: clamp(4.4rem, 8vw, 9.5rem);
+      height: clamp(0.32rem, 0.58vw, 0.64rem);
+      margin-top: clamp(0.7rem, 1.2dvh, 1rem);
+      border-radius: 999px;
+      background: var(--sq-accent);
+      box-shadow: none;
+    }
+
+    .sq-feedback-card .sq-story-title::after {
+      background: var(--sq-correct);
+    }
+
+    .sq-story-body {
+      max-width: 54ch;
+      font-size: clamp(1.22rem, 1.72vw, 2.2rem);
+      line-height: 1.18;
+      font-weight: 950;
+    }
+
+    .sq-story-points {
+      width: min(100%, 58rem);
+      gap: clamp(0.62rem, 1.04dvh, 0.94rem);
+    }
+
+    .sq-story-point {
+      grid-template-columns: clamp(2.65rem, 3.45vw, 3.95rem) minmax(0, 1fr);
+      align-items: center;
+      border-left-width: calc(var(--sq-border) * 0.56);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.72), rgba(255,255,255,0.34)),
+        color-mix(in srgb, var(--sq-panel) 38%, transparent);
+      padding-block: clamp(0.74rem, 1.05vw, 1.08rem);
+      font-size: clamp(1.08rem, 1.42vw, 1.82rem);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.54);
+    }
+
+    .sq-story-point::before,
+    .sq-feedback-card .sq-story-point::before {
+      display: grid;
+      place-items: center;
+      width: clamp(2.18rem, 2.82vw, 3.24rem);
+      aspect-ratio: 1;
+      margin: 0;
+      border-radius: calc(var(--sq-radius) * 0.16);
+      background: color-mix(in srgb, var(--sq-ink) 10%, #fff);
+      color: var(--sq-ink);
+      font-size: clamp(0.72rem, 0.92vw, 1.04rem);
+    }
+
+    .sq-story-media {
+      border-width: calc(var(--sq-border) * 0.46);
+      border-radius: calc(var(--sq-radius) * 0.34);
+      box-shadow:
+        0 8px 0 rgba(5,3,5,0.16),
+        0 22px 46px rgba(5,3,5,0.18);
+    }
+
+    .sq-story-media::before {
+      display: block;
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.2), transparent 26%, rgba(5,3,5,0.12));
+    }
+
+    .sq-content.story-scene {
+      overflow: hidden;
+    }
+
+    .sq-info-card,
+    .sq-feedback-card,
+    .sq-info-card.has-media,
+    .sq-feedback-card.has-media {
+      isolation: isolate;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .sq-info-card.has-media,
+    .sq-feedback-card.has-media {
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.82fr);
+    }
+
+    .sq-story-main,
+    .sq-feedback-card .sq-story-main,
+    .sq-info-card.has-media .sq-story-main,
+    .sq-feedback-card.has-media .sq-story-main {
+      min-width: 0;
+      max-width: 100%;
+      max-height: 100%;
+      align-self: stretch;
+      overflow: hidden;
+      padding: clamp(2rem, 3.4vw, 4.2rem);
+    }
+
+    .sq-story-body,
+    .sq-story-points,
+    .sq-story-point {
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .sq-story-media {
+      min-width: 0;
+      min-height: 0;
+      max-width: 100%;
+      max-height: 100%;
+      align-self: stretch;
+      transform: none;
+    }
+
+    .sq-story-media img,
+    .sq-story-media iframe,
+    .sq-story-media video {
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      max-height: 100%;
+      object-fit: cover;
+    }
+
     .sq-content.image-grid {
       grid-template-rows: clamp(6.2rem, 13.2dvh, 9.1rem) minmax(0, 1fr);
       align-content: stretch;
@@ -2378,6 +2620,657 @@ const screenQuizTemplate = `
 
     .sq-next:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(5,3,5,0.16); }
 
+    .sq-shell[data-preset="finance-express"] {
+      background:
+        radial-gradient(circle at 86% 12%, rgba(0, 183, 255, 0.34), transparent 21rem),
+        radial-gradient(circle at 14% 80%, rgba(0, 139, 255, 0.28), transparent 24rem),
+        linear-gradient(120deg, rgba(2, 9, 47, 0.94), rgba(3, 20, 71, 0.9) 52%, rgba(1, 5, 31, 0.96)),
+        var(--sq-bg-image);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .sq-shell[data-preset="finance-express"]::before {
+      opacity: calc(0.86 * var(--sq-decor));
+      background:
+        radial-gradient(circle at 5.4% 10%, transparent 0 3.4rem, rgba(31, 150, 255, 0.7) 3.48rem 3.62rem, transparent 3.7rem 4.5rem, rgba(31, 150, 255, 0.44) 4.58rem 4.74rem, transparent 4.82rem),
+        radial-gradient(circle at 5.2% 24%, transparent 0 3rem, rgba(0, 183, 255, 0.52) 3.08rem 3.22rem, transparent 3.3rem),
+        linear-gradient(118deg, transparent 0 80.6%, rgba(0, 229, 255, 0.86) 80.7% 81.1%, transparent 81.2%),
+        repeating-linear-gradient(90deg, rgba(0, 183, 255, 0.2) 0 1px, transparent 1px 2.15rem),
+        repeating-linear-gradient(0deg, rgba(0, 183, 255, 0.16) 0 1px, transparent 1px 2.15rem),
+        linear-gradient(90deg, transparent 0 2.5%, rgba(0, 183, 255, 0.22) 2.6% 2.78%, transparent 2.9% 100%);
+      mask-image:
+        radial-gradient(circle at 10% 32%, black 0 21rem, transparent 25rem),
+        radial-gradient(circle at 86% 23%, black 0 22rem, transparent 28rem),
+        linear-gradient(black, black);
+      animation: sqFloat calc(18s / var(--sq-motion-scale)) ease-in-out infinite alternate;
+    }
+
+    .sq-shell[data-preset="finance-express"]::after {
+      opacity: calc(0.92 * var(--sq-decor));
+      background:
+        linear-gradient(0deg, rgba(0, 183, 255, 0.42) 0 0.18rem, transparent 0.2rem 100%),
+        linear-gradient(108deg, transparent 0 11%, rgba(0, 183, 255, 0.78) 11.1% 11.28%, transparent 11.36% 100%),
+        linear-gradient(108deg, transparent 0 16%, rgba(0, 89, 255, 0.72) 16.1% 16.28%, transparent 16.36% 100%),
+        linear-gradient(90deg, transparent 0 76%, rgba(0, 121, 255, 0.38) 76.1% 76.8%, transparent 76.9%),
+        repeating-linear-gradient(90deg, transparent 0 5.8rem, rgba(0, 183, 255, 0.5) 5.85rem 6rem, transparent 6.05rem 6.8rem),
+        linear-gradient(180deg, transparent 0 70%, rgba(0, 183, 255, 0.2) 70.2% 70.5%, transparent 70.7%),
+        linear-gradient(180deg, transparent 0 72%, rgba(0, 183, 255, 0.12) 72.2% 100%);
+      transform-origin: bottom center;
+      animation: sqDrift calc(26s / var(--sq-motion-scale)) ease-in-out infinite alternate;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-stage {
+      filter: drop-shadow(0 0 2.2rem rgba(0, 183, 255, 0.28));
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-frame {
+      inset: 13.1% 11.2% 10.8%;
+      border: clamp(0.22rem, 0.52vw, 0.62rem) solid rgba(209, 233, 255, 0.96);
+      border-radius: clamp(1.7rem, 3.2vw, 4.2rem);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(237, 246, 255, 0.94)),
+        var(--sq-panel);
+      box-shadow:
+        0 0 0 clamp(0.12rem, 0.24vw, 0.3rem) rgba(0, 183, 255, 0.8),
+        0 0 2.2rem rgba(0, 183, 255, 0.7),
+        inset 0 0 1.6rem rgba(0, 85, 180, 0.18);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-frame::before,
+    .sq-shell[data-preset="finance-express"] .sq-frame::after {
+      display: none;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-badge {
+      top: 3.4%;
+      min-width: min(58rem, 50%);
+      max-width: min(64rem, 64%);
+      border: clamp(0.18rem, 0.34vw, 0.42rem) solid rgba(255,255,255,0.86);
+      border-left-color: var(--sq-accent);
+      border-right-color: var(--sq-accent);
+      border-radius: 0.45rem;
+      background:
+        linear-gradient(90deg, transparent 0 7%, rgba(255, 196, 45, 0.95) 7.1% 10.3%, transparent 10.4% 89.6%, rgba(255, 196, 45, 0.95) 89.7% 92.9%, transparent 93%),
+        linear-gradient(90deg, #08104a, #122a86 48%, #08104a);
+      color: #f8fbff;
+      padding: 0.55% 3.6% 0.5%;
+      font-family: "Russo One", "Nunito", sans-serif;
+      font-size: clamp(1.25rem, 2.55vw, 3.4rem);
+      line-height: 1;
+      text-shadow: 0 0.14em 0 rgba(0,0,0,0.22), 0 0 0.75rem rgba(255,255,255,0.28);
+      box-shadow:
+        0 0 0 0.18rem rgba(0, 183, 255, 0.52),
+        0 0.45rem 1.1rem rgba(0, 0, 0, 0.32),
+        0 0 1.7rem rgba(0, 183, 255, 0.5);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-badge::before,
+    .sq-shell[data-preset="finance-express"] .sq-badge::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: clamp(1.4rem, 3vw, 4rem);
+      height: 74%;
+      transform: translateY(-50%);
+      background:
+        linear-gradient(135deg, transparent 0 32%, rgba(0, 183, 255, 0.74) 32.5% 44%, transparent 44.5% 100%),
+        linear-gradient(135deg, transparent 0 52%, rgba(255, 196, 45, 0.96) 52.5% 66%, transparent 66.5% 100%);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-badge::before { left: -5.4%; }
+    .sq-shell[data-preset="finance-express"] .sq-badge::after { right: -5.4%; transform: translateY(-50%) scaleX(-1); }
+
+    .sq-shell[data-preset="finance-express"] .sq-content {
+      padding: 15.2% 13.45% 0;
+      gap: clamp(1rem, 2.1dvh, 1.7rem);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content.media-right,
+    .sq-shell[data-preset="finance-express"] .sq-content.media-left {
+      grid-template-columns: minmax(0, 1.55fr) minmax(23rem, 0.98fr);
+      gap: 3.2%;
+      padding: 15.3% 13.35% 0;
+      align-items: stretch;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content.media-left {
+      grid-template-columns: minmax(23rem, 0.98fr) minmax(0, 1.55fr);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content.story-scene {
+      padding: 15.8% 14.55% 5.8%;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-question-wrap {
+      gap: clamp(0.9rem, 2.2dvh, 1.55rem);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-question-card,
+    .sq-shell[data-preset="finance-express"] .sq-answer-reveal,
+    .sq-shell[data-preset="finance-express"] .sq-recording-gate {
+      border: clamp(0.14rem, 0.28vw, 0.34rem) solid rgba(213, 235, 255, 0.98);
+      border-radius: calc(var(--sq-radius) * 0.55);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(0, 183, 255, 0.22), transparent 58%),
+        linear-gradient(180deg, #05236d, #020d3d 72%, #01072a);
+      color: #ffffff;
+      box-shadow:
+        inset 0 0 2rem rgba(0, 183, 255, 0.2),
+        0 0 0 0.16rem rgba(0, 183, 255, 0.62),
+        0 0.62rem 1.4rem rgba(0, 13, 55, 0.32);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-question-card::before,
+    .sq-shell[data-preset="finance-express"] .sq-question-card::after,
+    .sq-shell[data-preset="finance-express"] .sq-answer-reveal::before,
+    .sq-shell[data-preset="finance-express"] .sq-answer-reveal::after,
+    .sq-shell[data-preset="finance-express"] .sq-media-card::after,
+    .sq-shell[data-preset="finance-express"] .sq-choice-card::after {
+      display: none;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-title {
+      color: #ffffff;
+      text-shadow: 0 0.1em 0 rgba(0,0,0,0.22), 0 0 0.85rem rgba(255,255,255,0.22);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-desc {
+      color: rgba(255,255,255,0.88);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-media-card,
+    .sq-shell[data-preset="finance-express"] .sq-choice-card {
+      border: clamp(0.14rem, 0.28vw, 0.34rem) solid #08276f;
+      border-radius: calc(var(--sq-radius) * 0.36);
+      background: #ffffff;
+      padding: clamp(0.35rem, 0.68vw, 0.72rem);
+      box-shadow:
+        0 0 0 0.16rem rgba(0, 183, 255, 0.58),
+        0 0.52rem 1.1rem rgba(0, 13, 55, 0.24);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-media-card img,
+    .sq-shell[data-preset="finance-express"] .sq-media-card video,
+    .sq-shell[data-preset="finance-express"] .sq-choice-card img {
+      border-radius: calc(var(--sq-radius) * 0.22);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-option {
+      min-height: clamp(4.4rem, 10.7dvh, 7rem);
+      grid-template-columns: minmax(5.8rem, 19%) minmax(0, 1fr);
+      border: clamp(0.14rem, 0.26vw, 0.32rem) solid #08318a;
+      border-radius: calc(var(--sq-radius) * 0.38);
+      background: linear-gradient(180deg, #ffffff, #f2f7ff);
+      color: var(--sq-ink);
+      box-shadow:
+        inset 0 0 0 0.08rem rgba(255,255,255,0.82),
+        0 0.42rem 0.85rem rgba(0, 21, 74, 0.18);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-letter {
+      border-right: clamp(0.14rem, 0.26vw, 0.32rem) solid #08318a;
+      background: linear-gradient(180deg, #ffd747, #f4a900);
+      color: #06164a;
+      text-shadow: 0 0.05em 0 rgba(255,255,255,0.32);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-option-text,
+    .sq-shell[data-preset="finance-express"] .sq-choice-title {
+      color: var(--sq-ink);
+      font-family: "Russo One", "Nunito", sans-serif;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-option.correct,
+    .sq-shell[data-preset="finance-express"] .sq-choice-card.correct,
+    .sq-shell[data-preset="finance-express"] .sq-answer-reveal {
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.34), transparent 42%),
+        linear-gradient(180deg, #25d878, #12a756);
+      color: #032d18;
+      box-shadow:
+        0 0 0 0.2rem rgba(255,255,255,0.86),
+        0 0 1.8rem rgba(33, 200, 106, 0.62);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-option.correct .sq-letter {
+      background: linear-gradient(180deg, #31e987, #14b45c);
+      color: #032d18;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-timer {
+      width: min(48rem, 48%);
+      height: clamp(0.95rem, 1.55vw, 1.5rem);
+      border: clamp(0.1rem, 0.18vw, 0.24rem) solid rgba(0, 183, 255, 0.72);
+      background: rgba(1, 15, 62, 0.82);
+      box-shadow:
+        0 0 0.9rem rgba(0, 183, 255, 0.58),
+        inset 0 0 0.8rem rgba(0, 183, 255, 0.22);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-timer-fill {
+      inset: 0.12rem;
+      width: calc(100% - 0.24rem);
+      background: linear-gradient(90deg, #00d8ff, #00ffef);
+      box-shadow: 0 0 1.2rem rgba(0, 229, 255, 0.72);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-clock {
+      width: clamp(3rem, 4.6vw, 5.25rem);
+      border: clamp(0.18rem, 0.32vw, 0.38rem) solid #f9d966;
+      background:
+        radial-gradient(circle at center, #ffffff 0 33%, #15207b 34% 57%, transparent 58%),
+        conic-gradient(from -42deg, #f3ac15, #fff4a3, #2f5dff, #f3ac15);
+      box-shadow:
+        0 0 0.8rem rgba(0, 183, 255, 0.82),
+        0 0.34rem 0.8rem rgba(0,0,0,0.32);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-clock::before,
+    .sq-shell[data-preset="finance-express"] .sq-clock::after {
+      background: #ffffff;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-card {
+      width: min(100%, 83rem);
+      min-height: clamp(24rem, 58dvh, 41rem);
+      gap: clamp(1rem, 2.1vw, 2.35rem);
+      padding: clamp(1rem, 1.65vw, 1.65rem);
+      border: clamp(0.18rem, 0.36vw, 0.44rem) solid rgba(213, 235, 255, 0.98);
+      border-radius: calc(var(--sq-radius) * 0.54);
+      background: linear-gradient(180deg, #ffffff, #ecf6ff);
+      box-shadow:
+        0 0 0 0.18rem rgba(0, 183, 255, 0.62),
+        0 0 2rem rgba(0, 183, 255, 0.56),
+        inset 0 0 1.3rem rgba(8, 49, 138, 0.12);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-card::before,
+    .sq-shell[data-preset="finance-express"] .sq-story-card::after {
+      display: none;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-main,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card .sq-story-main {
+      border: clamp(0.14rem, 0.28vw, 0.34rem) solid rgba(213, 235, 255, 0.94);
+      border-radius: calc(var(--sq-radius) * 0.36);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(0, 183, 255, 0.16), transparent 55%),
+        linear-gradient(180deg, #05236d, #020d3d 72%, #01072a);
+      color: #ffffff;
+      box-shadow:
+        inset 0 0 2rem rgba(0, 183, 255, 0.2),
+        0 0 0 0.13rem rgba(0, 183, 255, 0.52);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-body,
+    .sq-shell[data-preset="finance-express"] .sq-story-point {
+      color: #ffffff;
+      font-size: clamp(1.28rem, 2.12vw, 2.6rem);
+      line-height: 1.34;
+      font-weight: 900;
+      text-shadow: 0 0.08em 0 rgba(0,0,0,0.24);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-point::before,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card .sq-story-point::before {
+      background: linear-gradient(180deg, #ffd747, #f4a900);
+      color: #06164a;
+      box-shadow: 0 0 0.65rem rgba(255, 196, 45, 0.52);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-media {
+      border: clamp(0.14rem, 0.28vw, 0.34rem) solid #08318a;
+      border-radius: calc(var(--sq-radius) * 0.34);
+      background: #ffffff;
+      box-shadow:
+        0 0 0 0.15rem rgba(0, 183, 255, 0.58),
+        0 0.6rem 1.2rem rgba(0, 21, 74, 0.22);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-media::after {
+      background: linear-gradient(90deg, #00d8ff, #ffc42d, #00d8ff);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-media img,
+    .sq-shell[data-preset="finance-express"] .sq-story-media iframe,
+    .sq-shell[data-preset="finance-express"] .sq-story-media video {
+      border-radius: calc(var(--sq-radius) * 0.22);
+    }
+
+    .sq-shell[data-preset="finance-express"] {
+      background:
+        radial-gradient(circle at 86% 12%, rgba(0, 183, 255, 0.34), transparent 21rem),
+        linear-gradient(118deg, transparent 0 78.5%, rgba(0, 220, 255, 0.92) 78.7% 79.15%, transparent 79.35%),
+        linear-gradient(90deg, rgba(0, 183, 255, 0.11) 0 1px, transparent 1px 100%),
+        linear-gradient(0deg, rgba(0, 183, 255, 0.09) 0 1px, transparent 1px 100%),
+        linear-gradient(120deg, #020726 0%, #05165c 55%, #01041c 100%),
+        var(--sq-bg-image);
+      background-size: auto, auto, 3rem 3rem, 3rem 3rem, cover, cover;
+      background-position: center;
+    }
+
+    .sq-shell[data-preset="finance-express"]::before {
+      opacity: calc(0.9 * var(--sq-decor));
+      background:
+        radial-gradient(circle at 5.1% 10.6%, transparent 0 3.2rem, rgba(0, 144, 255, 0.86) 3.3rem 3.48rem, transparent 3.6rem 4.2rem, rgba(0, 144, 255, 0.45) 4.3rem 4.46rem, transparent 4.58rem),
+        radial-gradient(circle at 5.4% 25.8%, transparent 0 3.15rem, rgba(0, 183, 255, 0.58) 3.24rem 3.38rem, transparent 3.48rem),
+        linear-gradient(180deg, transparent 0 62%, rgba(0, 183, 255, 0.22) 62.2% 62.6%, transparent 62.8%),
+        linear-gradient(108deg, transparent 0 5%, rgba(0, 183, 255, 0.82) 5.1% 5.28%, transparent 5.38% 21%, rgba(0, 183, 255, 0.58) 21.1% 21.26%, transparent 21.36%),
+        repeating-linear-gradient(90deg, transparent 0 6.8rem, rgba(0, 183, 255, 0.42) 6.9rem 7.04rem, transparent 7.12rem 8.4rem),
+        repeating-linear-gradient(0deg, transparent 0 4.2rem, rgba(0, 183, 255, 0.22) 4.28rem 4.42rem, transparent 4.5rem 5.7rem);
+      mask-image:
+        radial-gradient(circle at 8% 18%, black 0 19rem, transparent 24rem),
+        radial-gradient(circle at 87% 34%, black 0 25rem, transparent 34rem),
+        linear-gradient(black, black);
+    }
+
+    .sq-shell[data-preset="finance-express"]::after {
+      opacity: calc(0.88 * var(--sq-decor));
+      background:
+        linear-gradient(0deg, rgba(0, 183, 255, 0.55) 0 0.18rem, transparent 0.2rem 100%),
+        linear-gradient(110deg, transparent 0 12.2%, rgba(0, 183, 255, 0.72) 12.3% 12.48%, transparent 12.6%),
+        linear-gradient(110deg, transparent 0 18.5%, rgba(0, 92, 255, 0.78) 18.6% 18.78%, transparent 18.9%),
+        linear-gradient(90deg, transparent 0 78%, rgba(0, 141, 255, 0.38) 78.2% 79.1%, transparent 79.3%),
+        linear-gradient(180deg, transparent 0 67%, rgba(0, 183, 255, 0.2) 67.2% 100%);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-frame {
+      inset: 12.6% 10.25% 7.9%;
+      border: clamp(0.42rem, 0.86vw, 0.9rem) solid rgba(238, 247, 255, 0.98);
+      border-radius: clamp(2.4rem, 4.1vw, 5rem);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.98), rgba(255,255,255,0.82) 58%, rgba(236,247,255,0.92) 100%);
+      box-shadow:
+        0 0 0 clamp(0.16rem, 0.28vw, 0.34rem) rgba(0, 184, 255, 0.92),
+        0 0 2.6rem rgba(0, 184, 255, 0.82),
+        inset 0 0 2.8rem rgba(0, 88, 190, 0.16);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-badge {
+      top: 3.05%;
+      min-width: min(57rem, 50%);
+      max-width: min(66rem, 66%);
+      clip-path: polygon(5.5% 0, 94.5% 0, 100% 50%, 94.5% 100%, 5.5% 100%, 0 50%);
+      border: clamp(0.12rem, 0.24vw, 0.28rem) solid rgba(255,255,255,0.92);
+      border-radius: 0;
+      background:
+        linear-gradient(90deg, transparent 0 6.5%, #ffc42d 6.6% 9.8%, transparent 9.9% 90.1%, #ffc42d 90.2% 93.4%, transparent 93.5%),
+        linear-gradient(90deg, #09104a 0%, #172a7e 50%, #09104a 100%);
+      padding: 0.66% 4.4% 0.58%;
+      font-size: clamp(1.35rem, 2.72vw, 3.75rem);
+      text-shadow: 0 0.12em 0 rgba(0,0,0,0.32), 0 0 0.9rem rgba(255,255,255,0.36);
+      box-shadow:
+        0 0 0 0.12rem rgba(0, 196, 255, 0.8),
+        0 0.32rem 0 rgba(0,0,0,0.34),
+        0 0 1.6rem rgba(0, 183, 255, 0.72);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-badge::before,
+    .sq-shell[data-preset="finance-express"] .sq-badge::after {
+      width: 11%;
+      height: 100%;
+      background:
+        linear-gradient(135deg, transparent 0 31%, rgba(0, 88, 255, 0.85) 31.5% 45%, transparent 45.5%),
+        linear-gradient(135deg, transparent 0 52%, #ffc42d 52.5% 68%, transparent 68.5%);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-badge::before { left: -2.5%; }
+    .sq-shell[data-preset="finance-express"] .sq-badge::after { right: -2.5%; transform: translateY(-50%) scaleX(-1); }
+
+    .sq-shell[data-preset="finance-express"] .sq-content,
+    .sq-shell[data-preset="finance-express"] .sq-content.media-right,
+    .sq-shell[data-preset="finance-express"] .sq-content.media-left,
+    .sq-shell[data-preset="finance-express"] .sq-content.media-top,
+    .sq-shell[data-preset="finance-express"] .sq-content.question-only,
+    .sq-shell[data-preset="finance-express"] .sq-content.image-grid {
+      position: absolute;
+      inset: 16.8% 13.25% 12.4%;
+      min-height: 0;
+      padding: 0;
+      overflow: visible;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content.media-right,
+    .sq-shell[data-preset="finance-express"] .sq-content.media-left {
+      grid-template-columns: minmax(0, 1.52fr) minmax(0, 0.95fr);
+      gap: 3.25%;
+      align-items: stretch;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content.media-left {
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.52fr);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-question-wrap {
+      height: 100%;
+      grid-template-rows: minmax(0, 31.5%) minmax(0, 1fr);
+      gap: 3.8%;
+      align-content: stretch;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content[data-answer-count="4"] .sq-question-wrap {
+      grid-template-rows: minmax(0, 28%) minmax(0, 1fr);
+      gap: 2.2%;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-question-card,
+    .sq-shell[data-preset="finance-express"] .sq-answer-reveal {
+      min-height: 0;
+      height: 100%;
+      padding: clamp(0.9rem, 2vw, 2.6rem) clamp(1.2rem, 3.15vw, 4rem);
+      border-radius: clamp(1.35rem, 2.15vw, 2.35rem);
+      border: clamp(0.18rem, 0.34vw, 0.4rem) solid rgba(220, 241, 255, 0.98);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(0, 129, 255, 0.22), transparent 60%),
+        linear-gradient(180deg, #082b78 0%, #031047 78%, #01072b 100%);
+      box-shadow:
+        inset 0 0 2.2rem rgba(0, 176, 255, 0.16),
+        0 0 0 0.13rem rgba(0, 183, 255, 0.74),
+        0 0 1.05rem rgba(0, 183, 255, 0.44);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-title {
+      font-family: "Russo One", "Nunito", sans-serif;
+      font-size: clamp(1.32rem, calc(2.28vw * var(--sq-title-scale, 1)), 3.55rem);
+      line-height: 1.1;
+      color: #ffffff;
+      text-shadow: 0 0.12em 0 rgba(0,0,0,0.28), 0 0 0.85rem rgba(255,255,255,0.28);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-question-card[data-long="true"] .sq-title,
+    .sq-shell[data-preset="finance-express"] .sq-question-card[data-very-long="true"] .sq-title {
+      font-size: clamp(1.05rem, calc(1.88vw * var(--sq-title-scale, 1)), 2.82rem);
+      line-height: 1.08;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-media-card {
+      align-self: stretch;
+      height: 100%;
+      max-height: 100%;
+      margin: 0;
+      border: clamp(0.18rem, 0.34vw, 0.4rem) solid #08276f;
+      border-radius: clamp(1.2rem, 1.85vw, 2rem);
+      padding: clamp(0.38rem, 0.7vw, 0.72rem);
+      background: #fffaf1;
+      box-shadow:
+        0 0 0 0.14rem rgba(0, 183, 255, 0.72),
+        0 0 1.2rem rgba(0, 183, 255, 0.36),
+        0 0.52rem 1.1rem rgba(0, 13, 55, 0.24);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-media-card img,
+    .sq-shell[data-preset="finance-express"] .sq-media-card video {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      aspect-ratio: auto;
+      object-fit: cover;
+      object-position: center top;
+      border-radius: clamp(0.82rem, 1.35vw, 1.45rem);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-answers {
+      height: 100%;
+      gap: 4.6%;
+      align-content: stretch;
+      overflow: visible;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-option {
+      min-height: 0;
+      height: auto;
+      grid-template-columns: minmax(5.4rem, 18.2%) minmax(0, 1fr);
+      border: clamp(0.14rem, 0.28vw, 0.34rem) solid #082b82;
+      border-radius: clamp(0.7rem, 1.25vw, 1.25rem);
+      background: linear-gradient(180deg, #ffffff, #f4f8ff);
+      box-shadow: 0 0.32rem 0.72rem rgba(0, 22, 84, 0.18);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-letter {
+      border-right: clamp(0.14rem, 0.28vw, 0.34rem) solid #082b82;
+      background: linear-gradient(180deg, #ffd94a 0%, #f1ad00 100%);
+      color: #06164a;
+      font-size: clamp(2.35rem, 4.35vw, 5.75rem);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-option-text {
+      padding: 0.45rem 1rem;
+      color: #06164a;
+      font-size: clamp(1.08rem, calc(1.72vw * var(--sq-answer-scale, 1)), 2.42rem);
+      line-height: 1.08;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-footer {
+      position: absolute;
+      left: 29%;
+      right: 29%;
+      bottom: 3.55%;
+      min-height: 0;
+      padding: 0;
+      transform: none;
+      z-index: 7;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-timer {
+      width: 100%;
+      height: clamp(1.05rem, 1.75vw, 1.75rem);
+      border: clamp(0.1rem, 0.2vw, 0.24rem) solid rgba(0, 208, 255, 0.78);
+      background: rgba(2, 20, 78, 0.88);
+      box-shadow:
+        0 0 1.1rem rgba(0, 183, 255, 0.68),
+        inset 0 0 0.85rem rgba(0, 183, 255, 0.24);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-clock {
+      width: clamp(3.35rem, 5vw, 5.8rem);
+      border: clamp(0.18rem, 0.34vw, 0.42rem) solid #ffd65d;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-content.story-scene {
+      position: absolute;
+      inset: 16.45% 13.45% 7.2%;
+      padding: 0;
+      place-items: stretch;
+      align-content: stretch;
+      overflow: visible;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-card,
+    .sq-shell[data-preset="finance-express"] .sq-info-card,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card,
+    .sq-shell[data-preset="finance-express"] .sq-info-card.has-media,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card.has-media {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.88fr);
+      gap: 2.35%;
+      padding: clamp(0.85rem, 1.45vw, 1.35rem);
+      border-radius: clamp(1.8rem, 2.65vw, 3rem);
+      border: clamp(0.18rem, 0.34vw, 0.4rem) solid rgba(223, 243, 255, 0.98);
+      background: linear-gradient(180deg, #ffffff 0%, #edf7ff 100%);
+      box-shadow:
+        0 0 0 0.13rem rgba(0, 183, 255, 0.82),
+        0 0 1.6rem rgba(0, 183, 255, 0.58),
+        inset 0 0 1.8rem rgba(0, 88, 190, 0.12);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-main,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card .sq-story-main,
+    .sq-shell[data-preset="finance-express"] .sq-info-card.has-media .sq-story-main,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card.has-media .sq-story-main {
+      min-height: 0;
+      height: 100%;
+      align-content: center;
+      padding: clamp(2rem, 3.65vw, 4.4rem);
+      border-radius: clamp(1.2rem, 1.9vw, 2.1rem);
+      border: clamp(0.16rem, 0.32vw, 0.38rem) solid rgba(223, 243, 255, 0.96);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(0, 129, 255, 0.18), transparent 62%),
+        linear-gradient(180deg, #082b78 0%, #031047 78%, #01072b 100%);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-body,
+    .sq-shell[data-preset="finance-express"] .sq-story-point {
+      font-family: "Nunito", system-ui, sans-serif;
+      font-size: clamp(1.32rem, 1.82vw, 2.32rem);
+      line-height: 1.45;
+      font-weight: 900;
+      text-align: left;
+      color: #ffffff;
+      text-shadow: 0 0.08em 0 rgba(0,0,0,0.22);
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-points {
+      display: grid !important;
+      gap: clamp(1.1rem, 2.4dvh, 2.25rem) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      counter-reset: none !important;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-point {
+      display: block !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      counter-increment: none !important;
+      grid-template-columns: none !important;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-point::before,
+    .sq-shell[data-preset="finance-express"] .sq-feedback-card .sq-story-point::before {
+      display: none !important;
+      content: "" !important;
+      width: 0 !important;
+      height: 0 !important;
+      opacity: 0 !important;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-media {
+      height: 100%;
+      min-height: 0;
+      margin: 0;
+      border: clamp(0.16rem, 0.32vw, 0.38rem) solid #08276f;
+      border-radius: clamp(1.15rem, 1.75vw, 1.95rem);
+      padding: clamp(0.32rem, 0.6vw, 0.62rem);
+      background: #fffaf1;
+    }
+
+    .sq-shell[data-preset="finance-express"] .sq-story-media img,
+    .sq-shell[data-preset="finance-express"] .sq-story-media iframe,
+    .sq-shell[data-preset="finance-express"] .sq-story-media video {
+      min-height: 0;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      border-radius: clamp(0.8rem, 1.28vw, 1.35rem);
+    }
+
     .sq-scene.is-leaving .sq-content {
       animation: sqSceneOut var(--sq-transition-duration) cubic-bezier(.7,0,.3,1) both;
     }
@@ -2807,14 +3700,15 @@ const screenQuizTemplate = `
         state.currentId = node.id;
         state.index = getVisibleIndex(node);
         var data = node.data || {};
-        var answers = normalizeAnswers(data);
-        var hasAnswerImages = answers.some(function (answer) { return Boolean(answer.imageUrl); });
-        var hasNodeMedia = Boolean(data.imageUrl || data.mediaUrl || data.videoUrl);
         var isInfo = node.type === "infoNode";
         var isFeedback = node.type === "feedbackNode";
         var isResult = node.type === "resultNode";
         var isStory = isInfo || isFeedback;
         var activeSettings = mergeSettings(settings, data.screenQuiz || {});
+        var answers = normalizeAnswers(data);
+        var hasAnswerImages = answers.some(function (answer) { return Boolean(answer.imageUrl); });
+        var mediaKind = isResult ? "result" : "info";
+        var hasNodeMedia = Boolean(data.imageUrl || data.mediaUrl || data.videoUrl || getFinanceExpressDefaultMedia(activeSettings, mediaKind));
         var layout = resolveLayout(activeSettings.layout, answers, hasAnswerImages, hasNodeMedia, isResult, isStory);
 
         applySettings(activeSettings);
@@ -2833,9 +3727,9 @@ const screenQuizTemplate = `
         var title = data.question || data.title || data.label || data.message || data.description || "Вопрос";
 
         if (isInfo) {
-          content.appendChild(renderInfoScene(data));
+          content.appendChild(renderInfoScene(data, activeSettings));
         } else if (isFeedback) {
-          content.appendChild(renderFeedbackScene(data));
+          content.appendChild(renderFeedbackScene(data, activeSettings));
         } else if (isResult) {
           questionWrap.appendChild(renderReveal(data));
         } else if (layout !== "image-grid" && layout !== "hero-media") {
@@ -2849,14 +3743,14 @@ const screenQuizTemplate = `
           content.appendChild(questionWrap);
           content.appendChild(renderImageGrid(answers));
         } else if (layout === "hero-media") {
-          content.appendChild(renderMediaCard(data, data.title || data.label || ""));
+          content.appendChild(renderMediaCard(data, data.title || data.label || "", activeSettings, mediaKind));
           if (title) content.appendChild(renderQuestion(title, data.description || ""));
           content.appendChild(renderNextButton(data.buttonText || "Дальше"));
         } else {
           if (answers.length > 0) questionWrap.appendChild(renderAnswers(answers, node));
           else if (!isResult) questionWrap.appendChild(renderNextButton(data.buttonText || "Дальше"));
           var mediaCard = hasNodeMedia && isMediaLayout(layout)
-            ? renderMediaCard(data, data.title || data.label || "")
+            ? renderMediaCard(data, data.title || data.label || "", activeSettings, mediaKind)
             : null;
           if (mediaCard && (layout === "media-left" || layout === "media-top")) {
             content.appendChild(mediaCard);
@@ -2937,28 +3831,28 @@ const screenQuizTemplate = `
         return card;
       }
 
-      function renderInfoScene(data) {
+      function renderInfoScene(data, config) {
         var card = el("article", "sq-story-card sq-info-card");
         var copy = el("div", "sq-story-copy sq-story-main");
         var body = data.description || data.text || data.message || "Перед началом викторины внимательно изучите правила и настройтесь на игру.";
         appendStoryBody(copy, body);
         card.appendChild(copy);
-        if (hasStoryMedia(data)) {
+        if (hasStoryMedia(data, config, "info")) {
           card.classList.add("has-media");
-          card.appendChild(renderStoryMedia(data, data.title || data.label || "Информация"));
+          card.appendChild(renderStoryMedia(data, data.title || data.label || "Информация", config, "info"));
         }
         return card;
       }
 
-      function renderFeedbackScene(data) {
+      function renderFeedbackScene(data, config) {
         var card = el("article", "sq-story-card sq-feedback-card");
         var copy = el("div", "sq-story-copy sq-feedback-copy sq-story-main");
-        var body = data.message || data.explanation || data.description || data.text || data.title || "Посмотрите объяснение и переходите к следующему экрану.";
+        var body = data.message || data.explanation || data.description || data.text || "Посмотрите объяснение и переходите к следующему экрану.";
         appendStoryBody(copy, body);
         card.appendChild(copy);
-        if (hasStoryMedia(data)) {
+        if (hasStoryMedia(data, config, "info")) {
           card.classList.add("has-media");
-          card.appendChild(renderStoryMedia(data, data.title || "Фидбэк"));
+          card.appendChild(renderStoryMedia(data, data.title || "Фидбэк", config, "info"));
         }
         return card;
       }
@@ -3002,11 +3896,11 @@ const screenQuizTemplate = `
         return img;
       }
 
-      function hasStoryMedia(data) {
-        return Boolean(safeUrl(data.imageUrl || data.mediaUrl || data.videoUrl || ""));
+      function hasStoryMedia(data, config, kind) {
+        return Boolean(safeUrl(data.imageUrl || data.mediaUrl || data.videoUrl || "") || getFinanceExpressDefaultMedia(config, kind));
       }
 
-      function renderStoryMedia(data, alt) {
+      function renderStoryMedia(data, alt, config, kind) {
         var media = el("figure", "sq-story-media");
         var videoUrl = getNativeVideoUrl(data);
         if (videoUrl) {
@@ -3014,7 +3908,7 @@ const screenQuizTemplate = `
           media.appendChild(renderNativeVideo(videoUrl, data.imageUrl || data.posterUrl || "", alt || ""));
           return media;
         }
-        media.appendChild(renderStoryImage(data.imageUrl || data.mediaUrl || "", alt || ""));
+        media.appendChild(renderStoryImage(getNodeImageUrl(data, config, kind), alt || ""));
         return media;
       }
 
@@ -3106,7 +4000,7 @@ const screenQuizTemplate = `
         return grid;
       }
 
-      function renderMediaCard(data, alt) {
+      function renderMediaCard(data, alt, config, kind) {
         var card = el("figure", "sq-media-card");
         card.setAttribute("data-intro-item", "media");
         var videoUrl = getNativeVideoUrl(data);
@@ -3117,12 +4011,27 @@ const screenQuizTemplate = `
         }
         var img = document.createElement("img");
         img.alt = alt || "";
-        img.src = safeUrl(data.imageUrl || data.mediaUrl || "") || placeholderImage(0);
+        img.src = getNodeImageUrl(data, config, kind) || placeholderImage(0);
         img.addEventListener("error", function () {
           if (img.src !== placeholderImage(0)) img.src = placeholderImage(0);
         }, { once: true });
         card.appendChild(img);
         return card;
+      }
+
+      function getNodeImageUrl(data, config, kind) {
+        return safeUrl(data.imageUrl || data.mediaUrl || "") || getFinanceExpressDefaultMedia(config, kind);
+      }
+
+      function getFinanceExpressDefaultMedia(config, kind) {
+        if (!isFinanceExpress(config)) return "";
+        return kind === "result"
+          ? "/images/finance-express/result-card.jpg"
+          : "/images/finance-express/info-card.jpg";
+      }
+
+      function isFinanceExpress(config) {
+        return (config && config.backgroundPreset) === "finance-express";
       }
 
       function getNativeVideoUrl(data) {
@@ -3525,6 +4434,10 @@ const screenQuizTemplate = `
           travel: {
             bg: "#968870", accent: "#f2c39e", secondary: "#eeb7dc", panel: "#f5f1e8", answer: "#f5f1e8", ink: "#050305", correct: "#18c900",
             image: "radial-gradient(circle at 26% 50%, #f5f1e8 0 36%, transparent 36.4%), repeating-linear-gradient(0deg, rgba(110,70,28,0.1) 0 2px, transparent 2px 18px), #968870"
+          },
+          "finance-express": {
+            bg: "#02092f", accent: "#ffc42d", secondary: "#00b7ff", panel: "#f4f8ff", answer: "#fbfdff", ink: "#06164a", correct: "#21c86a",
+            image: "radial-gradient(circle at 80% 12%, rgba(0,183,255,0.36), transparent 20rem), radial-gradient(circle at 18% 78%, rgba(0,122,255,0.28), transparent 22rem), linear-gradient(135deg, #02092f 0%, #061856 58%, #01051f 100%)"
           }
         };
       }

@@ -406,7 +406,7 @@ describe('screenQuiz template', () => {
       },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 220));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/bg.mp3');
     expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/intro.mp3');
@@ -529,6 +529,46 @@ describe('screenQuiz template', () => {
     const root = dom.window.document.querySelector('#screen-quiz-root') as HTMLElement | null;
     expect(root?.getAttribute('data-transition')).toBe('glitch-cut');
     expect(dom.window.document.documentElement.style.getPropertyValue('--sq-transition-duration')).toBe('280ms');
+    dom.window.close();
+  });
+
+  it('applies the finance express screen quiz show style', () => {
+    const nodes = [
+      {
+        id: 'question-1',
+        type: 'questionNode',
+        position: { x: 0, y: 100 },
+        data: {
+          question: 'Financial literacy question',
+          answers: [
+            { id: 'a', text: 'Save first', isCorrect: true },
+            { id: 'b', text: 'Spend everything' },
+          ],
+        },
+      },
+    ];
+
+    const html = generateQuizHtmlProgrammatically(
+      nodes, [],
+      { enabled: false, duration: 0, onTimeoutNodeId: null },
+      { screenQuiz: { backgroundPreset: 'finance-express', introEnabled: false } },
+      'screen-quiz-finance-express-test',
+      'screenQuiz',
+      'Screen Quiz'
+    );
+
+    expect(html).toContain('.sq-shell[data-preset="finance-express"]');
+
+    const dom = new JSDOM(html, {
+      runScripts: 'dangerously',
+      url: 'http://localhost/',
+      pretendToBeVisual: true,
+    });
+
+    const root = dom.window.document.querySelector('#screen-quiz-root') as HTMLElement | null;
+    expect(root?.getAttribute('data-preset')).toBe('finance-express');
+    expect(dom.window.document.documentElement.style.getPropertyValue('--sq-bg')).toBe('#02092f');
+    expect(dom.window.document.documentElement.style.getPropertyValue('--sq-accent-2')).toBe('#00b7ff');
     dom.window.close();
   });
 
