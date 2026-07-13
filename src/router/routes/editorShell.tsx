@@ -10,6 +10,7 @@ import { CanvasErrorBoundary } from '../../../components/CanvasErrorBoundary';
 import RestoreAutosavePrompt from '../../../components/RestoreAutosavePrompt';
 import LivePreview from '../../../components/LivePreview';
 import DesignModeToolbar from '../../../components/designMode/DesignModeToolbar';
+import DesignLayersDrawer from '../../../components/designMode/DesignLayersDrawer';
 import Header from '../../../components/Header';
 import { useUIStore } from '../../../store/useUIStore';
 
@@ -62,6 +63,7 @@ function EditorShellLayout() {
             </div>
           </CanvasErrorBoundary>
           <RestoreAutosavePrompt />
+          <DesignLayersDrawer />
           <div
             data-testid="editor-sidebar-container"
             aria-hidden={!isSidebarVisible}

@@ -4,6 +4,96 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 11: Layers drawer and element operations.
+
+Status: completed locally.
+
+Commit target: `feat: add design layers and object operations`.
+
+## Stage 11 Completed
+
+- Added an editor-only `Слои` button to the existing design-mode toolbar.
+- Added a closeable drawer overlay on top of the existing editor shell:
+  - no permanent left column;
+  - no new route;
+  - no new editor shell;
+  - no second Player renderer.
+- Added a semantic layer tree for the current preview screen:
+  - screen root;
+  - canvas/background;
+  - quiz shell/topbar;
+  - question card hierarchy;
+  - result hierarchy;
+  - progress/timer/stats blocks.
+- Kept one source of selection:
+  - drawer row selection writes to `selectedDesignElement`;
+  - the same state remains shared with LivePreview and SettingsPanel.
+- Extended `LayoutDocument` safely for object operations:
+  - user layer names;
+  - normalized group records;
+  - validation and migration preserve old quizzes.
+- Added layer operations through existing `DesignHistory` patches:
+  - rename;
+  - lock/unlock;
+  - hide/show with required-element protection;
+  - delete with required-element protection;
+  - duplicate;
+  - copy;
+  - paste with new safe IDs and current-screen node binding;
+  - cut;
+  - group;
+  - ungroup;
+  - auto-layout ordering via semantic `elementOrder`;
+  - free-layout z-index changes.
+- Added drawer keyboard shortcuts when focus is not inside editable controls:
+  - Ctrl/Cmd+C;
+  - Ctrl/Cmd+V;
+  - Ctrl/Cmd+X;
+  - Ctrl/Cmd+D;
+  - Delete/Backspace;
+  - Ctrl/Cmd+G;
+  - Ctrl/Cmd+Shift+G;
+  - Escape;
+  - ArrowUp/ArrowDown and Shift variants.
+- Kept clipboard data design-only:
+  - no runtime answers;
+  - no user contacts;
+  - no Telegram/MAX init data;
+  - no tokens;
+  - no scripts.
+- Added tests for:
+  - layer hierarchy and selection;
+  - auto-layout order;
+  - free-layout z-index;
+  - lock/hide/delete constraints;
+  - duplicate;
+  - clipboard/paste IDs;
+  - group/ungroup;
+  - drawer open/close;
+  - drawer-to-preview selection state;
+  - shortcuts;
+  - UI store drawer state.
+
+## Stage 11 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/designMode/designLayers.test.ts components/designMode/DesignLayersDrawer.test.tsx components/designMode/DesignModeToolbar.test.tsx store/useUIStore.test.ts` | Passed | 4 files, 29 tests passed. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 87 files, 714 tests passed. Expected stderr appears in existing negative-path tests; existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import notices and large chunk warnings. |
+
+## Stage 11 Known Limitations
+
+- Duplicated/pasted functional layers are persisted as safe layout objects, but templates do not yet render newly authored duplicate DOM elements in public Player.
+- Grouping stores group metadata and preserves child positions; group drag/resize is not implemented yet.
+- Multi-select is supported inside the drawer for batch clipboard/group actions, while `selectedDesignElement` remains the single primary selection source.
+- Visibility and z-index are applied through the existing free-layout preview path; public Player and HTML export remain unchanged.
+- Advanced layer thumbnails, drag-to-reorder inside the drawer and breakpoint-specific layer operations are not implemented in this stage.
+
+## Previous Stage 10
+
 Stage 10: Drag, resize and snapping in LivePreview.
 
 Status: completed locally.

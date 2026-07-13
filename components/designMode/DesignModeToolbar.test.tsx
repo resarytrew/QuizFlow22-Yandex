@@ -60,6 +60,17 @@ describe('DesignModeToolbar', () => {
     expect(useUIStore.getState().previewDevice).toBe('desktop');
   });
 
+  it('opens the layers drawer from an explicit labeled button', () => {
+    render(<DesignModeToolbar />);
+
+    const button = screen.getByRole('button', { name: 'Слои' });
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(button);
+
+    expect(useUIStore.getState().isDesignLayersDrawerOpen).toBe(true);
+  });
+
   it('runs design undo and redo through DesignHistory', () => {
     useQuizDataStore.getState().updateDesignSettings({ background: { color: '#111111' } });
     render(<DesignModeToolbar />);

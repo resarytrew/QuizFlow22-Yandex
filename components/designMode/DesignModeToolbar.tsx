@@ -19,6 +19,8 @@ const DesignModeToolbar: React.FC = () => {
   const setDesignInteractionMode = useUIStore((state) => state.setDesignInteractionMode);
   const previewDevice = useUIStore((state) => state.previewDevice);
   const setPreviewDevice = useUIStore((state) => state.setPreviewDevice);
+  const isDesignLayersDrawerOpen = useUIStore((state) => state.isDesignLayersDrawerOpen);
+  const toggleDesignLayersDrawer = useUIStore((state) => state.toggleDesignLayersDrawer);
   const selectedDesignElement = useUIStore((state) => state.selectedDesignElement);
   const setSelectedDesignElement = useUIStore((state) => state.setSelectedDesignElement);
   const canUndoDesign = useQuizDataStore((state) => state.canUndoDesign);
@@ -132,6 +134,19 @@ const DesignModeToolbar: React.FC = () => {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          aria-pressed={isDesignLayersDrawerOpen}
+          onClick={toggleDesignLayersDrawer}
+          className={[
+            'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
+            isDesignLayersDrawerOpen
+              ? 'border-indigo-500 bg-indigo-600 text-white'
+              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+          ].join(' ')}
+        >
+          Слои
+        </button>
         <button
           type="button"
           disabled={!canUndoDesign}

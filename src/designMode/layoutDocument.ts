@@ -31,6 +31,7 @@ export interface LayoutConstraints {
 export interface LayoutElement {
   id: string;
   role: DesignElementRole;
+  name?: string;
   frame: LayoutFrame;
   constraints: LayoutConstraints;
   positionMode: LayoutElementPositionMode;
@@ -41,6 +42,7 @@ export interface LayoutElement {
 }
 
 export interface LayoutElementOverride {
+  name?: string;
   frame?: Partial<LayoutFrame>;
   constraints?: Partial<LayoutConstraints>;
   positionMode?: LayoutElementPositionMode;
@@ -54,6 +56,16 @@ export interface LayoutOverrides {
   elements?: Record<string, LayoutElementOverride>;
 }
 
+export interface LayoutGroup {
+  id: string;
+  name?: string;
+  children: string[];
+  frame: LayoutFrame;
+  constraints: LayoutConstraints;
+  locked?: boolean;
+  zIndex?: number;
+}
+
 export interface LayoutDocument {
   schemaVersion: number;
   mode: LayoutMode;
@@ -62,6 +74,7 @@ export interface LayoutDocument {
     height: number;
   };
   elements: Record<string, LayoutElement>;
+  groups?: Record<string, LayoutGroup>;
   breakpoints?: {
     tablet?: LayoutOverrides;
     mobile?: LayoutOverrides;
@@ -180,6 +193,13 @@ function booleanValue(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
 }
 
+function optionalSafeString(value: unknown, maxLength = 80): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, maxLength);
+}
+
 function normalizeSafeRecordKey(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed || trimmed.length > 160 || !SAFE_KEY_RE.test(trimmed)) return null;
@@ -225,6 +245,7 @@ function normalizeLayoutElement(value: unknown, fallbackId: string, viewport: { 
   return {
     id,
     role: value.role,
+    ...(optionalSafeString(value.name) ? { name: optionalSafeString(value.name) } : {}),
     frame,
     constraints: normalizeConstraints(value.constraints),
     positionMode: typeof value.positionMode === 'string' && POSITION_MODE_VALUES.has(value.positionMode as LayoutElementPositionMode)
@@ -252,6 +273,8 @@ function normalizeElementOverride(value: unknown): LayoutElementOverride | undef
     if (height !== undefined) frame.height = height;
     if (Object.keys(frame).length > 0) override.frame = frame;
   }
+  const name = optionalSafeString(value.name);
+  if (name !== undefined) override.name = name;
   if (isPlainRecord(value.constraints)) {
     const constraints: Partial<LayoutConstraints> = {};
     if (typeof value.constraints.horizontal === 'string' && HORIZONTAL_VALUES.has(value.constraints.horizontal as LayoutConstraintHorizontal)) {
@@ -274,6 +297,40 @@ function normalizeElementOverride(value: unknown): LayoutElementOverride | undef
   if (locked !== undefined) override.locked = locked;
   if (hidden !== undefined) override.hidden = hidden;
   return Object.keys(override).length > 0 ? override : undefined;
+}
+
+function normalizeLayoutGroup(value: unknown, fallbackId: string, viewport: { width: number; height: number }): LayoutGroup | null {
+  if (!isPlainRecord(value)) return null;
+  const id = sanitizeDesignElementId(value.id) ?? sanitizeDesignElementId(fallbackId);
+  if (!id) return null;
+  const children = Array.isArray(value.children)
+    ? value.children
+        .map((child) => sanitizeDesignElementId(child))
+        .filter((child): child is string => Boolean(child))
+        .slice(0, MAX_LAYOUT_ELEMENTS)
+    : [];
+  if (children.length === 0) return null;
+  const zIndex = optionalFiniteNumber(value.zIndex, -1000, 1000);
+  const locked = booleanValue(value.locked);
+  return {
+    id,
+    ...(optionalSafeString(value.name) ? { name: optionalSafeString(value.name) } : {}),
+    children,
+    frame: normalizeFrame(value.frame, { x: 0, y: 0, width: 240, height: 160 }, viewport),
+    constraints: normalizeConstraints(value.constraints),
+    ...(locked !== undefined ? { locked } : {}),
+    ...(zIndex !== undefined ? { zIndex } : {}),
+  };
+}
+
+function normalizeGroupRecord(value: unknown, viewport: { width: number; height: number }): Record<string, LayoutGroup> | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const groups: Record<string, LayoutGroup> = {};
+  for (const [key, raw] of Object.entries(value).slice(0, MAX_LAYOUT_ELEMENTS)) {
+    const group = normalizeLayoutGroup(raw, key, viewport);
+    if (group) groups[group.id] = group;
+  }
+  return Object.keys(groups).length > 0 ? groups : undefined;
 }
 
 function normalizeLayoutOverrides(value: unknown): LayoutOverrides | undefined {
@@ -305,6 +362,7 @@ export function normalizeLayoutDocument(value: unknown): LayoutDocument | undefi
       if (element) elements[element.id] = element;
     }
   }
+  const groups = normalizeGroupRecord(migrated.groups, baseViewport);
 
   const breakpoints = isPlainRecord(migrated.breakpoints)
     ? {
@@ -324,6 +382,7 @@ export function normalizeLayoutDocument(value: unknown): LayoutDocument | undefi
     mode,
     baseViewport,
     elements,
+    ...(groups ? { groups } : {}),
     ...(cleanBreakpoints ? { breakpoints: cleanBreakpoints } : {}),
   };
 }

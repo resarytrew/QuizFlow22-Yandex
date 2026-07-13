@@ -131,4 +131,19 @@ describe("useUIStore panel controls", () => {
     expect(useUIStore.getState().previewDevice).toBe("mobile");
     expect(useUIStore.getState().selectedDesignElement?.role).toBe("question-card");
   });
+
+  it("opens and closes the design layers drawer only inside design workflow", () => {
+    useUIStore.getState().setEditorMode("design");
+    useUIStore.getState().openDesignLayersDrawer();
+
+    expect(useUIStore.getState().isDesignLayersDrawerOpen).toBe(true);
+
+    useUIStore.getState().toggleDesignLayersDrawer();
+    expect(useUIStore.getState().isDesignLayersDrawerOpen).toBe(false);
+
+    useUIStore.getState().openDesignLayersDrawer();
+    useUIStore.getState().setEditorMode("flow");
+
+    expect(useUIStore.getState().isDesignLayersDrawerOpen).toBe(false);
+  });
 });

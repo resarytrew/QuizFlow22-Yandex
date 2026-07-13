@@ -75,12 +75,16 @@ interface UIStoreState {
   selectedDesignElement: DesignSelection | null;
   designInteractionMode: DesignInteractionMode;
   previewDevice: PreviewDevice;
+  isDesignLayersDrawerOpen: boolean;
   flowViewportSnapshot: FlowViewportSnapshot | null;
   flowModeSnapshot: FlowModeSnapshot | null;
   setEditorMode: (mode: EditorMode, opts?: { previewStartNodeId?: string | null }) => void;
   setSelectedDesignElement: (selection: DesignSelection | null) => void;
   setDesignInteractionMode: (mode: DesignInteractionMode) => void;
   setPreviewDevice: (device: PreviewDevice) => void;
+  openDesignLayersDrawer: () => void;
+  closeDesignLayersDrawer: () => void;
+  toggleDesignLayersDrawer: () => void;
   setFlowViewportSnapshot: (viewport: FlowViewportSnapshot) => void;
 
   // Grouping
@@ -108,6 +112,7 @@ const initialState = {
   selectedDesignElement: null as DesignSelection | null,
   designInteractionMode: 'select' as DesignInteractionMode,
   previewDevice: 'desktop' as PreviewDevice,
+  isDesignLayersDrawerOpen: false,
   flowViewportSnapshot: null as FlowViewportSnapshot | null,
   flowModeSnapshot: null as FlowModeSnapshot | null,
   currentGroup: null as string | null,
@@ -155,6 +160,7 @@ export const useUIStore = create<UIStoreState>((set) => ({
         isPreviewModeActive: false,
         previewStartNodeId: startNodeId || null,
         flowModeSnapshot: snapshot,
+        isDesignLayersDrawerOpen: false,
         isSidebarVisible: false,
         isSettingsPanelVisible: true,
         isDesignPanelOpen: false,
@@ -169,6 +175,7 @@ export const useUIStore = create<UIStoreState>((set) => ({
       previewStartNodeId: null,
       selectedDesignElement: null,
       flowModeSnapshot: null,
+      isDesignLayersDrawerOpen: false,
       ...(snapshot ?? {}),
     };
   }),
@@ -192,6 +199,7 @@ export const useUIStore = create<UIStoreState>((set) => ({
         previewStartNodeId: opts?.previewStartNodeId ?? state.previewStartNodeId,
         selectedDesignElement: null,
         flowModeSnapshot: snapshot,
+        isDesignLayersDrawerOpen: false,
         isSidebarVisible: false,
         isSettingsPanelVisible: true,
         isDesignPanelOpen: false,
@@ -206,6 +214,7 @@ export const useUIStore = create<UIStoreState>((set) => ({
       previewStartNodeId: null,
       selectedDesignElement: null,
       flowModeSnapshot: null,
+      isDesignLayersDrawerOpen: false,
       ...(snapshot ?? {}),
     };
   }),
@@ -214,6 +223,9 @@ export const useUIStore = create<UIStoreState>((set) => ({
     : { selectedDesignElement: null }),
   setDesignInteractionMode: (mode) => set({ designInteractionMode: mode }),
   setPreviewDevice: (device) => set({ previewDevice: device }),
+  openDesignLayersDrawer: () => set({ isDesignLayersDrawerOpen: true }),
+  closeDesignLayersDrawer: () => set({ isDesignLayersDrawerOpen: false }),
+  toggleDesignLayersDrawer: () => set((state) => ({ isDesignLayersDrawerOpen: !state.isDesignLayersDrawerOpen })),
   setFlowViewportSnapshot: (viewport) => set({ flowViewportSnapshot: viewport }),
   setCurrentGroup: (groupId) => set({ currentGroup: groupId }),
 
