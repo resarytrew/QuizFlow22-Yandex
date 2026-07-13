@@ -676,6 +676,68 @@ Commit target: `feat: stabilize live design preview`.
 - `GlobalSettingsModal` no longer exposes quiz-level timer settings; this is intentional for workspace separation, but a future quiz-level settings surface may be needed outside workspace preferences.
 - Existing lint/build warnings remain outside this stage's scope.
 
+## Stage 12: responsive layout and design quality checker
+
+Status: completed locally.
+
+Commit target: `feat: add responsive design checks and layout adaptation`.
+
+### Completed In This Stage
+
+- Added breakpoint inheritance helpers for `desktop -> tablet -> mobile`.
+- Added tablet/mobile layout override helpers that do not mutate the Desktop base layout.
+- Added safe-area presets for Browser, Telegram Mini App, MAX Mini App, mobile browser and virtual keyboard preview.
+- Extended design mode toolbar with Desktop, Tablet, Mobile, Custom and Fullscreen controls.
+- Added visible viewport metadata: width, height, scale placeholder, orientation and safe-area preset.
+- Added automatic responsive patches for auto layout and free layout adaptation.
+- Added editor-only Design Quality Checker drawer with errors, warnings, recommendations and undoable auto-fix flow.
+- Added quality checks before public/unlisted publication; critical errors block publication, warnings do not.
+- Kept the main Player DOM-based and did not add a new route, shell or renderer.
+
+### Checks Covered
+
+- Element outside scene.
+- Required or CTA element hidden.
+- Form/action accessibility risk.
+- Text and heading overflow risk.
+- Insufficient contrast.
+- Touch target below 44 px.
+- Horizontal scroll risk.
+- Too many mobile answer columns.
+- z-index overlap conflict.
+- Zero-size media.
+- Answers/CTA overlap.
+- Tab order / element order issues.
+- Unsupported visual editing template warning.
+- Free layout missing Mobile adaptation.
+
+### Baseline Commands
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings outside this stage. |
+| `npm test` | Passed | 90 test files, 727 tests passed. Expected stderr appears in error-handling tests; existing LivePreview `act(...)` warnings remain. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings remain: CSS minify `-: |>`, empty `vendor-react`, dynamic/static import chunking and large chunks. |
+
+### Known Limitations After Stage 12
+
+- Design Quality Checker uses deterministic model/setting heuristics; it does not yet perform pixel-perfect DOM text measurement for every template.
+- Auto-fix preview is a confirmation step in the drawer; visual diff preview is still a future enhancement.
+- Fullscreen uses the editor container dimensions and reports the Desktop logical viewport in toolbar metadata.
+- Publication check currently evaluates mobile-oriented quality from saved `designSettings`; runtime-only DOM measurements are not part of the publish gate.
+
+### Next Stage Recommendation
+
+Next stage should improve visual measurement fidelity:
+
+1. Feed live DOM measurements from PreviewBridge into Design Quality Checker.
+2. Highlight selected quality issue directly in the preview overlay.
+3. Add visual diff preview before applying auto-fixes.
+4. Expand responsive rules per template capability map.
+
+Stop here until the next stage is explicitly requested.
+
 ## Previous Stage
 
 Stage 1: audit current design editor UX.

@@ -11,7 +11,8 @@ export interface DesignSelection {
 }
 
 export type DesignInteractionMode = 'select' | 'test';
-export type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+export type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'custom' | 'fullscreen';
+export type PreviewSafeAreaPreset = 'browser' | 'telegram' | 'max' | 'mobile-browser' | 'keyboard';
 
 export interface FlowViewportSnapshot {
   x: number;
@@ -75,16 +76,26 @@ interface UIStoreState {
   selectedDesignElement: DesignSelection | null;
   designInteractionMode: DesignInteractionMode;
   previewDevice: PreviewDevice;
+  previewCustomSize: { width: number; height: number };
+  previewSafeAreaPreset: PreviewSafeAreaPreset;
   isDesignLayersDrawerOpen: boolean;
+  isDesignQualityPanelOpen: boolean;
+  highlightedDesignIssueId: string | null;
   flowViewportSnapshot: FlowViewportSnapshot | null;
   flowModeSnapshot: FlowModeSnapshot | null;
   setEditorMode: (mode: EditorMode, opts?: { previewStartNodeId?: string | null }) => void;
   setSelectedDesignElement: (selection: DesignSelection | null) => void;
   setDesignInteractionMode: (mode: DesignInteractionMode) => void;
   setPreviewDevice: (device: PreviewDevice) => void;
+  setPreviewCustomSize: (size: { width: number; height: number }) => void;
+  setPreviewSafeAreaPreset: (preset: PreviewSafeAreaPreset) => void;
   openDesignLayersDrawer: () => void;
   closeDesignLayersDrawer: () => void;
   toggleDesignLayersDrawer: () => void;
+  openDesignQualityPanel: () => void;
+  closeDesignQualityPanel: () => void;
+  toggleDesignQualityPanel: () => void;
+  setHighlightedDesignIssueId: (issueId: string | null) => void;
   setFlowViewportSnapshot: (viewport: FlowViewportSnapshot) => void;
 
   // Grouping
@@ -112,7 +123,11 @@ const initialState = {
   selectedDesignElement: null as DesignSelection | null,
   designInteractionMode: 'select' as DesignInteractionMode,
   previewDevice: 'desktop' as PreviewDevice,
+  previewCustomSize: { width: 1024, height: 720 },
+  previewSafeAreaPreset: 'browser' as PreviewSafeAreaPreset,
   isDesignLayersDrawerOpen: false,
+  isDesignQualityPanelOpen: false,
+  highlightedDesignIssueId: null as string | null,
   flowViewportSnapshot: null as FlowViewportSnapshot | null,
   flowModeSnapshot: null as FlowModeSnapshot | null,
   currentGroup: null as string | null,
@@ -161,6 +176,8 @@ export const useUIStore = create<UIStoreState>((set) => ({
         previewStartNodeId: startNodeId || null,
         flowModeSnapshot: snapshot,
         isDesignLayersDrawerOpen: false,
+        isDesignQualityPanelOpen: false,
+        highlightedDesignIssueId: null,
         isSidebarVisible: false,
         isSettingsPanelVisible: true,
         isDesignPanelOpen: false,
@@ -176,6 +193,8 @@ export const useUIStore = create<UIStoreState>((set) => ({
       selectedDesignElement: null,
       flowModeSnapshot: null,
       isDesignLayersDrawerOpen: false,
+      isDesignQualityPanelOpen: false,
+      highlightedDesignIssueId: null,
       ...(snapshot ?? {}),
     };
   }),
@@ -200,6 +219,8 @@ export const useUIStore = create<UIStoreState>((set) => ({
         selectedDesignElement: null,
         flowModeSnapshot: snapshot,
         isDesignLayersDrawerOpen: false,
+        isDesignQualityPanelOpen: false,
+        highlightedDesignIssueId: null,
         isSidebarVisible: false,
         isSettingsPanelVisible: true,
         isDesignPanelOpen: false,
@@ -215,17 +236,30 @@ export const useUIStore = create<UIStoreState>((set) => ({
       selectedDesignElement: null,
       flowModeSnapshot: null,
       isDesignLayersDrawerOpen: false,
+      isDesignQualityPanelOpen: false,
+      highlightedDesignIssueId: null,
       ...(snapshot ?? {}),
     };
   }),
   setSelectedDesignElement: (selection) => set(selection
     ? { selectedDesignElement: selection, isSettingsPanelVisible: true, isDesignPanelOpen: false }
-    : { selectedDesignElement: null }),
+    : { selectedDesignElement: null, highlightedDesignIssueId: null }),
   setDesignInteractionMode: (mode) => set({ designInteractionMode: mode }),
   setPreviewDevice: (device) => set({ previewDevice: device }),
+  setPreviewCustomSize: (size) => set({
+    previewCustomSize: {
+      width: Math.min(3840, Math.max(320, Math.round(size.width))),
+      height: Math.min(3840, Math.max(320, Math.round(size.height))),
+    },
+  }),
+  setPreviewSafeAreaPreset: (preset) => set({ previewSafeAreaPreset: preset }),
   openDesignLayersDrawer: () => set({ isDesignLayersDrawerOpen: true }),
   closeDesignLayersDrawer: () => set({ isDesignLayersDrawerOpen: false }),
   toggleDesignLayersDrawer: () => set((state) => ({ isDesignLayersDrawerOpen: !state.isDesignLayersDrawerOpen })),
+  openDesignQualityPanel: () => set({ isDesignQualityPanelOpen: true }),
+  closeDesignQualityPanel: () => set({ isDesignQualityPanelOpen: false, highlightedDesignIssueId: null }),
+  toggleDesignQualityPanel: () => set((state) => ({ isDesignQualityPanelOpen: !state.isDesignQualityPanelOpen })),
+  setHighlightedDesignIssueId: (issueId) => set({ highlightedDesignIssueId: issueId }),
   setFlowViewportSnapshot: (viewport) => set({ flowViewportSnapshot: viewport }),
   setCurrentGroup: (groupId) => set({ currentGroup: groupId }),
 

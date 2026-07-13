@@ -23,6 +23,7 @@ import {
   createLayoutDocumentPatch,
   normalizeLayoutDocumentState,
   resolveLayoutDocument,
+  resolveLayoutDocumentForBreakpoint,
   type LayoutDocument,
   type LayoutFrame,
   type LayoutScopeContext,
@@ -40,6 +41,8 @@ import {
   type SnapGuide,
 } from '../src/designMode/layoutInteraction';
 import type { DesignSettings } from '../types';
+import { SAFE_AREA_PRESETS, type PreviewSafeAreaPreset } from '../src/designMode/responsiveLayout';
+import { createBreakpointElementOverridePatch } from '../src/designMode/responsiveLayout';
 
 const STRUCTURE_DEBOUNCE_MS = 400;
 const VISUAL_SELECTION_TEMPLATE_IDS = new Set(['default', 'newyear', 'screenQuiz']);
@@ -58,6 +61,8 @@ interface LivePreviewProps {
   deviceMode?: PreviewDeviceMode;
   onDeviceModeChange?: (mode: PreviewDeviceMode) => void;
   allowedDeviceModes?: PreviewDeviceMode[];
+  customViewport?: { width: number; height: number };
+  safeAreaPreset?: PreviewSafeAreaPreset;
   className?: string;
 }
 
@@ -730,6 +735,8 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   deviceMode: controlledDeviceMode,
   onDeviceModeChange,
   allowedDeviceModes,
+  customViewport,
+  safeAreaPreset = 'browser',
   className = '',
 }) => {
   const nodes = useCanvasStore((state) => state.nodes);
@@ -884,7 +891,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({
 
   const getActiveLayoutDocument = useCallback(() => {
     const current = getCurrentNodeContext();
-    return resolveLayoutDocument(latestDesignRef.current as DesignSettings, current);
+    const document = resolveLayoutDocument(latestDesignRef.current as DesignSettings, current);
+    if (!document) return undefined;
+    const mode = latestDeviceModeRef.current;
+    return resolveLayoutDocumentForBreakpoint(document, mode === 'tablet' || mode === 'mobile' ? mode : 'desktop');
   }, [getCurrentNodeContext]);
 
   const commitLayoutFrame = useCallback((commit: {
@@ -898,8 +908,12 @@ const LivePreview: React.FC<LivePreviewProps> = ({
     const current = getCurrentNodeContext();
     const existing = resolveLayoutDocument(settings, current);
     if (!existing || existing.mode !== 'free') return;
-    const nextDocument = updateLayoutDocumentElementFrame(existing, commit.elementId, commit.frame);
-    const patch = createLayoutDocumentPatch(settings, getLayoutContext(settings), nextDocument);
+    const context = getLayoutContext(settings);
+    const mode = latestDeviceModeRef.current;
+    const patch = mode === 'tablet' || mode === 'mobile'
+      ? createBreakpointElementOverridePatch(settings, context, mode, commit.elementId, { frame: commit.frame })
+      : createLayoutDocumentPatch(settings, context, updateLayoutDocumentElementFrame(existing, commit.elementId, commit.frame));
+    if (!patch) return;
     updateDesignSettings(patch as never, {
       label: commit.action === 'resize'
         ? 'Resize layout element'
@@ -960,13 +974,16 @@ const LivePreview: React.FC<LivePreviewProps> = ({
     };
   }, [structureInputs, structureSignature]);
 
-  const viewport = DEVICE_VIEWPORTS[deviceMode];
+  const viewport = customViewport && deviceMode !== 'fullscreen'
+    ? { label: 'Custom', width: customViewport.width, height: customViewport.height }
+    : DEVICE_VIEWPORTS[deviceMode];
   const viewportStyle = deviceMode === 'fullscreen'
     ? undefined
     : {
         width: `min(100%, ${viewport.width}px)`,
         height: `min(100%, ${viewport.height}px)`,
       };
+  const safeArea = SAFE_AREA_PRESETS[safeAreaPreset];
 
   return (
     <div className={`flex h-full w-full flex-col bg-slate-100 ${className}`}>
@@ -998,10 +1015,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({
       <div
         className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4"
         style={{
-          paddingTop: 'max(1rem, env(safe-area-inset-top))',
-          paddingRight: 'max(1rem, env(safe-area-inset-right))',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
-          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingTop: `max(${safeArea.top + 16}px, env(safe-area-inset-top))`,
+          paddingRight: `max(${safeArea.right + 16}px, env(safe-area-inset-right))`,
+          paddingBottom: `max(${safeArea.bottom + 16}px, env(safe-area-inset-bottom))`,
+          paddingLeft: `max(${safeArea.left + 16}px, env(safe-area-inset-left))`,
         }}
       >
         <div
@@ -1011,6 +1028,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({
           ].join(' ')}
           style={viewportStyle}
           data-device-mode={deviceMode}
+          data-safe-area-preset={safeAreaPreset}
         >
           <iframe
             ref={iframeRef}

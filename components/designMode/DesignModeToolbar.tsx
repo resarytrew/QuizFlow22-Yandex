@@ -3,12 +3,29 @@ import { useCanvasStore } from '../../store/useCanvasStore';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
 import { useUIStore, type PreviewDevice } from '../../store/useUIStore';
 import { getAdjacentScreenIds, getDesignModeScreens } from '../../src/designMode/screens';
+import { checkDesignQuality } from '../../src/designMode/designQualityChecker';
+import { getPreviewOrientation, getPreviewViewport, SAFE_AREA_PRESETS } from '../../src/designMode/responsiveLayout';
+import type { LayoutBreakpoint } from '../../src/designMode/layoutDocument';
 
 const DEVICE_OPTIONS: Array<{ value: PreviewDevice; label: string }> = [
   { value: 'desktop', label: 'Desktop' },
   { value: 'tablet', label: 'Tablet' },
   { value: 'mobile', label: 'Mobile' },
+  { value: 'custom', label: 'Custom' },
+  { value: 'fullscreen', label: 'Fullscreen' },
 ];
+
+const SAFE_AREA_LABELS: Record<keyof typeof SAFE_AREA_PRESETS, string> = {
+  browser: 'Browser',
+  telegram: 'Telegram',
+  max: 'MAX',
+  'mobile-browser': 'Mobile Web',
+  keyboard: 'Keyboard',
+};
+
+function toBreakpoint(device: PreviewDevice): LayoutBreakpoint {
+  return device === 'tablet' || device === 'mobile' ? device : 'desktop';
+}
 
 const DesignModeToolbar: React.FC = () => {
   const nodes = useCanvasStore((state) => state.nodes);
@@ -19,10 +36,18 @@ const DesignModeToolbar: React.FC = () => {
   const setDesignInteractionMode = useUIStore((state) => state.setDesignInteractionMode);
   const previewDevice = useUIStore((state) => state.previewDevice);
   const setPreviewDevice = useUIStore((state) => state.setPreviewDevice);
+  const previewCustomSize = useUIStore((state) => state.previewCustomSize);
+  const setPreviewCustomSize = useUIStore((state) => state.setPreviewCustomSize);
+  const previewSafeAreaPreset = useUIStore((state) => state.previewSafeAreaPreset);
+  const setPreviewSafeAreaPreset = useUIStore((state) => state.setPreviewSafeAreaPreset);
   const isDesignLayersDrawerOpen = useUIStore((state) => state.isDesignLayersDrawerOpen);
   const toggleDesignLayersDrawer = useUIStore((state) => state.toggleDesignLayersDrawer);
+  const isDesignQualityPanelOpen = useUIStore((state) => state.isDesignQualityPanelOpen);
+  const toggleDesignQualityPanel = useUIStore((state) => state.toggleDesignQualityPanel);
   const selectedDesignElement = useUIStore((state) => state.selectedDesignElement);
   const setSelectedDesignElement = useUIStore((state) => state.setSelectedDesignElement);
+  const designSettings = useQuizDataStore((state) => state.designSettings);
+  const templateId = useQuizDataStore((state) => state.templateId);
   const canUndoDesign = useQuizDataStore((state) => state.canUndoDesign);
   const canRedoDesign = useQuizDataStore((state) => state.canRedoDesign);
   const undoDesignChange = useQuizDataStore((state) => state.undoDesignChange);
@@ -34,6 +59,17 @@ const DesignModeToolbar: React.FC = () => {
     () => getAdjacentScreenIds(screens, selectedNode?.id ?? null),
     [screens, selectedNode?.id],
   );
+  const viewport = useMemo(
+    () => getPreviewViewport(previewDevice, previewCustomSize),
+    [previewCustomSize, previewDevice],
+  );
+  const qualitySummary = useMemo(() => checkDesignQuality(designSettings, {
+    breakpoint: toBreakpoint(previewDevice),
+    viewport,
+    nodeId: selectedNode?.id ?? null,
+    nodeType: typeof selectedNode?.type === 'string' ? selectedNode.type : null,
+    templateId,
+  }), [designSettings, previewDevice, selectedNode?.id, selectedNode?.type, templateId, viewport]);
 
   const selectScreen = (nodeId: string | null) => {
     if (!nodeId) return;
@@ -103,6 +139,45 @@ const DesignModeToolbar: React.FC = () => {
         ))}
       </div>
 
+      {previewDevice === 'custom' && (
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1">
+          <input
+            aria-label="Custom preview width"
+            type="number"
+            min={320}
+            max={3840}
+            value={previewCustomSize.width}
+            onChange={(event) => setPreviewCustomSize({ ...previewCustomSize, width: Number(event.target.value) })}
+            className="w-16 rounded-md border border-slate-200 px-2 py-1 text-xs font-bold"
+          />
+          <span className="text-xs font-bold text-slate-400">x</span>
+          <input
+            aria-label="Custom preview height"
+            type="number"
+            min={320}
+            max={3840}
+            value={previewCustomSize.height}
+            onChange={(event) => setPreviewCustomSize({ ...previewCustomSize, height: Number(event.target.value) })}
+            className="w-16 rounded-md border border-slate-200 px-2 py-1 text-xs font-bold"
+          />
+        </div>
+      )}
+
+      <select
+        aria-label="Safe area preset"
+        value={previewSafeAreaPreset}
+        onChange={(event) => setPreviewSafeAreaPreset(event.target.value as keyof typeof SAFE_AREA_PRESETS)}
+        className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+      >
+        {Object.entries(SAFE_AREA_LABELS).map(([value, label]) => (
+          <option key={value} value={value}>{label}</option>
+        ))}
+      </select>
+
+      <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-500">
+        {viewport.width}x{viewport.height} / 100% / {getPreviewOrientation(viewport)}
+      </div>
+
       <div className="mx-1 h-7 w-px bg-slate-200" />
 
       <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Режим взаимодействия">
@@ -134,6 +209,23 @@ const DesignModeToolbar: React.FC = () => {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
+        <button
+          type="button"
+          aria-pressed={isDesignQualityPanelOpen}
+          onClick={toggleDesignQualityPanel}
+          className={[
+            'rounded-lg border px-3 py-2 text-xs font-bold transition-colors',
+            qualitySummary.errors > 0
+              ? 'border-red-300 bg-red-50 text-red-800 hover:bg-red-100'
+              : qualitySummary.warnings > 0
+                ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                : isDesignQualityPanelOpen
+                  ? 'border-emerald-500 bg-emerald-600 text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+          ].join(' ')}
+        >
+          Проверка: {qualitySummary.errors}/{qualitySummary.warnings}/{qualitySummary.recommendations}
+        </button>
         <button
           type="button"
           aria-pressed={isDesignLayersDrawerOpen}

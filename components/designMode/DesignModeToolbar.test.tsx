@@ -58,6 +58,22 @@ describe('DesignModeToolbar', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Desktop' }));
     expect(useUIStore.getState().previewDevice).toBe('desktop');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fullscreen' }));
+    expect(useUIStore.getState().previewDevice).toBe('fullscreen');
+  });
+
+  it('supports custom viewport and safe area controls', () => {
+    render(<DesignModeToolbar />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    fireEvent.change(screen.getByLabelText('Custom preview width'), { target: { value: '412' } });
+    fireEvent.change(screen.getByLabelText('Custom preview height'), { target: { value: '900' } });
+    fireEvent.change(screen.getByLabelText('Safe area preset'), { target: { value: 'telegram' } });
+
+    expect(useUIStore.getState().previewDevice).toBe('custom');
+    expect(useUIStore.getState().previewCustomSize).toEqual({ width: 412, height: 900 });
+    expect(useUIStore.getState().previewSafeAreaPreset).toBe('telegram');
   });
 
   it('opens the layers drawer from an explicit labeled button', () => {
@@ -69,6 +85,14 @@ describe('DesignModeToolbar', () => {
     fireEvent.click(button);
 
     expect(useUIStore.getState().isDesignLayersDrawerOpen).toBe(true);
+  });
+
+  it('opens the design quality panel from the toolbar indicator', () => {
+    render(<DesignModeToolbar />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Проверка:/ }));
+
+    expect(useUIStore.getState().isDesignQualityPanelOpen).toBe(true);
   });
 
   it('runs design undo and redo through DesignHistory', () => {

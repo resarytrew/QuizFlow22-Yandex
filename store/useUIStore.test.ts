@@ -121,6 +121,8 @@ describe("useUIStore panel controls", () => {
   it("stores design interaction mode, selected element and preview device", () => {
     useUIStore.getState().setDesignInteractionMode("test");
     useUIStore.getState().setPreviewDevice("mobile");
+    useUIStore.getState().setPreviewCustomSize({ width: 300, height: 5000 });
+    useUIStore.getState().setPreviewSafeAreaPreset("keyboard");
     useUIStore.getState().setSelectedDesignElement({
       elementId: "question-card",
       role: "question-card",
@@ -129,6 +131,8 @@ describe("useUIStore panel controls", () => {
 
     expect(useUIStore.getState().designInteractionMode).toBe("test");
     expect(useUIStore.getState().previewDevice).toBe("mobile");
+    expect(useUIStore.getState().previewCustomSize).toEqual({ width: 320, height: 3840 });
+    expect(useUIStore.getState().previewSafeAreaPreset).toBe("keyboard");
     expect(useUIStore.getState().selectedDesignElement?.role).toBe("question-card");
   });
 
@@ -145,5 +149,18 @@ describe("useUIStore panel controls", () => {
     useUIStore.getState().setEditorMode("flow");
 
     expect(useUIStore.getState().isDesignLayersDrawerOpen).toBe(false);
+  });
+
+  it("opens and closes the design quality panel with issue highlight state", () => {
+    useUIStore.getState().openDesignQualityPanel();
+    useUIStore.getState().setHighlightedDesignIssueId("mobile-touch-target-small-primary-action");
+
+    expect(useUIStore.getState().isDesignQualityPanelOpen).toBe(true);
+    expect(useUIStore.getState().highlightedDesignIssueId).toBe("mobile-touch-target-small-primary-action");
+
+    useUIStore.getState().closeDesignQualityPanel();
+
+    expect(useUIStore.getState().isDesignQualityPanelOpen).toBe(false);
+    expect(useUIStore.getState().highlightedDesignIssueId).toBeNull();
   });
 });

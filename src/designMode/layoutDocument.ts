@@ -12,6 +12,7 @@ export const MAX_LAYOUT_ELEMENTS = 80;
 
 export type LayoutMode = 'auto' | 'free';
 export type LayoutScope = 'global' | 'nodeType' | 'node';
+export type LayoutBreakpoint = 'desktop' | 'tablet' | 'mobile';
 export type LayoutConstraintHorizontal = 'left' | 'center' | 'right' | 'stretch';
 export type LayoutConstraintVertical = 'top' | 'center' | 'bottom';
 export type LayoutElementPositionMode = 'flow' | 'free';
@@ -233,14 +234,13 @@ function normalizeLayoutElement(value: unknown, fallbackId: string, viewport: { 
   const id = sanitizeDesignElementId(value.id) ?? sanitizeDesignElementId(fallbackId);
   if (!id) return null;
   if (!isDesignElementRole(value.role)) return null;
-  const rule = LAYOUT_ROLE_RULES[value.role];
   const fallbackFrame = value.role === 'canvas-background'
     ? { x: 0, y: 0, width: viewport.width, height: viewport.height }
     : { x: 0, y: 0, width: 120, height: 80 };
   const frame = value.role === 'canvas-background'
     ? fallbackFrame
     : normalizeFrame(value.frame, fallbackFrame, viewport);
-  const hidden = rule.required ? false : booleanValue(value.hidden);
+  const hidden = booleanValue(value.hidden);
 
   return {
     id,
@@ -342,6 +342,67 @@ function normalizeLayoutOverrides(value: unknown): LayoutOverrides | undefined {
     if (id && override) elements[id] = override;
   }
   return Object.keys(elements).length > 0 ? { elements } : undefined;
+}
+
+function mergeElementOverride(element: LayoutElement, override?: LayoutElementOverride): LayoutElement {
+  if (!override) return element;
+  return {
+    ...element,
+    ...(override.name !== undefined ? { name: override.name } : {}),
+    ...(override.frame ? { frame: { ...element.frame, ...override.frame } } : {}),
+    ...(override.constraints ? { constraints: { ...element.constraints, ...override.constraints } } : {}),
+    ...(override.positionMode !== undefined ? { positionMode: override.positionMode } : {}),
+    ...(override.order !== undefined ? { order: override.order } : {}),
+    ...(override.zIndex !== undefined ? { zIndex: override.zIndex } : {}),
+    ...(override.locked !== undefined ? { locked: override.locked } : {}),
+    ...(override.hidden !== undefined ? { hidden: override.hidden } : {}),
+  };
+}
+
+function mergeElementOverrides(
+  first?: Record<string, LayoutElementOverride>,
+  second?: Record<string, LayoutElementOverride>,
+): Record<string, LayoutElementOverride> | undefined {
+  const merged: Record<string, LayoutElementOverride> = {};
+  for (const [id, override] of Object.entries(first ?? {})) merged[id] = { ...override };
+  for (const [id, override] of Object.entries(second ?? {})) {
+    merged[id] = {
+      ...(merged[id] ?? {}),
+      ...override,
+      ...(merged[id]?.frame || override.frame ? { frame: { ...(merged[id]?.frame ?? {}), ...(override.frame ?? {}) } } : {}),
+      ...(merged[id]?.constraints || override.constraints
+        ? { constraints: { ...(merged[id]?.constraints ?? {}), ...(override.constraints ?? {}) } }
+        : {}),
+    };
+  }
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+export function getBreakpointOverrides(
+  document: LayoutDocument,
+  breakpoint: LayoutBreakpoint,
+): LayoutOverrides | undefined {
+  if (breakpoint === 'desktop') return undefined;
+  if (breakpoint === 'tablet') return document.breakpoints?.tablet;
+  const elements = mergeElementOverrides(document.breakpoints?.tablet?.elements, document.breakpoints?.mobile?.elements);
+  return elements ? { elements } : undefined;
+}
+
+export function resolveLayoutDocumentForBreakpoint(
+  document: LayoutDocument,
+  breakpoint: LayoutBreakpoint,
+): LayoutDocument {
+  const normalized = normalizeLayoutDocument(document) ?? document;
+  const overrides = getBreakpointOverrides(normalized, breakpoint);
+  if (!overrides?.elements) return normalized;
+  const elements: Record<string, LayoutElement> = {};
+  for (const [id, element] of Object.entries(normalized.elements)) {
+    elements[id] = mergeElementOverride(element, overrides.elements[id]);
+  }
+  return {
+    ...normalized,
+    elements,
+  };
 }
 
 export function normalizeLayoutDocument(value: unknown): LayoutDocument | undefined {

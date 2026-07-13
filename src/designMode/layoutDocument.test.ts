@@ -9,6 +9,7 @@ import {
   getLayoutRoleRule,
   normalizeLayoutDocument,
   normalizeLayoutDocumentState,
+  resolveLayoutDocumentForBreakpoint,
   resolveLayoutDocument,
   serializeLayoutDocument,
   type DesignSettingsWithLayoutDocuments,
@@ -144,5 +145,31 @@ describe('LayoutDocument model', () => {
     });
 
     expect(JSON.parse(serializeLayoutDocument(doc)).schemaVersion).toBe(1);
+  });
+
+  it('inherits breakpoint overrides from desktop to tablet to mobile without duplication', () => {
+    const doc = createFreeLayoutDocumentFromMeasurements({
+      viewport: { width: 1280, height: 720 },
+      elements: [{ id: 'primary-action', role: 'primary-action', nodeId: null, rect: { x: 100, y: 100, width: 240, height: 60 } }],
+    });
+    const withBreakpoints = normalizeLayoutDocument({
+      ...doc,
+      breakpoints: {
+        tablet: { elements: { 'primary-action': { frame: { width: 220 } } } },
+        mobile: { elements: { 'primary-action': { frame: { x: 24 } } } },
+      },
+    });
+
+    expect(resolveLayoutDocumentForBreakpoint(withBreakpoints!, 'desktop').elements['primary-action'].frame).toEqual({
+      x: 100,
+      y: 100,
+      width: 240,
+      height: 60,
+    });
+    expect(resolveLayoutDocumentForBreakpoint(withBreakpoints!, 'tablet').elements['primary-action'].frame.width).toBe(220);
+    expect(resolveLayoutDocumentForBreakpoint(withBreakpoints!, 'mobile').elements['primary-action'].frame).toMatchObject({
+      x: 24,
+      width: 220,
+    });
   });
 });

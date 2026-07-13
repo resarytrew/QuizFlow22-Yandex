@@ -11,6 +11,7 @@ import RestoreAutosavePrompt from '../../../components/RestoreAutosavePrompt';
 import LivePreview from '../../../components/LivePreview';
 import DesignModeToolbar from '../../../components/designMode/DesignModeToolbar';
 import DesignLayersDrawer from '../../../components/designMode/DesignLayersDrawer';
+import DesignQualityPanel from '../../../components/designMode/DesignQualityPanel';
 import Header from '../../../components/Header';
 import { useUIStore } from '../../../store/useUIStore';
 
@@ -27,8 +28,11 @@ function EditorShellLayout() {
   const isPreviewModeActive = useUIStore((s) => s.isPreviewModeActive);
   const editorMode = useUIStore((s) => s.editorMode);
   const previewDevice = useUIStore((s) => s.previewDevice);
+  const previewCustomSize = useUIStore((s) => s.previewCustomSize);
+  const previewSafeAreaPreset = useUIStore((s) => s.previewSafeAreaPreset);
   const setPreviewDevice = useUIStore((s) => s.setPreviewDevice);
   const isDesignMode = editorMode === 'design';
+  const livePreviewDevice = previewDevice === 'custom' ? 'desktop' : previewDevice;
 
   return (
     <ReactFlowProvider>
@@ -48,11 +52,13 @@ function EditorShellLayout() {
                   <DesignModeToolbar />
                   <LivePreview
                     showHeader={false}
-                    deviceMode={previewDevice}
+                    deviceMode={livePreviewDevice}
+                    customViewport={previewDevice === 'custom' ? previewCustomSize : undefined}
+                    safeAreaPreset={previewSafeAreaPreset}
                     onDeviceModeChange={(mode) => {
-                      if (mode !== 'fullscreen') setPreviewDevice(mode);
+                      setPreviewDevice(mode);
                     }}
-                    allowedDeviceModes={['desktop', 'tablet', 'mobile']}
+                    allowedDeviceModes={['desktop', 'tablet', 'mobile', 'fullscreen']}
                   />
                 </div>
               ) : isPreviewModeActive ? (
@@ -64,6 +70,7 @@ function EditorShellLayout() {
           </CanvasErrorBoundary>
           <RestoreAutosavePrompt />
           <DesignLayersDrawer />
+          <DesignQualityPanel />
           <div
             data-testid="editor-sidebar-container"
             aria-hidden={!isSidebarVisible}
