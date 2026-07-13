@@ -129,4 +129,32 @@ describe("LivePreview bridge", () => {
     expect(getPreviewFrame()).toBe(frame);
     expect(frame.closest("[data-device-mode]")?.getAttribute("data-device-mode")).toBe("mobile");
   });
+
+  it("supports controlled desktop tablet and mobile modes without remounting iframe", () => {
+    const { rerender } = render(
+      <LivePreview showHeader={false} deviceMode="desktop" allowedDeviceModes={["desktop", "tablet", "mobile"]} />,
+    );
+    flushPreviewDebounce();
+
+    const frame = getPreviewFrame();
+    rerender(<LivePreview showHeader={false} deviceMode="tablet" allowedDeviceModes={["desktop", "tablet", "mobile"]} />);
+    expect(getPreviewFrame()).toBe(frame);
+    expect(frame.closest("[data-device-mode]")?.getAttribute("data-device-mode")).toBe("tablet");
+
+    rerender(<LivePreview showHeader={false} deviceMode="mobile" allowedDeviceModes={["desktop", "tablet", "mobile"]} />);
+    expect(getPreviewFrame()).toBe(frame);
+    expect(frame.closest("[data-device-mode]")?.getAttribute("data-device-mode")).toBe("mobile");
+  });
+
+  it("opens supported visual design templates without creating another player", () => {
+    for (const templateId of ["default", "newyear", "screenQuiz"] as const) {
+      useQuizDataStore.getState().setTemplateId(templateId);
+      const { unmount } = render(<LivePreview showHeader={false} />);
+      flushPreviewDebounce();
+
+      expect(screen.getAllByTitle("Live Quiz Preview")).toHaveLength(1);
+      expect(getPreviewFrame().getAttribute("srcdoc")).toContain("<html");
+      unmount();
+    }
+  });
 });

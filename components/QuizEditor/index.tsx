@@ -5,6 +5,7 @@ import ReactFlow, {
   Panel,
   ConnectionLineType,
   useReactFlow,
+  useViewport,
   type Node,
   type NodeChange,
   type EdgeChange,
@@ -55,6 +56,7 @@ const QuizEditor: React.FC = () => {
   const [connectingFrom, setConnectingFrom] = useState<{ nodeId: string; handleId?: string | null } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const initialViewportRef = useRef(useUIStore.getState().flowViewportSnapshot ?? DEFAULT_VIEWPORT);
   const showGrid = usePreferencesStore((s) => s.preferences.showGrid);
   const snapToGrid = usePreferencesStore((s) => s.preferences.snapToGrid);
   const reduceMotion = usePreferencesStore((s) => s.preferences.reduceMotion);
@@ -68,7 +70,16 @@ const QuizEditor: React.FC = () => {
   const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
   const { screenToFlowPosition, getNode, fitView, setCenter } = useReactFlow();
+  const viewport = useViewport();
   useEditorAutosave();
+
+  React.useEffect(() => {
+    useUIStore.getState().setFlowViewportSnapshot({
+      x: viewport.x,
+      y: viewport.y,
+      zoom: viewport.zoom,
+    });
+  }, [viewport.x, viewport.y, viewport.zoom]);
 
   // React Flow warns when nodeTypes/edgeTypes change identity between
   // renders. The module-level exports are stable, but Vite's Fast Refresh
@@ -288,7 +299,7 @@ const QuizEditor: React.FC = () => {
         elementsSelectable={!isCanvasLocked}
         selectionOnDrag={false}
         multiSelectionKeyCode="Shift"
-        defaultViewport={DEFAULT_VIEWPORT}
+        defaultViewport={initialViewportRef.current}
         minZoom={ZOOM.MIN}
         maxZoom={ZOOM.MAX}
         style={flowStyle}

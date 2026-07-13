@@ -9,6 +9,7 @@ import { AIQuizWizard } from '../../../components/AIQuizWizard';
 import { CanvasErrorBoundary } from '../../../components/CanvasErrorBoundary';
 import RestoreAutosavePrompt from '../../../components/RestoreAutosavePrompt';
 import LivePreview from '../../../components/LivePreview';
+import DesignModeToolbar from '../../../components/designMode/DesignModeToolbar';
 import Header from '../../../components/Header';
 import { useUIStore } from '../../../store/useUIStore';
 
@@ -23,6 +24,10 @@ function EditorShellLayout() {
   const isAIAssistantPanelVisible = useUIStore((s) => s.isAIAssistantPanelVisible);
   const isSettingsPanelVisible = useUIStore((s) => s.isSettingsPanelVisible);
   const isPreviewModeActive = useUIStore((s) => s.isPreviewModeActive);
+  const editorMode = useUIStore((s) => s.editorMode);
+  const previewDevice = useUIStore((s) => s.previewDevice);
+  const setPreviewDevice = useUIStore((s) => s.setPreviewDevice);
+  const isDesignMode = editorMode === 'design';
 
   return (
     <ReactFlowProvider>
@@ -31,7 +36,29 @@ function EditorShellLayout() {
         <main className="relative flex-grow w-full h-full overflow-hidden bg-slate-50">
           <CanvasErrorBoundary>
             <div className="absolute inset-0 z-0">
-              {isPreviewModeActive ? <LivePreview /> : <Outlet />}
+              {isDesignMode ? (
+                <div
+                  className={[
+                    'flex h-full w-full flex-col transition-[padding] duration-200',
+                    isSettingsPanelVisible ? 'pr-0 lg:pr-[25rem]' : '',
+                    isSidebarVisible ? 'pl-0 xl:pl-72' : '',
+                  ].join(' ')}
+                >
+                  <DesignModeToolbar />
+                  <LivePreview
+                    showHeader={false}
+                    deviceMode={previewDevice}
+                    onDeviceModeChange={(mode) => {
+                      if (mode !== 'fullscreen') setPreviewDevice(mode);
+                    }}
+                    allowedDeviceModes={['desktop', 'tablet', 'mobile']}
+                  />
+                </div>
+              ) : isPreviewModeActive ? (
+                <LivePreview />
+              ) : (
+                <Outlet />
+              )}
             </div>
           </CanvasErrorBoundary>
           <RestoreAutosavePrompt />

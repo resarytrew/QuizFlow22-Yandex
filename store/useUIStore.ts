@@ -1,5 +1,39 @@
 import { create } from 'zustand';
 
+export type EditorMode = 'flow' | 'design';
+export type DesignElementRole =
+  | 'screen'
+  | 'background'
+  | 'questionCard'
+  | 'answerCard'
+  | 'button'
+  | 'media'
+  | 'progress'
+  | 'result'
+  | 'unknown';
+
+export interface DesignSelection {
+  elementId: string;
+  role: DesignElementRole;
+  nodeId: string | null;
+}
+
+export type DesignInteractionMode = 'select' | 'test';
+export type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+
+export interface FlowViewportSnapshot {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+interface FlowModeSnapshot {
+  isSidebarVisible: boolean;
+  isSettingsPanelVisible: boolean;
+  isDesignPanelOpen: boolean;
+  isAIAssistantPanelVisible: boolean;
+}
+
 interface UIStoreState {
   // Sidebar
   isSidebarVisible: boolean;
@@ -44,6 +78,19 @@ interface UIStoreState {
   previewStartNodeId: string | null;
   setPreviewMode: (active: boolean, startNodeId?: string) => void;
 
+  // Integrated visual design mode
+  editorMode: EditorMode;
+  selectedDesignElement: DesignSelection | null;
+  designInteractionMode: DesignInteractionMode;
+  previewDevice: PreviewDevice;
+  flowViewportSnapshot: FlowViewportSnapshot | null;
+  flowModeSnapshot: FlowModeSnapshot | null;
+  setEditorMode: (mode: EditorMode, opts?: { previewStartNodeId?: string | null }) => void;
+  setSelectedDesignElement: (selection: DesignSelection | null) => void;
+  setDesignInteractionMode: (mode: DesignInteractionMode) => void;
+  setPreviewDevice: (device: PreviewDevice) => void;
+  setFlowViewportSnapshot: (viewport: FlowViewportSnapshot) => void;
+
   // Grouping
   currentGroup: string | null;
   setCurrentGroup: (groupId: string | null) => void;
@@ -65,6 +112,12 @@ const initialState = {
   onAssetSelect: null as ((url: string) => void) | null,
   isPreviewModeActive: false,
   previewStartNodeId: null as string | null,
+  editorMode: 'flow' as EditorMode,
+  selectedDesignElement: null as DesignSelection | null,
+  designInteractionMode: 'select' as DesignInteractionMode,
+  previewDevice: 'desktop' as PreviewDevice,
+  flowViewportSnapshot: null as FlowViewportSnapshot | null,
+  flowModeSnapshot: null as FlowModeSnapshot | null,
   currentGroup: null as string | null,
 };
 
@@ -96,7 +149,78 @@ export const useUIStore = create<UIStoreState>((set) => ({
   closeAssetManager: () => set({ isAssetManagerOpen: false, onAssetSelect: null }),
   setWizardOpen: (isOpen) => set({ isWizardOpen: isOpen }),
   resetWizard: () => set({ isWizardOpen: false }),
-  setPreviewMode: (active, startNodeId) => set({ isPreviewModeActive: active, previewStartNodeId: startNodeId || null }),
+  setPreviewMode: (active, startNodeId) => set((state) => {
+    if (active) {
+      const snapshot = state.flowModeSnapshot ?? {
+        isSidebarVisible: state.isSidebarVisible,
+        isSettingsPanelVisible: state.isSettingsPanelVisible,
+        isDesignPanelOpen: state.isDesignPanelOpen,
+        isAIAssistantPanelVisible: state.isAIAssistantPanelVisible,
+      };
+      return {
+        editorMode: 'design',
+        designInteractionMode: 'test',
+        isPreviewModeActive: false,
+        previewStartNodeId: startNodeId || null,
+        flowModeSnapshot: snapshot,
+        isSidebarVisible: false,
+        isSettingsPanelVisible: true,
+        isDesignPanelOpen: false,
+        isAIAssistantPanelVisible: false,
+      };
+    }
+
+    const snapshot = state.flowModeSnapshot;
+    return {
+      editorMode: 'flow',
+      isPreviewModeActive: false,
+      previewStartNodeId: null,
+      selectedDesignElement: null,
+      flowModeSnapshot: null,
+      ...(snapshot ?? {}),
+    };
+  }),
+  setEditorMode: (mode, opts) => set((state) => {
+    if (mode === state.editorMode) {
+      return {
+        previewStartNodeId: opts?.previewStartNodeId ?? state.previewStartNodeId,
+      };
+    }
+
+    if (mode === 'design') {
+      const snapshot = {
+        isSidebarVisible: state.isSidebarVisible,
+        isSettingsPanelVisible: state.isSettingsPanelVisible,
+        isDesignPanelOpen: state.isDesignPanelOpen,
+        isAIAssistantPanelVisible: state.isAIAssistantPanelVisible,
+      };
+      return {
+        editorMode: 'design',
+        isPreviewModeActive: false,
+        previewStartNodeId: opts?.previewStartNodeId ?? state.previewStartNodeId,
+        selectedDesignElement: null,
+        flowModeSnapshot: snapshot,
+        isSidebarVisible: false,
+        isSettingsPanelVisible: true,
+        isDesignPanelOpen: false,
+        isAIAssistantPanelVisible: false,
+      };
+    }
+
+    const snapshot = state.flowModeSnapshot;
+    return {
+      editorMode: 'flow',
+      isPreviewModeActive: false,
+      previewStartNodeId: null,
+      selectedDesignElement: null,
+      flowModeSnapshot: null,
+      ...(snapshot ?? {}),
+    };
+  }),
+  setSelectedDesignElement: (selection) => set({ selectedDesignElement: selection }),
+  setDesignInteractionMode: (mode) => set({ designInteractionMode: mode }),
+  setPreviewDevice: (device) => set({ previewDevice: device }),
+  setFlowViewportSnapshot: (viewport) => set({ flowViewportSnapshot: viewport }),
   setCurrentGroup: (groupId) => set({ currentGroup: groupId }),
 
   reset: () => set(initialState),

@@ -4,6 +4,66 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 5: integrated visual design mode.
+
+Status: completed locally.
+
+Commit target: `feat: integrate visual design mode into existing editor`.
+
+## Stage 5 Completed
+
+- Added the integrated editor mode model:
+  - `flow`;
+  - `design`.
+- Extended `useUIStore` with design-mode UI state:
+  - selected design element;
+  - design interaction mode;
+  - preview device;
+  - saved flow viewport snapshot;
+  - saved flow panel/sidebar snapshot.
+- Added the main header switch:
+  - `Scenario`;
+  - `Design`.
+- Embedded the existing real `LivePreview` into the existing editor shell for design mode.
+- Kept the scenario graph as the center surface in flow mode.
+- Preserved selected node and graph viewport when switching between flow and design.
+- Added a compact design-mode toolbar:
+  - previous/current/next screen navigation;
+  - Desktop/Tablet/Mobile preview device;
+  - select/test interaction mode;
+  - undo/redo;
+  - reset selected element.
+- Added compact screen-order helpers for choosing the current preview screen without introducing a separate screen list.
+- Updated `SettingsPanel` so design mode shows:
+  - `DesignOverviewPanel` when no element is selected;
+  - `DesignElementInspector` when a design element selection exists.
+- Kept node settings out of the right panel in design mode.
+- Reused the existing `PreviewBridge` and selected-node navigation path.
+- Kept the player as the existing DOM Player. No bitmap/canvas replacement, no fake preview and no second renderer were added.
+- Verified `default`, `newyear` and `screenQuiz` can open through the design-mode preview path.
+- Added route-level coverage to guard against introducing a standalone design route.
+
+## Stage 5 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- --run store/useUIStore.test.ts components/designMode/DesignModeToolbar.test.tsx components/SettingsPanel.designMode.test.tsx components/header/HeaderModeSwitch.test.tsx components/LivePreview.test.tsx src/designMode/screens.test.ts src/router/__tests__/design-mode-route.test.ts` | Passed | 7 files, 28 tests passed. |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 77 files, 648 tests passed. Expected stderr appears in existing negative-path tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+
+## Stage 5 Known Limitations
+
+- Player-side element picking is not implemented in this stage. `selectedDesignElement` and the inspector are ready for the next bridge step.
+- `DESIGN_ELEMENT_SELECTED` remains reserved in the bridge protocol; the Player does not emit real element selections yet.
+- ElementRegistry support for thematic templates is still future work. Unsupported templates open safely without visual picking.
+- The small-screen inspector still relies on the existing responsive panel behavior; a dedicated drawer polish pass can follow later.
+- Reset selected element currently works through section-level design history operations for supported roles.
+
+## Previous Stage 4
+
 Stage 4: stable live design preview.
 
 Status: completed locally.

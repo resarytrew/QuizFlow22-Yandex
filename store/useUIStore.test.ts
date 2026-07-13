@@ -68,4 +68,67 @@ describe("useUIStore panel controls", () => {
     expect(useUIStore.getState().isSettingsPanelVisible).toBe(false);
     expect(useUIStore.getState().isDesignPanelOpen).toBe(false);
   });
+
+  it("switches flow to design while preserving flow panel state", () => {
+    useUIStore.setState({
+      isSidebarVisible: true,
+      isSettingsPanelVisible: false,
+      isAIAssistantPanelVisible: true,
+      flowViewportSnapshot: { x: 12, y: 24, zoom: 0.75 },
+    });
+
+    useUIStore.getState().setEditorMode("design", { previewStartNodeId: "question-1" });
+
+    expect(useUIStore.getState().editorMode).toBe("design");
+    expect(useUIStore.getState().previewStartNodeId).toBe("question-1");
+    expect(useUIStore.getState().isSidebarVisible).toBe(false);
+    expect(useUIStore.getState().isSettingsPanelVisible).toBe(true);
+    expect(useUIStore.getState().flowViewportSnapshot).toEqual({ x: 12, y: 24, zoom: 0.75 });
+  });
+
+  it("restores flow side panels when returning from design", () => {
+    useUIStore.setState({
+      isSidebarVisible: true,
+      isSettingsPanelVisible: false,
+      isAIAssistantPanelVisible: true,
+    });
+
+    useUIStore.getState().setEditorMode("design");
+    useUIStore.getState().toggleSidebar();
+    useUIStore.getState().setEditorMode("flow");
+
+    expect(useUIStore.getState().editorMode).toBe("flow");
+    expect(useUIStore.getState().isSidebarVisible).toBe(true);
+    expect(useUIStore.getState().isSettingsPanelVisible).toBe(false);
+    expect(useUIStore.getState().isAIAssistantPanelVisible).toBe(true);
+  });
+
+  it("does not clear the selected node when switching visual design mode", () => {
+    const selectedNode = {
+      id: "question-1",
+      type: CustomNodeType.Question,
+      position: { x: 0, y: 0 },
+      data: { label: "Question", question: "Text", answers: [] },
+    };
+    useCanvasStore.getState().setSelectedNode(selectedNode);
+
+    useUIStore.getState().setEditorMode("design", { previewStartNodeId: selectedNode.id });
+    useUIStore.getState().setEditorMode("flow");
+
+    expect(useCanvasStore.getState().selectedNode?.id).toBe("question-1");
+  });
+
+  it("stores design interaction mode, selected element and preview device", () => {
+    useUIStore.getState().setDesignInteractionMode("test");
+    useUIStore.getState().setPreviewDevice("mobile");
+    useUIStore.getState().setSelectedDesignElement({
+      elementId: "question-card",
+      role: "questionCard",
+      nodeId: "question-1",
+    });
+
+    expect(useUIStore.getState().designInteractionMode).toBe("test");
+    expect(useUIStore.getState().previewDevice).toBe("mobile");
+    expect(useUIStore.getState().selectedDesignElement?.role).toBe("questionCard");
+  });
 });

@@ -20,11 +20,25 @@ const DEVICE_VIEWPORTS: Record<PreviewDeviceMode, { label: string; width?: numbe
   fullscreen: { label: 'Fullscreen' },
 };
 
+interface LivePreviewProps {
+  showHeader?: boolean;
+  deviceMode?: PreviewDeviceMode;
+  onDeviceModeChange?: (mode: PreviewDeviceMode) => void;
+  allowedDeviceModes?: PreviewDeviceMode[];
+  className?: string;
+}
+
 function stringifyPreviewStructure(value: unknown): string {
   return JSON.stringify(value);
 }
 
-const LivePreview: React.FC = () => {
+const LivePreview: React.FC<LivePreviewProps> = ({
+  showHeader = true,
+  deviceMode: controlledDeviceMode,
+  onDeviceModeChange,
+  allowedDeviceModes,
+  className = '',
+}) => {
   const nodes = useCanvasStore((state) => state.nodes);
   const edges = useCanvasStore((state) => state.edges);
   const selectedNodeId = useCanvasStore((state) => state.selectedNode?.id ?? null);
@@ -35,11 +49,13 @@ const LivePreview: React.FC = () => {
   const currentQuizName = useQuizDataStore((state) => state.currentQuizName);
   const [htmlContent, setHtmlContent] = useState('');
   const [bridgeReady, setBridgeReady] = useState(false);
-  const [deviceMode, setDeviceMode] = useState<PreviewDeviceMode>('desktop');
+  const [uncontrolledDeviceMode, setUncontrolledDeviceMode] = useState<PreviewDeviceMode>('desktop');
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestDesignRef = useRef(designSettings);
   const latestNodeIdRef = useRef<string | null>(selectedNodeId ?? previewStartNodeId ?? null);
+  const deviceMode = controlledDeviceMode ?? uncontrolledDeviceMode;
+  const modes = allowedDeviceModes ?? (Object.keys(DEVICE_VIEWPORTS) as PreviewDeviceMode[]);
   const latestDeviceModeRef = useRef<PreviewDeviceMode>(deviceMode);
 
   const structureInputs = useMemo(() => ({
@@ -81,6 +97,13 @@ const LivePreview: React.FC = () => {
       postPreviewMessage('SET_PREVIEW_MODE', { mode: deviceMode });
     }
   }, [bridgeReady, deviceMode, postPreviewMessage]);
+
+  const handleDeviceModeChange = useCallback((mode: PreviewDeviceMode) => {
+    if (!controlledDeviceMode) {
+      setUncontrolledDeviceMode(mode);
+    }
+    onDeviceModeChange?.(mode);
+  }, [controlledDeviceMode, onDeviceModeChange]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
@@ -140,29 +163,31 @@ const LivePreview: React.FC = () => {
       };
 
   return (
-    <div className="flex h-full w-full flex-col bg-slate-100">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
-        <div>
-          <h2 className="text-sm font-bold text-slate-800">Live Preview</h2>
-          <p className="text-xs text-slate-500">Design updates apply without restarting the player.</p>
+    <div className={`flex h-full w-full flex-col bg-slate-100 ${className}`}>
+      {showHeader && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-800">Live Preview</h2>
+            <p className="text-xs text-slate-500">Design updates apply without restarting the player.</p>
+          </div>
+          <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Preview device size">
+            {modes.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={[
+                  'rounded-md px-3 py-1.5 text-xs font-bold transition-colors',
+                  deviceMode === mode ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white',
+                ].join(' ')}
+                aria-pressed={deviceMode === mode}
+                onClick={() => handleDeviceModeChange(mode)}
+              >
+                {DEVICE_VIEWPORTS[mode].label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Preview device size">
-          {(Object.keys(DEVICE_VIEWPORTS) as PreviewDeviceMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className={[
-                'rounded-md px-3 py-1.5 text-xs font-bold transition-colors',
-                deviceMode === mode ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white',
-              ].join(' ')}
-              aria-pressed={deviceMode === mode}
-              onClick={() => setDeviceMode(mode)}
-            >
-              {DEVICE_VIEWPORTS[mode].label}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       <div
         className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4"
