@@ -4,11 +4,58 @@ Date: 2026-07-13
 
 ## Current Stage
 
-Stage 3: deterministic presets, undo/redo and reset.
+Stage 4: stable live design preview.
 
 Status: completed locally.
 
-Commit target: `feat: add deterministic design presets and history`.
+Commit target: `feat: stabilize live design preview`.
+
+## Stage 4 Completed
+
+- Reworked `LivePreview` so design changes no longer regenerate the iframe HTML or remount the iframe.
+- Added an explicit versioned `PreviewBridge` protocol over `postMessage`.
+- Added parent-to-player messages:
+  - `PREVIEW_INIT`;
+  - `DESIGN_PATCH`;
+  - `DESIGN_REPLACE`;
+  - `NAVIGATE_TO_NODE`;
+  - `SET_PREVIEW_MODE`;
+  - `RESET_PREVIEW_STATE`.
+- Added player-to-parent messages:
+  - `PREVIEW_READY`;
+  - `PREVIEW_NODE_CHANGED`;
+  - `PREVIEW_STATE_CHANGED`;
+  - `PREVIEW_ERROR`;
+  - `DESIGN_ELEMENT_SELECTED` reserved in the protocol for the next stage.
+- Added origin, source and envelope validation for bridge messages.
+- Kept the bridge disabled unless the generated preview payload explicitly sets `previewBridge.enabled`.
+- Added selected-node navigation from the editor into the live player.
+- Added device modes for the preview viewport:
+  - Desktop;
+  - Tablet;
+  - Mobile;
+  - Fullscreen.
+- Added safe-area-aware preview viewport padding.
+- Extended the engine build tsconfig to include the shared bridge protocol module.
+
+## Stage 4 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- --run components/LivePreview.test.tsx src/previewBridge/protocol.test.ts src/engine/__tests__/previewBridge.test.ts` | Passed | 3 files, 10 tests passed. |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 72 files, 632 tests passed. Expected stderr appears in existing negative-path tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+
+## Stage 4 Known Limitations
+
+- The live bridge applies generic default-template design via CSS variables/classes. Hard-coded thematic templates still require controlled HTML reloads for template-specific visual changes.
+- Screen quiz has its own standalone runner and remains outside the generic engine bridge in this stage.
+- `DESIGN_ELEMENT_SELECTED` is reserved in the protocol only; element picking is planned for the next stage.
+
+## Previous Stage 3
 
 ## Stage 3 Completed
 

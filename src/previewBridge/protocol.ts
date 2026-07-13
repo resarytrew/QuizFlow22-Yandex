@@ -1,0 +1,145 @@
+export const PREVIEW_BRIDGE_VERSION = 1;
+export const PREVIEW_PARENT_SOURCE = "quizflow-editor-preview";
+export const PREVIEW_PLAYER_SOURCE = "quizflow-player-preview";
+
+export type PreviewParentMessageType =
+  | "PREVIEW_INIT"
+  | "DESIGN_PATCH"
+  | "DESIGN_REPLACE"
+  | "NAVIGATE_TO_NODE"
+  | "SET_PREVIEW_MODE"
+  | "RESET_PREVIEW_STATE";
+
+export type PreviewPlayerMessageType =
+  | "PREVIEW_READY"
+  | "PREVIEW_NODE_CHANGED"
+  | "PREVIEW_STATE_CHANGED"
+  | "PREVIEW_ERROR"
+  | "DESIGN_ELEMENT_SELECTED";
+
+export type PreviewDeviceMode = "desktop" | "tablet" | "mobile" | "fullscreen";
+
+export interface PreviewBridgeMessage<TType extends string = string, TPayload = unknown> {
+  readonly source: string;
+  readonly version: typeof PREVIEW_BRIDGE_VERSION;
+  readonly type: TType;
+  readonly payload?: TPayload;
+}
+
+export interface PreviewInitPayload {
+  readonly designSettings?: unknown;
+  readonly nodeId?: string | null;
+  readonly mode?: PreviewDeviceMode;
+}
+
+export interface PreviewDesignPayload {
+  readonly designSettings?: unknown;
+}
+
+export interface PreviewNavigatePayload {
+  readonly nodeId?: string | null;
+}
+
+export interface PreviewModePayload {
+  readonly mode?: PreviewDeviceMode;
+}
+
+export interface PreviewStatePayload {
+  readonly currentNodeId?: string | null;
+  readonly score?: number;
+  readonly pathLength?: number;
+}
+
+export interface PreviewErrorPayload {
+  readonly message: string;
+}
+
+const PARENT_TYPES = new Set<PreviewParentMessageType>([
+  "PREVIEW_INIT",
+  "DESIGN_PATCH",
+  "DESIGN_REPLACE",
+  "NAVIGATE_TO_NODE",
+  "SET_PREVIEW_MODE",
+  "RESET_PREVIEW_STATE",
+]);
+
+const PLAYER_TYPES = new Set<PreviewPlayerMessageType>([
+  "PREVIEW_READY",
+  "PREVIEW_NODE_CHANGED",
+  "PREVIEW_STATE_CHANGED",
+  "PREVIEW_ERROR",
+  "DESIGN_ELEMENT_SELECTED",
+]);
+
+export function createParentPreviewMessage<TType extends PreviewParentMessageType, TPayload>(
+  type: TType,
+  payload?: TPayload,
+): PreviewBridgeMessage<TType, TPayload> {
+  return {
+    source: PREVIEW_PARENT_SOURCE,
+    version: PREVIEW_BRIDGE_VERSION,
+    type,
+    ...(payload === undefined ? {} : { payload }),
+  };
+}
+
+export function createPlayerPreviewMessage<TType extends PreviewPlayerMessageType, TPayload>(
+  type: TType,
+  payload?: TPayload,
+): PreviewBridgeMessage<TType, TPayload> {
+  return {
+    source: PREVIEW_PLAYER_SOURCE,
+    version: PREVIEW_BRIDGE_VERSION,
+    type,
+    ...(payload === undefined ? {} : { payload }),
+  };
+}
+
+export function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function isMessageBase(value: unknown): value is PreviewBridgeMessage {
+  return (
+    isPlainRecord(value)
+    && value.version === PREVIEW_BRIDGE_VERSION
+    && typeof value.source === "string"
+    && typeof value.type === "string"
+  );
+}
+
+export function isPreviewParentMessage(value: unknown): value is PreviewBridgeMessage<PreviewParentMessageType> {
+  return isMessageBase(value)
+    && value.source === PREVIEW_PARENT_SOURCE
+    && PARENT_TYPES.has(value.type as PreviewParentMessageType);
+}
+
+export function isPreviewPlayerMessage(value: unknown): value is PreviewBridgeMessage<PreviewPlayerMessageType> {
+  return isMessageBase(value)
+    && value.source === PREVIEW_PLAYER_SOURCE
+    && PLAYER_TYPES.has(value.type as PreviewPlayerMessageType);
+}
+
+export function isAllowedPreviewOrigin(origin: string, expectedOrigin: string): boolean {
+  return origin === expectedOrigin;
+}
+
+export function isPreviewDeviceMode(value: unknown): value is PreviewDeviceMode {
+  return value === "desktop" || value === "tablet" || value === "mobile" || value === "fullscreen";
+}
+
+export function toSafeNodeId(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 160) return null;
+  return /^[a-zA-Z0-9_.:-]+$/.test(trimmed) ? trimmed : null;
+}
+
+export function toDesignSettingsPayload(value: unknown): unknown | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  if ("html" in value || "script" in value || "javascript" in value) return undefined;
+  return value.designSettings;
+}
