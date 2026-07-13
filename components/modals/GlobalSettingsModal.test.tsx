@@ -3,15 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 import GlobalSettingsModal from './GlobalSettingsModal';
 
 describe('GlobalSettingsModal', () => {
-  it('shows one selected settings group at a time', () => {
+  it('shows only workspace settings and keeps quiz templates out', () => {
     render(<GlobalSettingsModal isOpen onClose={vi.fn()} />);
 
-    expect(screen.getByText('Шаблон оформления')).toBeTruthy();
+    expect(screen.getByText('Настройки рабочего пространства')).toBeTruthy();
+    expect(screen.queryByText('Шаблон оформления')).toBeNull();
     expect(screen.queryByText('Глобальный таймер')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Таймер/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Пресеты рабочего пространства/ }));
 
-    expect(screen.getByText('Глобальный таймер')).toBeTruthy();
+    expect(screen.getAllByText('Пресеты рабочего пространства').length).toBeGreaterThan(0);
     expect(screen.queryByText('Шаблон оформления')).toBeNull();
   });
 

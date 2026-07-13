@@ -13,6 +13,7 @@ import { HeaderModals } from "./header/HeaderModals";
 import { HeaderSaveControls } from "./header/HeaderSaveControls";
 import { HeaderUserMenu } from "./header/HeaderUserMenu";
 import { HeaderFileMenu } from "./header/HeaderFileMenu";
+import HeaderModeSwitch from "./header/HeaderModeSwitch";
 import SupportCenterModal from "./support/SupportCenterModal";
 
 const Header: React.FC = () => {
@@ -20,6 +21,7 @@ const Header: React.FC = () => {
   const setEdges = useCanvasStore((s) => s.setEdges);
   const clearCanvas = useCanvasStore((s) => s.clearCanvas);
   const setCanvasLoading = useCanvasStore((s) => s.setCanvasLoading);
+  const selectedNodeId = useCanvasStore((s) => s.selectedNode?.id ?? null);
   const currentQuizName = useQuizDataStore((s) => s.currentQuizName);
   const currentQuizId = useQuizDataStore((s) => s.currentQuizId);
   const currentQuizVisibility = useQuizDataStore(
@@ -31,6 +33,8 @@ const Header: React.FC = () => {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const isSettingsPanelVisible = useUIStore((s) => s.isSettingsPanelVisible);
   const toggleSettingsPanel = useUIStore((s) => s.toggleSettingsPanel);
+  const editorMode = useUIStore((s) => s.editorMode);
+  const setEditorMode = useUIStore((s) => s.setEditorMode);
   const isAuthModalOpen = useUIStore((s) => s.isAuthModalOpen);
   const setAuthModalOpen = useUIStore((s) => s.setAuthModalOpen);
   const nav = useAppNavigation();
@@ -306,6 +310,11 @@ const Header: React.FC = () => {
           )}
 
           <div className="h-8 w-px bg-slate-200"></div>
+
+          <HeaderModeSwitch
+            mode={editorMode}
+            onChange={(mode) => setEditorMode(mode, { previewStartNodeId: selectedNodeId })}
+          />
 
           <button
             onClick={toggleSettingsPanel}

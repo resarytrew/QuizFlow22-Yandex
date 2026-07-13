@@ -5,6 +5,7 @@ import { setupGlobalTimer } from './globalTimer';
 import { setupBackgroundMusic } from './media';
 import { processNode } from './navigation';
 import { setQuizConfig, sendAbandonmentBeacon } from './persistence';
+import { setupPreviewBridge } from './previewBridge';
 import { setDesignSettings } from './designState';
 import { resetState } from './state';
 
@@ -71,9 +72,16 @@ function init(): void {
     return;
   }
 
+  const stopPreviewBridge = setupPreviewBridge({
+    quizData,
+    navigateTo: processNode,
+    initialNodeId: startId,
+  });
+
   processNode(startId);
 
   window.addEventListener('beforeunload', () => {
+    stopPreviewBridge();
     stopGlobalTimer();
     sendAbandonmentBeacon();
   });

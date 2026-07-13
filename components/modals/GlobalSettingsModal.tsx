@@ -10,13 +10,11 @@ interface Props {
 }
 
 const SECTION_ORDER: SettingsSectionId[] = [
-  'quiz',
-  'timer',
-  'presets',
   'editor',
   'nodes',
   'filters',
   'interface',
+  'presets',
 ];
 
 const NavigationButton: React.FC<{
@@ -67,7 +65,7 @@ const NavigationButton: React.FC<{
 };
 
 const GlobalSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>('quiz');
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>('editor');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -100,10 +98,10 @@ const GlobalSettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="global-settings-title" className="text-lg font-bold text-slate-900">
-                  Общие настройки
+                  Настройки рабочего пространства
                 </h2>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                  Настройте квиз и рабочее пространство по отдельным разделам.
+                  Настройте сетку, ноды, фильтры, производительность и оформление редактора.
                 </p>
               </div>
             </div>

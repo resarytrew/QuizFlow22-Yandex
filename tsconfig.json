@@ -30,5 +30,5 @@
 
     "useDefineForClassFields": true
   },
-  "exclude": ["supabase/functions/**", "dokuments/**"]
+  "exclude": ["supabase/functions/**", "yc-functions/**", "dokuments/**"]
 }
