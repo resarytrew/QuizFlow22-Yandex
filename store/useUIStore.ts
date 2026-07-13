@@ -8,8 +8,12 @@ interface UIStoreState {
 
   // Settings Panel
   isSettingsPanelVisible: boolean;
+  isDesignPanelOpen: boolean;
   toggleSettingsPanel: () => void;
   closeSettingsPanel: () => void;
+  openDesignPanel: () => void;
+  closeDesignPanel: () => void;
+  toggleDesignPanel: () => void;
 
   // AI Assistant Panel
   isAIAssistantPanelVisible: boolean;
@@ -51,6 +55,7 @@ interface UIStoreState {
 const initialState = {
   isSidebarVisible: true,
   isSettingsPanelVisible: true,
+  isDesignPanelOpen: false,
   isAIAssistantPanelVisible: false,
   isDashboardVisible: true,
   isGuideVisible: false,
@@ -68,8 +73,20 @@ export const useUIStore = create<UIStoreState>((set) => ({
 
   toggleSidebar: () => set((state) => ({ isSidebarVisible: !state.isSidebarVisible })),
   closeSidebar: () => set({ isSidebarVisible: false }),
-  toggleSettingsPanel: () => set((state) => ({ isSettingsPanelVisible: !state.isSettingsPanelVisible })),
-  closeSettingsPanel: () => set({ isSettingsPanelVisible: false }),
+  toggleSettingsPanel: () => set((state) => {
+    const isSettingsPanelVisible = !state.isSettingsPanelVisible;
+    return {
+      isSettingsPanelVisible,
+      isDesignPanelOpen: isSettingsPanelVisible ? state.isDesignPanelOpen : false,
+    };
+  }),
+  closeSettingsPanel: () => set({ isSettingsPanelVisible: false, isDesignPanelOpen: false }),
+  openDesignPanel: () => set({ isSettingsPanelVisible: true, isDesignPanelOpen: true }),
+  closeDesignPanel: () => set({ isDesignPanelOpen: false }),
+  toggleDesignPanel: () => set((state) => ({
+    isSettingsPanelVisible: true,
+    isDesignPanelOpen: !state.isDesignPanelOpen,
+  })),
   toggleAIAssistantPanel: () => set((state) => ({ isAIAssistantPanelVisible: !state.isAIAssistantPanelVisible })),
   closeAIAssistantPanel: () => set({ isAIAssistantPanelVisible: false }),
   setDashboardVisible: (visible) => set({ isDashboardVisible: visible }),

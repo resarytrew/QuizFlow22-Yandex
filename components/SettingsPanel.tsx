@@ -2032,10 +2032,21 @@ const SettingsPanel: React.FC = () => {
     const updateNodeData = useCanvasStore(s => s.updateNodeData);
     const setSelectedNode = useCanvasStore(s => s.setSelectedNode);
     const closeSettingsPanel = useUIStore(s => s.closeSettingsPanel);
+    const isDesignPanelOpen = useUIStore(s => s.isDesignPanelOpen);
+    const closeDesignPanel = useUIStore(s => s.closeDesignPanel);
 
     const closePanel = () => {
         setSelectedNode(null);
         closeSettingsPanel();
+    };
+
+    const isShowingDesignPanel = isDesignPanelOpen || !selectedNode;
+    const closeDesignView = () => {
+        if (selectedNode) {
+            closeDesignPanel();
+            return;
+        }
+        closePanel();
     };
 
     const settingsContent = useMemo(() => {
@@ -2089,18 +2100,18 @@ const SettingsPanel: React.FC = () => {
     return (
         <aside className="w-96 h-full bg-white border-l border-gray-200/75 shadow-sm overflow-hidden">
             <div className="w-full h-full p-6 overflow-y-auto relative">
-                {!selectedNode && (
+                {isShowingDesignPanel && (
                     <button
                         type="button"
-                        onClick={closePanel}
+                        onClick={closeDesignView}
                         className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                        aria-label="Закрыть панель настроек"
-                        title="Закрыть панель настроек"
+                        aria-label={selectedNode ? 'Закрыть дизайн и вернуться к ноде' : 'Закрыть панель настроек'}
+                        title={selectedNode ? 'Вернуться к настройкам ноды' : 'Закрыть панель настроек'}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 )}
-                {!selectedNode ? (
+                {isShowingDesignPanel ? (
                     <DesignPanel />
                 ) : (
                     <>

@@ -4,6 +4,48 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 2: simplify design settings navigation.
+
+Status: completed locally.
+
+Commit target: `refactor: simplify design settings navigation`.
+
+## Stage 2 Completed
+
+- Added an explicit top header button labelled `Дизайн`.
+- Added UI state for opening/closing design independently from node selection.
+- Preserved the currently selected node when opening design and returning from it.
+- Moved quiz template selection into the design panel quick-start flow.
+- Reduced the design panel top-level navigation to:
+  - `Быстрый старт`
+  - `Бренд`
+  - `Экран`
+  - `Элементы`
+  - `Дополнительно`
+- Kept screen quiz settings under the same five-section navigation model.
+- Removed quiz template and global timer sections from workspace/global settings.
+- Renamed workspace presets in UI to `Пресеты рабочего пространства` without changing persisted storage keys.
+- Added tests for design entry, selected-node preservation, template selection from design, workspace-only settings, legacy localStorage compatibility and keyboard-focusable design button.
+
+## Stage 2 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- --run store/useUIStore.test.ts store/usePreferencesStore.test.ts components/header/HeaderDesignButton.test.tsx components/DesignPanel.test.tsx components/modals/GlobalSettingsModal.test.tsx` | Passed | 5 files, 18 tests passed. |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. Warnings are unchanged categories from the Stage 1 baseline. |
+| `npm test` | Passed | 67 test files, 612 tests passed. Expected stderr appears in existing negative-path tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+
+## Stage 2 Known Limitations
+
+- Design controls are reorganized in UI only; `DesignResolver`, capabilities and design history are still not implemented.
+- `GlobalSettingsModal` no longer exposes quiz-level timer settings; this is intentional for workspace separation, but a future quiz-level settings surface may be needed outside workspace preferences.
+- Existing lint/build warnings remain outside this stage's scope.
+
+## Previous Stage
+
 Stage 1: audit current design editor UX.
 
 Status: completed locally.

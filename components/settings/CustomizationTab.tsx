@@ -6,13 +6,8 @@ import { SidebarSortingSection } from './sections/SidebarSortingSection';
 import { AppearanceSection } from './sections/AppearanceSection';
 import { NodesVisualSection } from './sections/NodesVisualSection';
 import { PerformanceSection } from './sections/PerformanceSection';
-import { TemplateSection } from './quiz-settings/TemplateSection';
-import { TimerSection } from './quiz-settings/TimerSection';
-import { SoundSection } from './quiz-settings/SoundSection';
 
 export type SettingsSectionId =
-  | 'quiz'
-  | 'timer'
   | 'presets'
   | 'editor'
   | 'nodes'
@@ -27,34 +22,9 @@ interface SectionMeta {
 }
 
 export const SETTINGS_SECTIONS: Record<SettingsSectionId, SectionMeta> = {
-  quiz: {
-    title: 'Настройки квиза',
-    description: 'Шаблон оформления и звуковое сопровождение текущего квиза.',
-    accentClass: 'bg-amber-100 text-amber-600',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="13.5" cy="6.5" r="1.5" />
-        <circle cx="17.5" cy="10.5" r="1.5" />
-        <circle cx="8.5" cy="7.5" r="1.5" />
-        <circle cx="6.5" cy="12.5" r="1.5" />
-        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.12-.29-.29-.44-.66-.44-1.13 0-.94.73-1.69 1.67-1.69h1.88c2.86 0 5.18-2.33 5.18-5.18C21.5 6.08 17.25 2 12 2Z" />
-      </svg>
-    ),
-  },
-  timer: {
-    title: 'Таймер',
-    description: 'Общее время прохождения и действие после окончания отсчёта.',
-    accentClass: 'bg-rose-100 text-rose-600',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="13" r="8" />
-        <path d="M12 9v4l2.5 2.5M9 2h6M12 2v3" />
-      </svg>
-    ),
-  },
   presets: {
-    title: 'Пресеты',
-    description: 'Сохранённые наборы настроек для быстрого переключения.',
+    title: 'Пресеты рабочего пространства',
+    description: 'Сохранённые наборы настроек редактора для быстрого переключения.',
     accentClass: 'bg-violet-100 text-violet-600',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -112,13 +82,6 @@ export const SETTINGS_SECTIONS: Record<SettingsSectionId, SectionMeta> = {
 };
 
 const SECTION_CONTENT: Record<SettingsSectionId, React.ReactNode> = {
-  quiz: (
-    <div className="space-y-8">
-      <TemplateSection />
-      <SoundSection />
-    </div>
-  ),
-  timer: <TimerSection />,
   presets: <PresetsSection />,
   editor: <EditorSection />,
   nodes: <NodesVisualSection />,

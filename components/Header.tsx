@@ -13,6 +13,7 @@ import { HeaderModals } from "./header/HeaderModals";
 import { HeaderSaveControls } from "./header/HeaderSaveControls";
 import { HeaderUserMenu } from "./header/HeaderUserMenu";
 import { HeaderFileMenu } from "./header/HeaderFileMenu";
+import HeaderDesignButton from "./header/HeaderDesignButton";
 import SupportCenterModal from "./support/SupportCenterModal";
 
 const Header: React.FC = () => {
@@ -31,6 +32,8 @@ const Header: React.FC = () => {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const isSettingsPanelVisible = useUIStore((s) => s.isSettingsPanelVisible);
   const toggleSettingsPanel = useUIStore((s) => s.toggleSettingsPanel);
+  const isDesignPanelOpen = useUIStore((s) => s.isDesignPanelOpen);
+  const openDesignPanel = useUIStore((s) => s.openDesignPanel);
   const isAuthModalOpen = useUIStore((s) => s.isAuthModalOpen);
   const setAuthModalOpen = useUIStore((s) => s.setAuthModalOpen);
   const nav = useAppNavigation();
@@ -306,6 +309,11 @@ const Header: React.FC = () => {
           )}
 
           <div className="h-8 w-px bg-slate-200"></div>
+
+          <HeaderDesignButton
+            isActive={isDesignPanelOpen}
+            onOpen={openDesignPanel}
+          />
 
           <button
             onClick={toggleSettingsPanel}
