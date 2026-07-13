@@ -208,6 +208,24 @@ Constraints:
 - layout bounds, safe areas and typography fitting are explicit;
 - export can capture the DOM output, not replace authoring with a canvas renderer.
 
+### Drag/Resize Interaction Decision
+
+Stage 10 evaluated third-party drag/resize libraries before implementation:
+
+- `interactjs@1.10.27`: MIT license, small dependency surface, supports draggable/resizable/snap behavior, but still needs custom iframe coordinate conversion, editor-only overlays and `DesignHistory` integration.
+- `react-moveable@0.56.0`: MIT license, broad resize/snap/group feature set, but larger package footprint and dependency graph; also still requires a parent/iframe overlay and custom persistence into `LayoutDocument`.
+
+Decision: use a first-party Pointer Events + `requestAnimationFrame` controller for the first embedded Canva pass.
+
+Rationale:
+
+- the handles are editor-only and must never leak into public Player, HTML export or Telegram/MAX embeds;
+- the true Player remains a DOM iframe, so coordinates must be translated through `LayoutDocument` rather than delegated to a bitmap/canvas SDK;
+- one drag/resize must become exactly one `DesignHistory` operation;
+- Stage 10 needs only move, resize, bounds and snapping, not a full external design-canvas runtime.
+
+This decision can be revisited if future stages need mature multi-select/group editing beyond the compact controller.
+
 ## Data Flow
 
 ```mermaid

@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useQuizDataStore } from './useQuizDataStore';
 import {
   createFreeLayoutDocumentFromMeasurements,
+  createLayoutDocumentPatch,
   createLayoutModePatch,
   getLayoutMode,
 } from '../src/designMode/layoutDocument';
+import { updateLayoutDocumentElementFrame } from '../src/designMode/layoutInteraction';
 
 vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), {
@@ -163,5 +165,33 @@ describe('useQuizDataStore design history', () => {
 
     useQuizDataStore.getState().redoDesignChange();
     expect(getLayoutMode(useQuizDataStore.getState().designSettings)).toBe('free');
+  });
+
+  it('stores one history entry for a committed drag or resize frame', () => {
+    const freeDocument = createFreeLayoutDocumentFromMeasurements({
+      viewport: { width: 1000, height: 500 },
+      elements: [
+        { id: 'media', role: 'media', nodeId: null, rect: { x: 100, y: 80, width: 300, height: 180 } },
+      ],
+    });
+
+    useQuizDataStore.getState().updateDesignSettings(
+      createLayoutModePatch(useQuizDataStore.getState().designSettings, { scope: 'global' }, 'free', freeDocument) as never,
+      { label: 'Enable free layout' },
+    );
+    useQuizDataStore.getState().updateDesignSettings(
+      createLayoutDocumentPatch(
+        useQuizDataStore.getState().designSettings,
+        { scope: 'global' },
+        updateLayoutDocumentElementFrame(freeDocument, 'media', { x: 220, y: 140, width: 320, height: 180 }),
+      ) as never,
+      { label: 'Move layout element' },
+    );
+
+    expect(useQuizDataStore.getState().designHistory.past).toHaveLength(2);
+    expect((useQuizDataStore.getState().designSettings as any).layoutDocuments.global.elements.media.frame.x).toBe(220);
+
+    useQuizDataStore.getState().undoDesignChange();
+    expect((useQuizDataStore.getState().designSettings as any).layoutDocuments.global.elements.media.frame.x).toBe(100);
   });
 });

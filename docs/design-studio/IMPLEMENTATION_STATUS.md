@@ -4,6 +4,72 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 10: Drag, resize and snapping in LivePreview.
+
+Status: completed locally.
+
+Commit target: `feat: add drag resize and snapping to live preview`.
+
+## Stage 10 Completed
+
+- Added a first-party DOM interaction layer for free layout in the existing `LivePreview`.
+- Kept the existing iframe Player mounted; drag/resize does not regenerate HTML or remount the preview.
+- Added editor-only selection handles:
+  - selected element frame;
+  - eight resize handles;
+  - element label;
+  - live size/coordinate label;
+  - snap guide layer.
+- Added free-layout direct manipulation:
+  - pointer drag;
+  - pointer resize;
+  - proportional resize with Shift;
+  - keyboard movement with arrow keys;
+  - Escape cancellation during pointer interaction;
+  - bounds clamping to the scene.
+- Added snapping helpers:
+  - scene edges;
+  - scene center;
+  - other element edges;
+  - other element centers;
+  - grid.
+- Preserved functional constraints:
+  - locked elements cannot move/resize;
+  - `answer-card` is not moved independently;
+  - `answers-container` remains the movable group;
+  - `question-card` and actions keep minimum sizes and scene bounds;
+  - rotation remains unsupported.
+- Added normalized geometry utilities in `src/designMode/layoutInteraction.ts`.
+- Wired drag/resize commits through existing `DesignHistory`:
+  - one drag = one history operation;
+  - one resize = one history operation;
+  - keyboard movement is coalesced by selected element.
+- Recorded the library decision in architecture docs:
+  - `interactjs` and `react-moveable` were evaluated;
+  - Stage 10 uses Pointer Events + `requestAnimationFrame` to avoid a canvas-like runtime and extra bundle weight.
+- Updated embedded Canva documentation with direct manipulation behavior and current limits.
+
+## Stage 10 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- --run src/designMode/layoutInteraction.test.ts` | Passed | 6 geometry tests passed: drag, resize, bounds, snap, locked elements, zoom-independent coordinate conversion and document frame update. |
+| `npm test -- --run components/LivePreview.test.tsx` | Passed | 9 bridge/preview tests passed. Existing React `act(...)` warnings still appear in this test file. |
+| `npm test -- --run store/useQuizDesignHistory.test.ts` | Passed | 9 history tests passed, including one committed layout-frame operation and undo. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 85 files, 700 tests passed. Expected stderr appears in existing negative-path tests; existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import notices and large chunk warnings. |
+
+## Stage 10 Known Limitations
+
+- Direct manipulation is available only in free layout and in visual-selection-supported templates: `default`, `newyear`, `screenQuiz`.
+- Auto layout still uses semantic inspector controls for order, spacing, width and alignment; it does not support absolute pointer drag.
+- Free-layout visual positioning is editor-preview-only in this stage; public Player and HTML export remain unchanged.
+- Multi-select, group resize, advanced pan/zoom UI, breakpoint-specific frame editing and decorative layer authoring are not implemented yet.
+
+## Previous Stage 9
+
 Stage 9: Embedded Canva/free-layout model.
 
 Status: completed locally.

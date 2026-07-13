@@ -100,7 +100,12 @@ When the user switches from auto to free:
 5. The parent creates a normalized `LayoutDocument`.
 6. The operation is written with `updateDesignSettings`, so undo/redo works.
 
-This stage does not implement drag, resize, free placement UI, or absolute rendering. It only creates the safe document model.
+Stage 10 adds the first direct manipulation layer on top of this model:
+
+- selected DOM elements can be moved and resized in `LivePreview` when free layout is active;
+- the editor overlay is created only by `LivePreview`, not by the public Player or export path;
+- pointer movement is rendered with `requestAnimationFrame`;
+- store updates happen only at drag/resize end, so one drag or resize is one `DesignHistory` operation.
 
 ## Coordinates
 
@@ -171,6 +176,13 @@ Mode transitions are design changes:
 
 Switching editor mode between scenario/design does not affect layout history.
 
+Direct manipulation is also recorded through design history:
+
+- one drag = one operation;
+- one resize = one operation;
+- keyboard movement is coalesced by selected element;
+- Escape during pointer interaction restores the initial frame and does not create a history entry.
+
 ## Compatibility
 
 Old quizzes do not contain `layoutDocuments`; they normalize to auto layout.
@@ -179,9 +191,9 @@ Public Player, HTML export and Telegram/MAX Player remain unaffected until a lat
 
 ## Current Stage Limitations
 
-- No drag.
-- No resize.
-- No free-layout visual renderer.
+- Drag and resize are implemented for supported visual-selection templates through the editor-only `LivePreview` overlay.
+- Free-layout rendering currently applies in the editor preview path; public Player and HTML export remain unaffected until render-time layout support is explicitly added.
 - No per-breakpoint editing UI.
 - Free layout capture depends on available `data-design-role` and `data-design-element-id` annotations.
 - Unsupported templates can still open safely; they may produce fewer measured elements.
+- Multi-select, group resize, rotation and decorative layers are intentionally not implemented.
