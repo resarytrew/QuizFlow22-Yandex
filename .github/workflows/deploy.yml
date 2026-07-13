@@ -60,13 +60,19 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: npm run build
 
-      - name: Configure AWS credentials for Yandex Object Storage
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.YC_S3_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.YC_S3_SECRET_ACCESS_KEY }}
-          aws-region: ru-central1
-          skip-credentials-validation: true
+      - name: Configure AWS CLI credentials for Yandex Object Storage
+        env:
+          YC_S3_ACCESS_KEY_ID: ${{ secrets.YC_S3_ACCESS_KEY_ID }}
+          YC_S3_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET_ACCESS_KEY }}
+        run: |
+          test -n "$YC_S3_ACCESS_KEY_ID"
+          test -n "$YC_S3_SECRET_ACCESS_KEY"
+          echo "::add-mask::$YC_S3_ACCESS_KEY_ID"
+          echo "::add-mask::$YC_S3_SECRET_ACCESS_KEY"
+          echo "AWS_ACCESS_KEY_ID=$YC_S3_ACCESS_KEY_ID" >> "$GITHUB_ENV"
+          echo "AWS_SECRET_ACCESS_KEY=$YC_S3_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
+          echo "AWS_DEFAULT_REGION=ru-central1" >> "$GITHUB_ENV"
+          echo "AWS_REGION=ru-central1" >> "$GITHUB_ENV"
 
       - name: Sync immutable hashed assets to Yandex Object Storage
         run: |
