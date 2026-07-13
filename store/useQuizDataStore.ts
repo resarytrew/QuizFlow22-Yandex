@@ -25,6 +25,7 @@ import {
   mergeDefined,
   normalizeDesignSettings,
   resolveDesign,
+  DesignBrandKit,
 } from '../src/design/designResolver';
 
 const TEMPLATE_IDS = new Set<QuizTemplateId>([
@@ -98,6 +99,7 @@ interface QuizDataStoreState {
   updateDesignSettings: (settings: DeepPartial<DesignSettings>, options?: DesignUpdateOptions) => void;
   applyDesignStylePreset: (id: string, stylePreset: DeepPartial<DesignSettings>) => void;
   applyDesignPalette: (palette: DeepPartial<DesignSettings>) => void;
+  applyBrandKit: (brandKit: DesignBrandKit, options?: { id?: string; name?: string; preserveLayout?: boolean; preserveOverrides?: boolean }) => void;
   undoDesignChange: () => void;
   redoDesignChange: () => void;
   resetDesignProperty: (path: string) => void;
@@ -405,6 +407,34 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
           status: state.activeDesignStyleId ? 'modified' : 'custom',
         },
         { label: 'Apply design palette' },
+      );
+    }),
+
+  applyBrandKit: (brandKit, options) =>
+    set((state) => {
+      const patch: DeepPartial<DesignSettings> = {
+        brand: {
+          logoUrl: brandKit.logoUrl ?? undefined,
+          primaryColor: brandKit.primaryColor ?? undefined,
+          accentColor: brandKit.accentColor ?? undefined,
+          neutralColor: brandKit.neutralColor ?? undefined,
+        },
+        typography: {
+          fontFamily: brandKit.fontFamily ?? undefined,
+          displayFontFamily: brandKit.displayFontFamily ?? undefined,
+        },
+      };
+      const merged = mergeDefined(state.designSettings, patch);
+      const nextDesign = normalizeDesignSettings(merged, DEFAULT_DESIGN_SETTINGS);
+      return commitDesignChange(
+        state,
+        nextDesign,
+        {
+          activeStyleId: state.activeDesignStyleId,
+          activeStylePreset: state.activeDesignStylePreset,
+          status: state.activeDesignStyleId ? 'modified' : 'custom',
+        },
+        { label: `Apply Brand Kit${options?.name ? `: ${options.name}` : ''}` },
       );
     }),
 

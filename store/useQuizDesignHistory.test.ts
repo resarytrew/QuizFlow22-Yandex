@@ -112,4 +112,29 @@ describe('useQuizDataStore design history', () => {
     expect(useQuizDataStore.getState().designSettings.buttons.borderRadius).toBe(18);
     expect(useQuizDataStore.getState().designStatus).toBe('custom');
   });
+
+  it('loads a legacy quiz without design asset metadata', () => {
+    useQuizDataStore.getState().loadQuiz({
+      id: 'legacy-quiz',
+      user_id: 'user-1',
+      name: 'Legacy quiz',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+      is_published: false,
+      quiz_data: {
+        nodes: [],
+        edges: [],
+        templateId: 'default',
+        designSettings: {
+          background: { color: '#abcdef' },
+        },
+      },
+    } as never);
+
+    const state = useQuizDataStore.getState();
+    expect(state.designSettings.background.color).toBe('#abcdef');
+    expect(state.activeDesignStyleId).toBeNull();
+    expect(state.designStatus).toBe('custom');
+    expect(state.canUndoDesign).toBe(false);
+  });
 });

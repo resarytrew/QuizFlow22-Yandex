@@ -4,6 +4,104 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 8: Design Overview, styles and Brand Kit.
+
+Status: completed locally.
+
+Commit target: `feat: add integrated design styles and brand kits`.
+
+## Stage 8 Completed
+
+- Rebuilt the existing `DesignOverviewPanel` inside the current `SettingsPanel`; no new route, modal shell or separate editor shell was added.
+- Added the requested overview sections:
+  - Quick start;
+  - Template;
+  - Style;
+  - Brand Kit;
+  - Background;
+  - General settings;
+  - Advanced.
+- Added a template catalog for all existing templates:
+  - user-facing name;
+  - purpose;
+  - visual editing support;
+  - compatibility notes;
+  - preview-before-apply flow.
+- Added one unified user-facing style level named `Style`, replacing the old split terminology in the overview:
+  - Brief / Lead form;
+  - Assessment;
+  - Educational test;
+  - Product selector;
+  - Calculator;
+  - Storytelling;
+  - Minimal B2B;
+  - Kiosk / event;
+  - Magazine;
+  - Quiet premium.
+- Added real thumbnail modeling through the same `DesignResolver` used by Player design resolution:
+  - background;
+  - card;
+  - title;
+  - media block;
+  - answers;
+  - CTA;
+  - progress.
+- Added preview-before-apply for templates and styles:
+  - hover/click creates a pending preview;
+  - no store write happens until Apply;
+  - Cancel clears pending state.
+- Added a separate persisted design asset store under `potok-design-assets`, intentionally separate from workspace preferences:
+  - saved Brand Kits;
+  - custom design styles;
+  - active Brand Kit marker.
+- Added Brand Kit management:
+  - save;
+  - apply;
+  - rename;
+  - update;
+  - delete;
+  - apply without replacing layout or element overrides.
+- Added custom style management:
+  - save current design as style;
+  - update;
+  - duplicate;
+  - delete;
+  - import JSON;
+  - export JSON.
+- Added custom style JSON validation:
+  - rejects invalid JSON;
+  - rejects script-like content;
+  - rejects secret/token-like keys;
+  - separates Custom CSS from normalized design settings.
+- Added design status display:
+  - active template;
+  - active style;
+  - Brand Kit;
+  - modified/custom state;
+  - saved/new quiz state.
+- Added `applyBrandKit` to the quiz design history flow so Brand Kit application is undoable and does not bypass `DesignHistory`.
+
+## Stage 8 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+| `npm test -- --run src/designMode/designStyles.test.ts store/useDesignAssetsStore.test.ts components/designMode/DesignOverviewPanel.test.tsx store/useQuizDesignHistory.test.ts components/SettingsPanel.designMode.test.tsx` | Passed | 5 files, 26 tests passed. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. Warnings are unchanged categories from previous stages. |
+| `npm test` | Passed | 83 files, 680 tests passed. Expected stderr appears in existing negative-path tests. Existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+
+## Stage 8 Known Limitations
+
+- Thumbnails are compact DOM renderings driven by `DesignResolver`; they are intentionally not full interactive iframe Players.
+- Applying a template still changes `templateId` directly and does not yet open a larger modal comparison view.
+- Custom style export copies JSON to the clipboard from the UI; no file picker/download flow was added in this stage.
+- Brand Kit application changes brand and typography only. Layout and compact element overrides are intentionally preserved.
+- Full render-time application of node type/current-node scoped overrides remains the next integration step from Stage 7.
+
+## Previous Stage 7
+
 Stage 7: contextual Design Element Inspector.
 
 Status: completed locally.
