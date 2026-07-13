@@ -32,7 +32,7 @@ describe('SettingsPanel visual design mode', () => {
     useUIStore.getState().setEditorMode('design', { previewStartNodeId: 'q1' });
     useUIStore.getState().setSelectedDesignElement({
       elementId: 'question-card',
-      role: 'questionCard',
+      role: 'question-card',
       nodeId: 'q1',
     });
 

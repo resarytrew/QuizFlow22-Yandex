@@ -5,6 +5,7 @@ import {
   isAllowedPreviewOrigin,
   isPreviewParentMessage,
   isPreviewPlayerMessage,
+  toDesignElementSelectedPayload,
   toSafeNodeId,
 } from "./protocol";
 
@@ -29,5 +30,38 @@ describe("preview bridge protocol", () => {
     expect(toSafeNodeId("node-1:answer_a")).toBe("node-1:answer_a");
     expect(toSafeNodeId("<script>")).toBeNull();
     expect(toSafeNodeId("node id with spaces")).toBeNull();
+  });
+
+  it("accepts only safe design element selection payloads", () => {
+    expect(toDesignElementSelectedPayload({
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: "question-1",
+    })).toEqual({
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: "question-1",
+    });
+
+    expect(toDesignElementSelectedPayload({
+      elementId: "<script>",
+      role: "answer-card",
+      nodeId: "question-1",
+    })).toBeNull();
+    expect(toDesignElementSelectedPayload({
+      elementId: "answer-card-a1",
+      role: "run-script",
+      nodeId: "question-1",
+    })).toBeNull();
+    expect(toDesignElementSelectedPayload({
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: "node id",
+      html: "<b>bad</b>",
+    })).toEqual({
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: null,
+    });
   });
 });

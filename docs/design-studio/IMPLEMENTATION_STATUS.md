@@ -4,6 +4,77 @@ Date: 2026-07-13
 
 ## Current Stage
 
+Stage 6: visual element selection in Live Preview.
+
+Status: completed locally.
+
+Commit target: `feat: add visual element selection to live preview`.
+
+## Stage 6 Completed
+
+- Added a semantic design element registry shared by editor UI and PreviewBridge protocol:
+  - stable role list for canvas, shell, topbar, brand, title, progress, timer, question, media, answers, actions, achievements, variables, stats and result elements;
+  - user-facing labels;
+  - allowed properties;
+  - movement, resize, visibility and scope metadata;
+  - safe ID normalization helpers.
+- Extended PreviewBridge validation for editor design selections:
+  - `DESIGN_ELEMENT_SELECTED`;
+  - `DESIGN_ELEMENT_SELECTION_CLEARED`;
+  - strict role validation;
+  - safe element ID validation;
+  - current-node matching in `LivePreview`.
+- Added editor-only visual element selection inside the existing `LivePreview` iframe:
+  - hover highlight;
+  - persistent selected outline;
+  - selected element label;
+  - Escape clears selection;
+  - select mode blocks answers, buttons and links;
+  - test mode restores normal Player behavior.
+- Kept the visual overlay editor-only:
+  - not emitted by public Player;
+  - not emitted by standalone HTML export;
+  - not emitted by preview HTML when no editor runtime is attached.
+- Added runtime semantic annotations in editor preview only:
+  - `data-design-role`;
+  - `data-design-element-id`;
+  - `data-design-node-id`.
+- Supported first-pass visual selection for:
+  - `default`;
+  - `newyear`;
+  - `screenQuiz`.
+- Added a safe unsupported-template fallback:
+  - Player opens normally;
+  - `DesignOverviewPanel` remains available;
+  - visual picking is disabled with an explanatory notice.
+- Updated design mode SettingsPanel behavior:
+  - selected visual element opens `DesignElementInspector`;
+  - node settings stay hidden in design mode;
+  - the previously selected graph node is preserved.
+- Wired selected-element reset to existing design history section operations.
+- Preserved the existing DOM Player, editor shell, route model and LivePreview architecture. No second renderer, fake preview, drag, resize or free-layout engine was added.
+
+## Stage 6 Validation
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npx tsc --noEmit --pretty false` | Passed | No type errors. |
+| `npm test -- --run src/previewBridge/protocol.test.ts src/designMode/elementRegistry.test.ts components/LivePreview.test.tsx components/SettingsPanel.designMode.test.tsx store/useUIStore.test.ts services/quizGenerator/__tests__/designSelectionExport.test.ts` | Passed | 6 files, 32 tests passed. Existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run lint` | Passed | 0 errors, 45 existing warnings. |
+| `npm test` | Passed | 79 files, 656 tests passed. Expected stderr appears in existing negative-path tests. Existing React `act(...)` warnings appear in `LivePreview` tests. |
+| `npm run test:functions` | Passed | Yandex Cloud function bundles built successfully. |
+| `npm run build` | Passed | Production build succeeded. Existing warnings include CSS minify warning for `-: |>`, empty `vendor-react` chunk, dynamic/static import chunking notices and large chunk warnings. |
+
+## Stage 6 Known Limitations
+
+- First-pass element picking is implemented as an editor-only same-origin LivePreview layer so public Player and HTML export stay clean.
+- Native Player emission of semantic element selection can be added later per template, using the validated bridge protocol already added here.
+- Element property editing is still section-level for many roles; fine-grained per-element property mapping is future work.
+- Drag, resize, free layout and Canva-like constraints are intentionally not implemented in this stage.
+- Visual selection is fully enabled only for `default`, `newyear` and `screenQuiz`; other templates open safely without visual picking.
+
+## Previous Stage 5
+
 Stage 5: integrated visual design mode.
 
 Status: completed locally.

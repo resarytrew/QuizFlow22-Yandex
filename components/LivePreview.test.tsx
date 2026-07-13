@@ -119,6 +119,64 @@ describe("LivePreview bridge", () => {
     );
   });
 
+  it("stores valid design element selections and ignores invalid selection payloads", () => {
+    useUIStore.getState().setEditorMode("design", { previewStartNodeId: "question-1" });
+    useCanvasStore.getState().setSelectedNode({
+      id: "question-1",
+      type: "questionNode",
+      position: { x: 0, y: 0 },
+      data: { label: "Question", question: "Question?", answers: [] },
+    });
+
+    render(<LivePreview showHeader={false} />);
+    flushPreviewDebounce();
+
+    const frame = getPreviewFrame();
+    dispatchPlayerMessage(frame, createPlayerPreviewMessage("PREVIEW_NODE_CHANGED", { currentNodeId: "question-1" }));
+    dispatchPlayerMessage(frame, createPlayerPreviewMessage("DESIGN_ELEMENT_SELECTED", {
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: "question-1",
+    }));
+
+    expect(useUIStore.getState().selectedDesignElement).toEqual({
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: "question-1",
+    });
+    expect(useUIStore.getState().isSettingsPanelVisible).toBe(true);
+    expect(useCanvasStore.getState().selectedNode?.id).toBe("question-1");
+
+    dispatchPlayerMessage(frame, createPlayerPreviewMessage("DESIGN_ELEMENT_SELECTED", {
+      elementId: "<script>",
+      role: "answer-card",
+      nodeId: "question-1",
+    }));
+    expect(useUIStore.getState().selectedDesignElement?.elementId).toBe("answer-card-a1");
+
+    dispatchPlayerMessage(frame, createPlayerPreviewMessage("DESIGN_ELEMENT_SELECTED", {
+      elementId: "answer-card-a2",
+      role: "answer-card",
+      nodeId: "question-2",
+    }));
+    expect(useUIStore.getState().selectedDesignElement?.elementId).toBe("answer-card-a1");
+  });
+
+  it("clears design element selection when player sends clear message", () => {
+    useUIStore.getState().setSelectedDesignElement({
+      elementId: "answer-card-a1",
+      role: "answer-card",
+      nodeId: "question-1",
+    });
+
+    render(<LivePreview showHeader={false} />);
+    flushPreviewDebounce();
+
+    dispatchPlayerMessage(getPreviewFrame(), createPlayerPreviewMessage("DESIGN_ELEMENT_SELECTION_CLEARED"));
+
+    expect(useUIStore.getState().selectedDesignElement).toBeNull();
+  });
+
   it("changes device mode without remounting iframe", () => {
     render(<LivePreview />);
     flushPreviewDebounce();

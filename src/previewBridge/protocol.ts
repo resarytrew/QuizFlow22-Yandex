@@ -1,3 +1,9 @@
+import {
+  isDesignElementRole,
+  sanitizeDesignElementId,
+  type DesignElementRole,
+} from "./designElements";
+
 export const PREVIEW_BRIDGE_VERSION = 1;
 export const PREVIEW_PARENT_SOURCE = "quizflow-editor-preview";
 export const PREVIEW_PLAYER_SOURCE = "quizflow-player-preview";
@@ -15,7 +21,8 @@ export type PreviewPlayerMessageType =
   | "PREVIEW_NODE_CHANGED"
   | "PREVIEW_STATE_CHANGED"
   | "PREVIEW_ERROR"
-  | "DESIGN_ELEMENT_SELECTED";
+  | "DESIGN_ELEMENT_SELECTED"
+  | "DESIGN_ELEMENT_SELECTION_CLEARED";
 
 export type PreviewDeviceMode = "desktop" | "tablet" | "mobile" | "fullscreen";
 
@@ -30,6 +37,7 @@ export interface PreviewInitPayload {
   readonly designSettings?: unknown;
   readonly nodeId?: string | null;
   readonly mode?: PreviewDeviceMode;
+  readonly interactionMode?: PreviewDesignInteractionMode;
 }
 
 export interface PreviewDesignPayload {
@@ -42,6 +50,7 @@ export interface PreviewNavigatePayload {
 
 export interface PreviewModePayload {
   readonly mode?: PreviewDeviceMode;
+  readonly interactionMode?: PreviewDesignInteractionMode;
 }
 
 export interface PreviewStatePayload {
@@ -52,6 +61,14 @@ export interface PreviewStatePayload {
 
 export interface PreviewErrorPayload {
   readonly message: string;
+}
+
+export type PreviewDesignInteractionMode = "select" | "test";
+
+export interface PreviewDesignElementSelectedPayload {
+  readonly elementId: string;
+  readonly role: DesignElementRole;
+  readonly nodeId: string | null;
 }
 
 const PARENT_TYPES = new Set<PreviewParentMessageType>([
@@ -69,6 +86,7 @@ const PLAYER_TYPES = new Set<PreviewPlayerMessageType>([
   "PREVIEW_STATE_CHANGED",
   "PREVIEW_ERROR",
   "DESIGN_ELEMENT_SELECTED",
+  "DESIGN_ELEMENT_SELECTION_CLEARED",
 ]);
 
 export function createParentPreviewMessage<TType extends PreviewParentMessageType, TPayload>(
@@ -130,6 +148,10 @@ export function isPreviewDeviceMode(value: unknown): value is PreviewDeviceMode 
   return value === "desktop" || value === "tablet" || value === "mobile" || value === "fullscreen";
 }
 
+export function isPreviewDesignInteractionMode(value: unknown): value is PreviewDesignInteractionMode {
+  return value === "select" || value === "test";
+}
+
 export function toSafeNodeId(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value !== "string") return null;
@@ -142,4 +164,17 @@ export function toDesignSettingsPayload(value: unknown): unknown | undefined {
   if (!isPlainRecord(value)) return undefined;
   if ("html" in value || "script" in value || "javascript" in value) return undefined;
   return value.designSettings;
+}
+
+export function toDesignElementSelectedPayload(value: unknown): PreviewDesignElementSelectedPayload | null {
+  if (!isPlainRecord(value)) return null;
+  const elementId = sanitizeDesignElementId(value.elementId);
+  if (!elementId) return null;
+  if (!isDesignElementRole(value.role)) return null;
+  const nodeId = toSafeNodeId(value.nodeId);
+  return {
+    elementId,
+    role: value.role,
+    nodeId,
+  };
 }

@@ -1,16 +1,8 @@
 import { create } from 'zustand';
+import type { DesignElementRole } from '../src/designMode/elementRegistry';
 
 export type EditorMode = 'flow' | 'design';
-export type DesignElementRole =
-  | 'screen'
-  | 'background'
-  | 'questionCard'
-  | 'answerCard'
-  | 'button'
-  | 'media'
-  | 'progress'
-  | 'result'
-  | 'unknown';
+export type { DesignElementRole };
 
 export interface DesignSelection {
   elementId: string;
@@ -217,7 +209,9 @@ export const useUIStore = create<UIStoreState>((set) => ({
       ...(snapshot ?? {}),
     };
   }),
-  setSelectedDesignElement: (selection) => set({ selectedDesignElement: selection }),
+  setSelectedDesignElement: (selection) => set(selection
+    ? { selectedDesignElement: selection, isSettingsPanelVisible: true, isDesignPanelOpen: false }
+    : { selectedDesignElement: null }),
   setDesignInteractionMode: (mode) => set({ designInteractionMode: mode }),
   setPreviewDevice: (device) => set({ previewDevice: device }),
   setFlowViewportSnapshot: (viewport) => set({ flowViewportSnapshot: viewport }),

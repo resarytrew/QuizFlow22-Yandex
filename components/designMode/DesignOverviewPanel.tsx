@@ -22,6 +22,8 @@ const STATUS_LABELS = {
   custom: 'Пользовательский дизайн',
 } as const;
 
+const VISUAL_SELECTION_TEMPLATES = new Set<QuizTemplateId>(['default', 'newyear', 'screenQuiz']);
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -93,6 +95,7 @@ const DesignOverviewPanel: React.FC = () => {
   const brandNeutralColor = brand.neutralColor ?? '#1d1a16';
   const backgroundColor = background.color ?? '#f6f3ee';
   const questionCardRadius = questionCard.radius ?? 28;
+  const supportsVisualSelection = VISUAL_SELECTION_TEMPLATES.has(templateId);
 
   return (
     <div className="space-y-6">
@@ -112,6 +115,12 @@ const DesignOverviewPanel: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {!supportsVisualSelection && (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Визуальный выбор элементов для этого шаблона пока недоступен. Общие настройки дизайна работают, а выбор в Player безопасно отключён.
+        </section>
+      )}
 
       <section className="space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Шаблон и стиль</h3>

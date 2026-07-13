@@ -123,12 +123,12 @@ describe("useUIStore panel controls", () => {
     useUIStore.getState().setPreviewDevice("mobile");
     useUIStore.getState().setSelectedDesignElement({
       elementId: "question-card",
-      role: "questionCard",
+      role: "question-card",
       nodeId: "question-1",
     });
 
     expect(useUIStore.getState().designInteractionMode).toBe("test");
     expect(useUIStore.getState().previewDevice).toBe("mobile");
-    expect(useUIStore.getState().selectedDesignElement?.role).toBe("questionCard");
+    expect(useUIStore.getState().selectedDesignElement?.role).toBe("question-card");
   });
 });

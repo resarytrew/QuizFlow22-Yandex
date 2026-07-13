@@ -41,12 +41,12 @@ const DesignModeToolbar: React.FC = () => {
 
   const resetSelectedElement = () => {
     if (!selectedDesignElement) return;
-    if (selectedDesignElement.role === 'questionCard') resetDesignSection('questionCard');
-    if (selectedDesignElement.role === 'answerCard') resetDesignSection('answerCards');
-    if (selectedDesignElement.role === 'button') resetDesignSection('buttons');
-    if (selectedDesignElement.role === 'background' || selectedDesignElement.role === 'screen') resetDesignSection('background');
+    if (selectedDesignElement.role === 'question-card' || selectedDesignElement.role === 'question-title' || selectedDesignElement.role === 'question-description' || selectedDesignElement.role === 'media') resetDesignSection('questionCard');
+    if (selectedDesignElement.role === 'answer-card' || selectedDesignElement.role === 'answers-container') resetDesignSection('answerCards');
+    if (selectedDesignElement.role === 'primary-action' || selectedDesignElement.role === 'result-action') resetDesignSection('buttons');
+    if (selectedDesignElement.role === 'canvas-background' || selectedDesignElement.role === 'quiz-shell' || selectedDesignElement.role === 'topbar') resetDesignSection('background');
     if (selectedDesignElement.role === 'progress') resetDesignSection('progress');
-    if (selectedDesignElement.role === 'result') resetDesignSection('result');
+    if (selectedDesignElement.role === 'result-card' || selectedDesignElement.role === 'result-title' || selectedDesignElement.role === 'result-score') resetDesignSection('result');
   };
 
   return (

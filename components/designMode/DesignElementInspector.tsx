@@ -3,30 +3,19 @@ import { useQuizDataStore } from '../../store/useQuizDataStore';
 import type { DesignSelection } from '../../store/useUIStore';
 import type { DesignSettings } from '../../types';
 import { DEFAULT_DESIGN_SETTINGS } from '../../src/design/designResolver';
+import { getDesignElementEntry } from '../../src/designMode/elementRegistry';
 
 interface DesignElementInspectorProps {
   selection: DesignSelection;
 }
 
-const ROLE_LABELS: Record<DesignSelection['role'], string> = {
-  screen: 'Экран',
-  background: 'Фон',
-  questionCard: 'Карточка вопроса',
-  answerCard: 'Ответы',
-  button: 'Кнопки',
-  media: 'Медиа',
-  progress: 'Прогресс',
-  result: 'Результат',
-  unknown: 'Элемент',
-};
-
 function resetSectionForRole(role: DesignSelection['role']): keyof DesignSettings | null {
-  if (role === 'questionCard') return 'questionCard';
-  if (role === 'answerCard') return 'answerCards';
-  if (role === 'button') return 'buttons';
-  if (role === 'background' || role === 'screen') return 'background';
+  if (role === 'question-card' || role === 'question-title' || role === 'question-description' || role === 'media') return 'questionCard';
+  if (role === 'answer-card' || role === 'answers-container') return 'answerCards';
+  if (role === 'primary-action' || role === 'result-action') return 'buttons';
+  if (role === 'canvas-background' || role === 'quiz-shell' || role === 'topbar') return 'background';
   if (role === 'progress') return 'progress';
-  if (role === 'result') return 'result';
+  if (role === 'result-card' || role === 'result-title' || role === 'result-score') return 'result';
   return null;
 }
 
@@ -35,6 +24,7 @@ const DesignElementInspector: React.FC<DesignElementInspectorProps> = ({ selecti
   const updateDesignSettings = useQuizDataStore((state) => state.updateDesignSettings);
   const resetDesignSection = useQuizDataStore((state) => state.resetDesignSection);
   const section = resetSectionForRole(selection.role);
+  const registryEntry = getDesignElementEntry(selection.role);
   const questionCard = {
     ...(DEFAULT_DESIGN_SETTINGS.questionCard ?? {}),
     ...(designSettings.questionCard ?? {}),
@@ -46,22 +36,28 @@ const DesignElementInspector: React.FC<DesignElementInspectorProps> = ({ selecti
   const questionCardBackground = questionCard.backgroundColor ?? '#fffefa';
   const questionCardRadius = questionCard.radius ?? 28;
   const buttonBackground = buttons.backgroundColor ?? '#2f5d50';
+  const isQuestionSurface = selection.role === 'question-card'
+    || selection.role === 'question-title'
+    || selection.role === 'question-description'
+    || selection.role === 'media';
+  const isAction = selection.role === 'primary-action' || selection.role === 'result-action';
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-slate-900">{ROLE_LABELS[selection.role]}</h2>
+        <h2 className="text-lg font-bold text-slate-900">{registryEntry.label}</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Контекст выбранного элемента. Точное выделение элементов будет расширено следующим этапом.
+          Контекст выбранного элемента в Live Preview.
         </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
         <div className="font-bold text-slate-900">{selection.elementId}</div>
         <div className="mt-1 text-slate-500">Экран: {selection.nodeId ?? 'общий'}</div>
+        <div className="mt-1 text-slate-500">Роль: {selection.role}</div>
       </div>
 
-      {selection.role === 'questionCard' && (
+      {isQuestionSurface && (
         <section className="space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Фон карточки</span>
@@ -89,7 +85,7 @@ const DesignElementInspector: React.FC<DesignElementInspectorProps> = ({ selecti
         </section>
       )}
 
-      {selection.role === 'button' && (
+      {isAction && (
         <section className="space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Цвет кнопки</span>
