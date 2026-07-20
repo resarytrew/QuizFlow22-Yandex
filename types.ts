@@ -10,7 +10,8 @@ export type QuizTemplateId =
   | "math"
   | "history"
   | "newyear"
-  | "screenQuiz";
+  | "screenQuiz"
+  | "importantTalks";
 
 export enum CustomNodeType {
   Start = "startNode",
@@ -320,7 +321,9 @@ export interface GlobalTimer {
 export interface DesignSettings {
   brand?: {
     logoUrl?: string;
+    avatarUrl?: string;
     brandName?: string;
+    scoreLabel?: string;
     primaryColor?: string;
     accentColor?: string;
     neutralColor?: string;

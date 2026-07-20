@@ -54,7 +54,7 @@ function init(): void {
     if (title) title.textContent = quizData.currentQuizName;
   }
 
-  if ((quizData.templateId ?? 'default') === 'default') {
+  if (quizData.templateId === 'importantTalks' || (quizData.templateId ?? 'default') === 'default') {
     applyDesign(quizData.designSettings);
   }
   setupBackgroundMusic(quizData.designSettings);

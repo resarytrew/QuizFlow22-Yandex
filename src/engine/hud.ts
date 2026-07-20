@@ -69,14 +69,17 @@ function updateProgress(): void {
 function updateName(): void {
   const state = getState();
   const nameEl = document.getElementById('hud-name');
-  if (!nameEl) return;
+  const avatarFallback = document.getElementById('hud-avatar-fallback');
 
   const key = NAME_KEYS.find((candidate) => state.variables[candidate] !== undefined);
   const value = key ? state.variables[key] : undefined;
   const next = value === undefined || value === '' ? 'Гость' : String(value);
-  if (nameEl.textContent !== next) {
+  if (nameEl && nameEl.textContent !== next) {
     nameEl.textContent = next;
     addPulse(nameEl.closest('.stat-card') ?? nameEl);
+  }
+  if (avatarFallback) {
+    avatarFallback.textContent = next.trim().charAt(0).toUpperCase() || 'Г';
   }
 }
 

@@ -820,6 +820,26 @@ export function applyDesign(ds: DesignSettings | undefined): void {
     }
   }
 
+  const avatarImage = document.getElementById("hud-avatar-image");
+  const avatarFallback = document.getElementById("hud-avatar-fallback");
+  const avatarUrl = safeCssUrl(ds.brand?.avatarUrl ?? "");
+  if (avatarImage instanceof HTMLImageElement) {
+    if (avatarUrl) {
+      avatarImage.src = avatarUrl;
+      avatarImage.classList.remove("hidden");
+      avatarFallback?.classList.add("hidden");
+    } else {
+      avatarImage.removeAttribute("src");
+      avatarImage.classList.add("hidden");
+      avatarFallback?.classList.remove("hidden");
+    }
+  }
+
+  const scoreLabel = document.getElementById("hud-score-label");
+  if (scoreLabel && ds.brand?.scoreLabel) {
+    scoreLabel.textContent = ds.brand.scoreLabel.trim().slice(0, 48);
+  }
+
   let customStyle = document.getElementById("quiz-custom-design-css") as HTMLStyleElement | null;
   const customCss = sanitizeCustomCss(ds.advanced?.customCss);
   if (customCss) {

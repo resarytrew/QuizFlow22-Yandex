@@ -24,7 +24,7 @@ import { quizEngineScript } from '../quizEngine';
 
 const TEMPLATE_IDS = [
   'default', 'ww2', 'economic', 'yandex',
-  'army', 'science', 'math', 'history', 'newyear', 'screenQuiz',
+  'army', 'science', 'math', 'history', 'newyear', 'screenQuiz', 'importantTalks',
 ];
 
 function makeNodes() {
@@ -966,4 +966,3 @@ describe('screenQuiz template', () => {
     dom.window.close();
   }, 8000);
 });
-

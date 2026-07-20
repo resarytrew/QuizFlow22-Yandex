@@ -148,7 +148,7 @@ function generateUnsafe(
   //    (он gracefully handles missing supabase / mathjs), и их
   //    присутствие в iframe только замусорит консоль CSP-ошибками.
   html = inlineTailwind(html);
-  if (templateId === DEFAULT_TEMPLATE_ID) {
+  if (templateId === DEFAULT_TEMPLATE_ID || templateId === "importantTalks") {
     html = injectDesignCss(html, input.designSettings);
   }
   if (!options.preview) {
