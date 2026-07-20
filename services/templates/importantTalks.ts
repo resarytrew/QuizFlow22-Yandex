@@ -1,4 +1,13 @@
 import defaultTemplate from './default.ts';
+import {
+  importantTalksBackgroundDecor,
+  importantTalksHeader,
+  importantTalksRibbon,
+  importantTalksShellStyles,
+} from './importantTalksShell.ts';
+import { importantTalksInfoSceneStyles } from './importantTalksInfoScene.ts';
+import { importantTalksQuestionSceneStyles } from './importantTalksQuestionScene.ts';
+import { importantTalksResultSceneStyles } from './importantTalksResultScene.ts';
 
 const importantTalksStyles = `
 <style id="important-talks-theme">
@@ -963,44 +972,6 @@ const importantTalksStyles = `
   }
 </style>`;
 
-const importantTalksHeader = `
-        <header class="quiz-topbar talks-topbar">
-            <div class="topbar-inner">
-                <div class="brand-lockup">
-                    <div id="header-logo">РВ</div>
-                    <div class="brand-copy">
-                        <div class="brand-kicker">Образовательный диалог</div>
-                        <div id="header-title">Разговоры о важном</div>
-                    </div>
-                </div>
-
-                <div class="talks-user-hud" aria-label="Состояние участника">
-                    <div class="talks-avatar" aria-hidden="true">
-                        <img id="hud-avatar-image" class="hidden" alt="" />
-                        <span id="hud-avatar-fallback">Г</span>
-                    </div>
-                    <div class="talks-person">
-                        <span class="talks-hud-label">Участник</span>
-                        <strong id="hud-name">Гость</strong>
-                    </div>
-                    <span class="talks-divider" aria-hidden="true"></span>
-                    <div id="global-timer-container" class="timer-pill hidden">00:00</div>
-                    <span class="talks-divider" aria-hidden="true"></span>
-                    <div class="talks-score">
-                        <span id="hud-score-label">Искры добра</span>
-                        <strong id="hud-score">0</strong>
-                    </div>
-                </div>
-
-                <div class="top-progress" aria-label="Прогресс прохождения">
-                    <div class="top-progress-track" aria-hidden="true">
-                        <div id="top-progress-fill" class="top-progress-fill"></div>
-                    </div>
-                    <span class="talks-progress-copy"><span id="progress-text">0</span>%</span>
-                </div>
-            </div>
-        </header>`;
-
 const importantTalksSupportHud = `
                 <aside class="quiz-hud talks-support-hud" aria-hidden="true">
                     <section class="hud-panel hidden">
@@ -1022,7 +993,7 @@ const importantTalksSupportHud = `
                     </section>
                 </aside>`;
 
-function replaceRequired(source: string, pattern: RegExp, replacement: string, label: string): string {
+function replaceRequired(source: string, pattern: string | RegExp, replacement: string, label: string): string {
   const next = source.replace(pattern, replacement);
   if (next === source) throw new Error(`[importantTalks template] Missing ${label} in base template`);
   return next;
@@ -1030,7 +1001,7 @@ function replaceRequired(source: string, pattern: RegExp, replacement: string, l
 
 let importantTalksTemplate = defaultTemplate.replace(
   '</head>',
-  `${importantTalksStyles}\n</head>`,
+  `${importantTalksStyles}\n${importantTalksShellStyles}\n${importantTalksInfoSceneStyles}\n${importantTalksQuestionSceneStyles}\n${importantTalksResultSceneStyles}\n</head>`,
 );
 importantTalksTemplate = replaceRequired(
   importantTalksTemplate,
@@ -1049,6 +1020,18 @@ importantTalksTemplate = replaceRequired(
   /<aside class="quiz-hud"[\s\S]*?<\/aside>/,
   importantTalksSupportHud,
   'HUD',
+);
+importantTalksTemplate = replaceRequired(
+  importantTalksTemplate,
+  '<div class="quiz-shell">',
+  `<div class="quiz-shell">\n${importantTalksBackgroundDecor}`,
+  'background decor',
+);
+importantTalksTemplate = replaceRequired(
+  importantTalksTemplate,
+  '<div id="image-modal"',
+  `${importantTalksRibbon}\n\n    <div id="image-modal"`,
+  'ribbon',
 );
 
 export default importantTalksTemplate;

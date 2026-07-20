@@ -14,6 +14,9 @@ interface ChoiceData {
   soundSettings?: {
     onButtonPress?: string;
   };
+  importantTalks?: {
+    instruction?: string;
+  };
 }
 
 function markerFor(index: number): string {
@@ -57,6 +60,69 @@ function createAnswerButton(
   return button;
 }
 
+function findDirectChild(container: HTMLElement, className: string): HTMLElement | null {
+  return Array.from(container.children).find(
+    (child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains(className),
+  ) ?? null;
+}
+
+function enhanceImportantTalksQuestionScene(
+  controls: HTMLElement,
+  data: ChoiceData,
+): void {
+  if (!document.body.classList.contains("important-talks-theme")) return;
+
+  const container = controls.parentElement;
+  if (!container) return;
+
+  container.classList.add("talks-question-scene");
+  controls.classList.add("talks-question-options");
+  controls.setAttribute("aria-label", "Варианты ответа");
+
+  const hero = document.createElement("section");
+  hero.className = "talks-question-hero";
+
+  const copy = document.createElement("div");
+  copy.className = "talks-question-copy";
+
+  const title = findDirectChild(container, "node-title");
+  const question = findDirectChild(container, "node-desc");
+  if (title) {
+    title.classList.add(question ? "talks-question-eyebrow" : "talks-question-prompt");
+    copy.appendChild(title);
+  }
+  if (question) {
+    question.classList.add("talks-question-prompt");
+    question.setAttribute("role", "heading");
+    question.setAttribute("aria-level", title ? "2" : "1");
+    copy.appendChild(question);
+  }
+
+  const instruction = document.createElement("p");
+  instruction.className = "talks-question-instruction";
+  instruction.textContent = data.importantTalks?.instruction?.trim() || "Выберите один ответ";
+  copy.appendChild(instruction);
+
+  const visual = document.createElement("div");
+  visual.className = "talks-question-visual";
+  const media = findDirectChild(container, "media-frame");
+  if (media) {
+    visual.appendChild(media);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "talks-question-media-fallback";
+    fallback.setAttribute("aria-hidden", "true");
+    visual.appendChild(fallback);
+  }
+
+  const wave = document.createElement("div");
+  wave.className = "talks-question-wave";
+  wave.setAttribute("aria-hidden", "true");
+
+  hero.append(copy, visual, wave);
+  container.insertBefore(hero, controls);
+}
+
 export const renderQuestion: NodeRenderer = (node, controls, context) => {
   const data = node.data as ChoiceData;
   const buttons: HTMLButtonElement[] = [];
@@ -77,6 +143,8 @@ export const renderQuestion: NodeRenderer = (node, controls, context) => {
     buttons.push(button);
     controls.appendChild(button);
   });
+
+  enhanceImportantTalksQuestionScene(controls, data);
 };
 
 export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {

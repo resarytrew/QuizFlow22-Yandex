@@ -119,6 +119,7 @@ export interface QuestionNodeData extends BaseNodeData {
   timer?: number;
   title?: string;
   correctAnswer?: string;
+  importantTalks?: ImportantTalksQuestionContent;
 }
 
 export interface MultipleChoiceNodeData extends BaseNodeData {
@@ -139,10 +140,26 @@ export interface MultipleChoiceNodeData extends BaseNodeData {
 export interface ResultNodeData extends BaseNodeData {
   title?: string;
   showScore?: boolean;
+  importantTalks?: ImportantTalksResultContent;
+}
+
+export interface ImportantTalksInfoContent {
+  agendaTitle?: string;
+  agendaItems?: string[];
+}
+
+export interface ImportantTalksQuestionContent {
+  instruction?: string;
+}
+
+export interface ImportantTalksResultContent {
+  kicker?: string;
+  insightTitle?: string;
 }
 
 export interface InfoNodeData extends BaseNodeData {
   title?: string;
+  importantTalks?: ImportantTalksInfoContent;
 }
 
 export interface ScoreNodeData extends BaseNodeData {

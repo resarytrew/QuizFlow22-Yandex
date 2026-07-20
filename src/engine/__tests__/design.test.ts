@@ -50,4 +50,18 @@ describe("applyDesign", () => {
     expect(document.querySelector("#hud-avatar-fallback")?.classList.contains("hidden")).toBe(true);
     expect(document.querySelector("#hud-score-label")?.textContent).toBe("Искры добра");
   });
+
+  it("splits the editable Important Talks brand into two display lines", () => {
+    document.body.innerHTML = `
+      <div id="header-logo" data-logo-mark="talks">РВ</div>
+      <span id="talks-brand-primary"></span>
+      <span id="talks-brand-secondary"></span>
+    `;
+
+    applyDesign({ brand: { brandName: "Разговоры о важном" } });
+
+    expect(document.querySelector("#header-logo")?.textContent).toBe("");
+    expect(document.querySelector("#talks-brand-primary")?.textContent).toBe("РАЗГОВОРЫ");
+    expect(document.querySelector("#talks-brand-secondary")?.textContent).toBe("О ВАЖНОМ");
+  });
 });
