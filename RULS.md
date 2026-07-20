@@ -284,6 +284,27 @@ storeEvents.emit('QUIZ_LOADED', { nodes, edges });
 // ❌ Неправильно: прямой import + setState чужого стора
 import { useCanvasStore } from './useCanvasStore';
 useCanvasStore.setState({ nodes: [] }); // НЕ ДЕЛАТЬ
+
+3.3.1 Selection визуального редактора
+
+`useCanvasStore.selection` — единственный источник истины для выделения:
+
+```ts
+type EditorSelection = {
+  primarySelectedNodeId: string | null;
+  selectedNodeIds: string[];
+  selectedEdgeIds: string[];
+};
+```
+
+- Полный объект выбранной ноды в store не хранится. Он вычисляется через memoized `nodesById` selector.
+- `node.selected` и `edge.selected` являются только проекцией `selection` для controlled React Flow.
+- Компоненты не записывают selected-флаги через прямой `setNodes`/`setEdges`.
+- Выделение изменяется только командами `selectSingleNode`, `toggleNodeSelection`, `selectNodes`, `selectSingleEdge`, `clearSelection`, `selectAllVisibleNodes`, `removeMissingItemsFromSelection` или идемпотентной синхронизацией React Flow.
+- Selection-команды не управляют viewport и не вызывают `setCenter`, `fitView`, `setViewport` или `zoomTo`.
+- Одинаковая синхронизация selection обязана сохранять ссылки и не уведомлять Zustand subscribers повторно.
+- Смена `currentGroup` публикует `GROUP_CHANGED`; canvas store очищает selection через event bus.
+
 3.4 Безопасность
 TypeScript
 

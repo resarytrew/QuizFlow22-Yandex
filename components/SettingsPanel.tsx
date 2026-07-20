@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import type { Node } from 'reactflow';
-import { useCanvasStore } from '../store/useCanvasStore.ts';
+import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
 import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode } from '../types.ts';
 import DesignPanel from './DesignPanel.tsx';
@@ -2028,13 +2028,13 @@ const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: UpdateN
 });
 
 const SettingsPanel: React.FC = () => {
-    const selectedNode = useCanvasStore(s => s.selectedNode);
+    const selectedNode = useCanvasStore(selectPrimarySelectedNode);
     const updateNodeData = useCanvasStore(s => s.updateNodeData);
-    const setSelectedNode = useCanvasStore(s => s.setSelectedNode);
+    const clearSelection = useCanvasStore(s => s.clearSelection);
     const closeSettingsPanel = useUIStore(s => s.closeSettingsPanel);
 
     const closePanel = () => {
-        setSelectedNode(null);
+        clearSelection();
         closeSettingsPanel();
     };
 

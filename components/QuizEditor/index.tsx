@@ -6,6 +6,7 @@ import ReactFlow, {
   ConnectionLineType,
   useReactFlow,
   type Node,
+  type Edge,
   type NodeChange,
   type EdgeChange,
 } from 'reactflow';
@@ -22,7 +23,7 @@ import Breadcrumbs from '../Breadcrumbs';
 import CanvasSearch from '../CanvasSearch';
 import { useEditorActions, useEditorData } from './hooks/useEditorStore';
 import { useEditorMenus } from './hooks/useEditorMenus';
-import { useCanvasLayout, useCanvasResize, useCenterOnSelected } from './hooks/useCanvasLayout';
+import { useCanvasLayout } from './hooks/useCanvasLayout';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useEditorAutosave } from './hooks/useEditorAutosave';
@@ -34,27 +35,31 @@ import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { getCanvasBackgroundConfig } from './canvasPreferences';
 import { useUIStore } from '../../store/useUIStore';
 import { useEntitlementStore } from '../../store/useEntitlementStore';
+import { useCanvasStore } from '../../store/useCanvasStore';
 import { useAppNavigation } from '../../src/router/useAppNavigation';
 import { hasFeature } from '../Paywall';
 import toast from 'react-hot-toast';
+import { CustomNodeType, type NodeData } from '../../types';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'default' as const };
 const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: ZOOM.DEFAULT };
 const SNAP_GRID: [number, number] = [16, 16];
 const CONNECTION_LINE_STYLE = { strokeWidth: 2, stroke: DS.colors.edgeActive };
+const isNodeSelected = (nodeId: string): boolean =>
+  useCanvasStore.getState().selection.selectedNodeIds.includes(nodeId);
 
 const getChangeId = (change: NodeChange | EdgeChange): string | undefined =>
   'id' in change ? change.id : undefined;
 
 const QuizEditor: React.FC = () => {
-  const { nodes, edges, boardSettings, isCanvasLocked, currentGroup, selectedNode, isCanvasLoading } = useEditorData();
+  const { nodes, edges, selection, boardSettings, isCanvasLocked, currentGroup, isCanvasLoading } = useEditorData();
   const actions = useEditorActions();
   const menus = useEditorMenus();
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [connectingFrom, setConnectingFrom] = useState<{ nodeId: string; handleId?: string | null } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const explicitMultiSelectionRef = useRef(false);
   const showGrid = usePreferencesStore((s) => s.preferences.showGrid);
   const snapToGrid = usePreferencesStore((s) => s.preferences.snapToGrid);
   const reduceMotion = usePreferencesStore((s) => s.preferences.reduceMotion);
@@ -62,12 +67,13 @@ const QuizEditor: React.FC = () => {
   const setPreference = usePreferencesStore((s) => s.setPreference);
   const isAIAssistantPanelVisible = useUIStore((s) => s.isAIAssistantPanelVisible);
   const toggleAIAssistantPanel = useUIStore((s) => s.toggleAIAssistantPanel);
+  const openSettingsPanel = useUIStore((s) => s.openSettingsPanel);
   const entitlement = useEntitlementStore((s) => s.entitlement);
   const nav = useAppNavigation();
   const lowPowerMode = reduceMotion || simplified;
   const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
-  const { screenToFlowPosition, getNode, fitView, setCenter } = useReactFlow();
+  const { screenToFlowPosition, getNode, fitView } = useReactFlow<NodeData>();
   useEditorAutosave();
 
   // React Flow warns when nodeTypes/edgeTypes change identity between
@@ -90,6 +96,16 @@ const QuizEditor: React.FC = () => {
   const visibleEdges = useMemo(() => {
     return edges.filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
   }, [edges, visibleNodeIds]);
+  const visibleEdgeIds = useMemo(
+    () => new Set<string>(visibleEdges.map((edge) => edge.id)),
+    [visibleEdges],
+  );
+  const visibleStats = useMemo(() => ({
+    nodeCount: visibleNodes.length,
+    edgeCount: visibleEdges.length,
+    hasStart: visibleNodes.some((node) => node.type === CustomNodeType.Start),
+    hasResult: visibleNodes.some((node) => node.type === CustomNodeType.Result),
+  }), [visibleNodes, visibleEdges]);
 
   const flowStyle = useMemo(() => ({
     backgroundColor: boardSettings?.backgroundColor || DS.colors.canvasBg,
@@ -104,18 +120,19 @@ const QuizEditor: React.FC = () => {
     setNodes: actions.setNodes,
   });
 
-  useCanvasResize({ fitView, wrapperRef: reactFlowWrapper });
-  useCenterOnSelected({ getNode, setCenter, selectedNode });
-
   useKeyboardShortcuts({
     visibleNodes,
     visibleEdges,
+    selectedNodeIds: selection.selectedNodeIds,
+    selectedEdgeIds: selection.selectedEdgeIds,
     isCanvasLocked,
     deleteNode: actions.deleteNode,
     deleteEdge: actions.deleteEdge,
     undo: actions.undo,
     redo: actions.redo,
     addNode: actions.addNode,
+    selectNodes: actions.selectNodes,
+    selectAllVisibleNodes: actions.selectAllVisibleNodes,
   });
 
   const onEditEdgeLabel = useCallback((edgeId: string, currentLabel: string) => {
@@ -131,6 +148,7 @@ const QuizEditor: React.FC = () => {
     onEdgeDoubleClick,
     handleQuickAdd,
     onNodeClick,
+    onEdgeClick,
     onPaneClick,
     isValidConnection,
     handleConnectStart,
@@ -149,7 +167,15 @@ const QuizEditor: React.FC = () => {
     setQuickAddMenu: menus.setQuickAdd,
     setConnectingFrom,
     setIsConnecting,
-    setSelectedNode: actions.setSelectedNode,
+    selectSingleNode: actions.selectSingleNode,
+    toggleNodeSelection: actions.toggleNodeSelection,
+    isNodeSelected,
+    selectSingleEdge: actions.selectSingleEdge,
+    clearSelection: actions.clearSelection,
+    openNodeSettings: openSettingsPanel,
+    onSelectionIntent: (additive) => {
+      explicitMultiSelectionRef.current = additive;
+    },
     addNode: actions.addNode,
     onEditEdgeLabel,
     onConnect: actions.onConnect,
@@ -158,12 +184,38 @@ const QuizEditor: React.FC = () => {
     setPreviewMode: actions.setPreviewMode,
   });
 
-  const handleNodeDragStart = useCallback((_: React.MouseEvent, node: Node) => {
-    setDraggedNodeId(node.id);
-  }, []);
+  const handleNodeDragStart = useCallback((event: React.MouseEvent, node: Node) => {
+    const hasModifier = event.shiftKey || event.ctrlKey || event.metaKey;
+    const selectedCount = selection.selectedNodeIds.length;
+    const keepExplicitGroup =
+      explicitMultiSelectionRef.current
+      && selection.selectedNodeIds.includes(node.id)
+      && selectedCount > 1;
+
+    if (!hasModifier && !keepExplicitGroup) {
+      explicitMultiSelectionRef.current = false;
+      actions.selectSingleNode(node.id);
+    }
+    actions.takeSnapshot();
+  }, [actions, selection.selectedNodeIds]);
 
   const handleNodeDragStop = useCallback(() => {
-    setDraggedNodeId(null);
+    // Position changes are committed through onNodesChange. The snapshot is
+    // intentionally taken once in onNodeDragStart so one drag equals one undo.
+  }, []);
+
+  const handleSelectionChange = useCallback(
+    ({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+      actions.syncSelectionFromReactFlow(
+        selectedNodes.map((node) => node.id),
+        selectedEdges.map((edge) => edge.id),
+      );
+    },
+    [actions],
+  );
+
+  const handleSelectionStart = useCallback(() => {
+    explicitMultiSelectionRef.current = true;
   }, []);
 
   const handleNodesChange = useCallback(
@@ -171,13 +223,12 @@ const QuizEditor: React.FC = () => {
       if (isCanvasLocked) return;
       const filtered = changes.filter((change) => {
         const changeId = getChangeId(change);
-        if (draggedNodeId && change.type === 'position' && changeId && changeId !== draggedNodeId) return false;
         if (changeId) return visibleNodeIds.has(changeId);
         return true;
       });
       if (filtered.length > 0) actions.onNodesChange(filtered);
     },
-    [actions.onNodesChange, visibleNodeIds, isCanvasLocked, draggedNodeId],
+    [actions.onNodesChange, visibleNodeIds, isCanvasLocked],
   );
 
   const handleEdgesChange = useCallback(
@@ -185,12 +236,12 @@ const QuizEditor: React.FC = () => {
       if (isCanvasLocked) return;
       const filtered = changes.filter((change) => {
         const changeId = getChangeId(change);
-        if (changeId) return visibleNodeIds.has(changeId);
+        if (changeId) return visibleEdgeIds.has(changeId);
         return true;
       });
       if (filtered.length > 0) actions.onEdgesChange(filtered);
     },
-    [actions.onEdgesChange, isCanvasLocked, visibleNodeIds],
+    [actions.onEdgesChange, isCanvasLocked, visibleEdgeIds],
   );
 
   const handlePreview = useCallback(() => {
@@ -273,6 +324,7 @@ const QuizEditor: React.FC = () => {
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
@@ -281,13 +333,15 @@ const QuizEditor: React.FC = () => {
         onConnectStart={handleConnectStart}
         onConnectEnd={handleConnectEnd}
         onNodeDragStart={handleNodeDragStart}
+        onSelectionStart={handleSelectionStart}
+        onSelectionChange={handleSelectionChange}
         onNodeDragStop={handleNodeDragStop}
         isValidConnection={isValidConnection}
         nodesDraggable={!isCanvasLocked}
         nodesConnectable={!isCanvasLocked}
         elementsSelectable={!isCanvasLocked}
         selectionOnDrag={false}
-        multiSelectionKeyCode="Shift"
+        multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
         defaultViewport={DEFAULT_VIEWPORT}
         minZoom={ZOOM.MIN}
         maxZoom={ZOOM.MAX}
@@ -319,7 +373,7 @@ const QuizEditor: React.FC = () => {
         </Panel>
         <Panel position="top-center" className="!m-4 flex flex-col items-center gap-2">
           <CanvasSearch />
-          {!simplified && <StatusBar nodes={visibleNodes} edges={visibleEdges} />}
+          {!simplified && <StatusBar {...visibleStats} />}
         </Panel>
         <Panel position="bottom-center" className="!m-4 !mb-8">
           <BottomControlBar

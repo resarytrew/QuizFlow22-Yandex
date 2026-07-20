@@ -1,8 +1,8 @@
 
 import React, { useMemo } from 'react';
-import { useReactFlow, type Node } from 'reactflow';
+import { useReactFlow } from 'reactflow';
 import { useCanvasStore } from '../../store/useCanvasStore';
-import { CustomNodeType, NodeData, VariableNodeData, ConditionNodeData } from '../../types.ts';
+import { CustomNodeType, VariableNodeData, ConditionNodeData } from '../../types.ts';
 
 interface Props {
   isOpen: boolean;
@@ -17,7 +17,8 @@ type VariableUsage = {
 
 const VariableManagerModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const nodes = useCanvasStore(s => s.nodes);
-    const { setCenter, getNode, setNodes } = useReactFlow();
+    const selectSingleNode = useCanvasStore(s => s.selectSingleNode);
+    const { setCenter, getNode } = useReactFlow();
 
     const variableMap = useMemo(() => {
         const map: Record<string, VariableUsage> = {};
@@ -62,8 +63,7 @@ const VariableManagerModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 zoom: 1.2,
                 duration: 500
             });
-            // Highlight the node
-            setNodes((nds: Node<NodeData>[]) => nds.map(n => ({ ...n, selected: n.id === nodeId })));
+            selectSingleNode(nodeId);
             onClose();
         }
     };
@@ -105,7 +105,7 @@ const VariableManagerModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                                 {usage.sets.length > 0 ? (
                                                     <ul className="space-y-1">
                                                         {usage.sets.map(nodeId => {
-                                                            const node: Node<NodeData> | undefined = nodeMap.get(nodeId);
+                                                            const node = nodeMap.get(nodeId);
                                                             return <li key={nodeId}><button onClick={() => handleJumpToNode(nodeId)} className="text-blue-600 hover:underline"> - {node?.data.label || nodeId}</button></li>
                                                         })}
                                                     </ul>
@@ -116,7 +116,7 @@ const VariableManagerModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                                  {usage.reads.length > 0 ? (
                                                     <ul className="space-y-1">
                                                          {usage.reads.map(nodeId => {
-                                                            const node: Node<NodeData> | undefined = nodeMap.get(nodeId);
+                                                            const node = nodeMap.get(nodeId);
                                                             return <li key={nodeId}><button onClick={() => handleJumpToNode(nodeId)} className="text-blue-600 hover:underline"> - {node?.data.label || nodeId}</button></li>
                                                         })}
                                                     </ul>

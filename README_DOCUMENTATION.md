@@ -630,6 +630,8 @@ interface UIStoreState {
   // Методы
   toggleSidebar: () => void;
   toggleSettingsPanel: () => void;
+  openSettingsPanel: () => void;
+  closeSettingsPanel: () => void;
   toggleAIAssistantPanel: () => void;
   closeAIAssistantPanel: () => void;
   setDashboardVisible: (visible: boolean) => void;
@@ -651,8 +653,12 @@ interface CanvasStoreState {
   nodes: Node<NodeData>[];
   edges: Edge[];
   
-  // Выделение
-  selectedNode: Node<NodeData> | null;
+  // Единственный источник истины для выделения
+  selection: {
+    primarySelectedNodeId: string | null;
+    selectedNodeIds: string[];
+    selectedEdgeIds: string[];
+  };
   
   // Настройки доски
   boardSettings: BoardSettings;
@@ -681,8 +687,14 @@ interface CanvasStoreState {
   updateEdgeData: (id: string, patch: Partial<EdgeData>) => void;
   clearCanvas: () => void;
   
-  // Выделение
-  setSelectedNode: (node: Node<NodeData> | null) => void;
+  // Команды выделения
+  selectSingleNode: (nodeId: string) => void;
+  toggleNodeSelection: (nodeId: string) => void;
+  selectNodes: (nodeIds: readonly string[], primaryId?: string) => void;
+  selectSingleEdge: (edgeId: string) => void;
+  clearSelection: () => void;
+  selectAllVisibleNodes: () => void;
+  removeMissingItemsFromSelection: () => void;
   
   // Настройки
   updateBoardSettings: (settings: Partial<BoardSettings>) => void;
@@ -708,7 +720,7 @@ TypeScript
 // Таймер хранится в замыкании create(), не в состоянии стора
 // (избегает лишних ре-рендеров)
 updateNodeData: (id, data) => {
-  set(/* обновление nodes и selectedNode */);
+  set(/* обновление nodes; selected node вычисляется через nodesById */);
   
   // Дебаунс 500ms — не создаёт snapshot при каждом нажатии клавиши
   clearTimeout(updateNodeDataTimer);

@@ -1,33 +1,34 @@
 import React, { useState, useMemo } from 'react';
 import { useViewport } from 'reactflow';
-import type { Node, Edge } from 'reactflow';
-import { CustomNodeType, NodeData } from '../../types';
 import { Icons } from './Icons';
-
-type FlowNode<T = NodeData> = Node<T>;
+import {
+    selectSelectedEdgeIds,
+    selectSelectedNodeIds,
+    useCanvasStore,
+} from '../../store/useCanvasStore';
 
 interface StatusBarProps {
-    nodes: FlowNode<NodeData>[];
-    edges: Edge[];
+    nodeCount: number;
+    edgeCount: number;
+    hasStart: boolean;
+    hasResult: boolean;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = ({ nodes, edges }) => {
+export const StatusBar: React.FC<StatusBarProps> = React.memo(({ nodeCount, edgeCount, hasStart, hasResult }) => {
     const { zoom } = useViewport();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const selectedNodeIds = useCanvasStore(selectSelectedNodeIds);
+    const selectedEdgeIds = useCanvasStore(selectSelectedEdgeIds);
 
     const stats = useMemo(() => {
-        const hasStart = nodes.some((n) => n.type === CustomNodeType.Start);
-        const hasResult = nodes.some((n) => n.type === CustomNodeType.Result);
-        const selectedCount = nodes.filter((n) => n.selected).length;
-
         return {
-            nodeCount: nodes.length,
-            edgeCount: edges.length,
-            selectedCount,
+            nodeCount,
+            edgeCount,
+            selectedCount: selectedNodeIds.length + selectedEdgeIds.length,
             isValid: hasStart && hasResult,
             issues: !hasResult ? 'Добавьте узел "Результат"' : null,
         };
-    }, [nodes, edges]);
+    }, [nodeCount, edgeCount, hasStart, hasResult, selectedNodeIds.length, selectedEdgeIds.length]);
 
     if (isCollapsed) {
         return (
@@ -89,4 +90,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({ nodes, edges }) => {
             </button>
         </div>
     );
-};
+});
+
+StatusBar.displayName = 'StatusBar';

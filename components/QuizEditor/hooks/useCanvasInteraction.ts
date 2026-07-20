@@ -6,6 +6,8 @@ import { createNewNode } from '../createNewNode';
 import { readDraggedNodeType } from '../nodeDragData';
 
 type FlowNode<T = NodeData> = Node<T>;
+type SelectionModifierEvent = Pick<React.MouseEvent, 'shiftKey' | 'ctrlKey' | 'metaKey'>;
+type CanvasPointerEvent = Pick<React.MouseEvent, 'clientX' | 'clientY' | 'preventDefault'>;
 
 interface UseCanvasInteractionProps {
     reactFlowWrapper: React.RefObject<HTMLDivElement | null>;
@@ -18,7 +20,13 @@ interface UseCanvasInteractionProps {
     setQuickAddMenu: React.Dispatch<React.SetStateAction<{ screen: { x: number; y: number }; local: { x: number; y: number } } | null>>;
     setConnectingFrom: React.Dispatch<React.SetStateAction<{ nodeId: string; handleId?: string | null } | null>>;
     setIsConnecting: React.Dispatch<React.SetStateAction<boolean>>;
-    setSelectedNode: (node: FlowNode<NodeData> | null) => void;
+    selectSingleNode: (nodeId: string) => void;
+    toggleNodeSelection: (nodeId: string) => void;
+    isNodeSelected: (nodeId: string) => boolean;
+    selectSingleEdge: (edgeId: string) => void;
+    clearSelection: () => void;
+    openNodeSettings: () => void;
+    onSelectionIntent: (additive: boolean) => void;
     addNode: (node: FlowNode<NodeData>) => void;
     onEditEdgeLabel: (edgeId: string, currentLabel: string) => void;
     onConnect: (connection: Connection) => void;
@@ -38,7 +46,13 @@ export function useCanvasInteraction({
     setQuickAddMenu,
     setConnectingFrom,
     setIsConnecting,
-    setSelectedNode,
+    selectSingleNode,
+    toggleNodeSelection,
+    isNodeSelected,
+    selectSingleEdge,
+    clearSelection,
+    openNodeSettings,
+    onSelectionIntent,
     addNode,
     onEditEdgeLabel,
     onConnect,
@@ -75,7 +89,7 @@ export function useCanvasInteraction({
     );
 
     const onPaneContextMenu = useCallback(
-        (event: React.MouseEvent) => {
+        (event: CanvasPointerEvent) => {
             if (isCanvasLocked) return;
             event.preventDefault();
             setQuickAddMenu({ screen: { x: event.clientX, y: event.clientY }, local: toLocal(event) });
@@ -84,24 +98,26 @@ export function useCanvasInteraction({
     );
 
     const onNodeContextMenu = useCallback(
-        (event: React.MouseEvent, node: FlowNode) => {
+        (event: CanvasPointerEvent, node: FlowNode) => {
             if (isCanvasLocked) return;
             event.preventDefault();
             if (node.type === CustomNodeType.Start) return;
+            selectSingleNode(node.id);
             const local = toLocal(event);
             setMenu({ id: node.id, top: local.y, left: local.x });
         },
-        [isCanvasLocked, toLocal, setMenu]
+        [isCanvasLocked, selectSingleNode, toLocal, setMenu]
     );
 
     const onEdgeContextMenu = useCallback(
-        (event: React.MouseEvent, edge: Edge) => {
+        (event: CanvasPointerEvent, edge: Edge) => {
             if (isCanvasLocked) return;
             event.preventDefault();
+            selectSingleEdge(edge.id);
             const local = toLocal(event);
             setEdgeMenu({ id: edge.id, top: local.y, left: local.x });
         },
-        [isCanvasLocked, toLocal, setEdgeMenu]
+        [isCanvasLocked, selectSingleEdge, toLocal, setEdgeMenu]
     );
 
     const onEdgeDoubleClick = useCallback(
@@ -157,22 +173,39 @@ export function useCanvasInteraction({
     );
 
     const onNodeClick = useCallback(
-        (_: React.MouseEvent, node: FlowNode) => {
-            setSelectedNode(node as FlowNode<NodeData>);
+        (event: SelectionModifierEvent, node: FlowNode) => {
+            const additive = event.shiftKey || event.ctrlKey || event.metaKey;
+            onSelectionIntent(additive);
+            if (additive) {
+                if (isNodeSelected(node.id) !== Boolean(node.selected)) {
+                    toggleNodeSelection(node.id);
+                }
+            } else {
+                selectSingleNode(node.id);
+            }
+            openNodeSettings();
             setMenu(null);
             setEdgeMenu(null);
             setQuickAddMenu(null);
         },
-        [setSelectedNode, setMenu, setEdgeMenu, setQuickAddMenu]
+        [selectSingleNode, toggleNodeSelection, isNodeSelected, openNodeSettings, onSelectionIntent, setMenu, setEdgeMenu, setQuickAddMenu]
     );
 
     const onPaneClick = useCallback(() => {
-        setSelectedNode(null);
+        onSelectionIntent(false);
+        clearSelection();
         setMenu(null);
         setEdgeMenu(null);
         setQuickAddMenu(null);
         setConnectingFrom(null);
-    }, [setSelectedNode, setMenu, setEdgeMenu, setQuickAddMenu, setConnectingFrom]);
+    }, [clearSelection, onSelectionIntent, setMenu, setEdgeMenu, setQuickAddMenu, setConnectingFrom]);
+
+    const onEdgeClick = useCallback((_: unknown, edge: Edge) => {
+        onSelectionIntent(false);
+        selectSingleEdge(edge.id);
+        setMenu(null);
+        setQuickAddMenu(null);
+    }, [onSelectionIntent, selectSingleEdge, setMenu, setQuickAddMenu]);
 
     const handleConnectStart = useCallback(
         (_: React.MouseEvent | React.TouchEvent, params: OnConnectStartParams) => {
@@ -193,7 +226,7 @@ export function useCanvasInteraction({
 
     const handleDuplicate = useCallback(
         (id: string) => {
-            const n = getNode(id) as FlowNode<NodeData> | undefined;
+            const n = getNode(id);
             if (n) {
                 const newNode: FlowNode<NodeData> = {
                     ...n,
@@ -211,9 +244,12 @@ export function useCanvasInteraction({
     const handleEditFromMenu = useCallback(
         (id: string) => {
             const n = getNode(id);
-            if (n) setSelectedNode(n as FlowNode<NodeData>);
+            if (n) {
+                selectSingleNode(n.id);
+                openNodeSettings();
+            }
         },
-        [getNode, setSelectedNode]
+        [getNode, selectSingleNode, openNodeSettings]
     );
 
     const handlePreviewFromNode = useCallback(
@@ -232,6 +268,7 @@ export function useCanvasInteraction({
         onEdgeDoubleClick,
         handleQuickAdd,
         onNodeClick,
+        onEdgeClick,
         onPaneClick,
         isValidConnection,
         handleConnectStart,

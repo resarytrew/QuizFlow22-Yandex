@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useCanvasStore } from '../store/useCanvasStore';
+import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore';
 import { useUIStore } from '../store/useUIStore';
 import { useAIStore, type AISuggestion } from '../store/useAIStore';
 import toast from 'react-hot-toast';
@@ -51,7 +51,7 @@ const AIAssistantPanel: React.FC = () => {
     const nodes = useCanvasStore(s => s.nodes);
     const addNode = useCanvasStore(s => s.addNode);
     const onConnect = useCanvasStore(s => s.onConnect);
-    const selectedNode = useCanvasStore(s => s.selectedNode);
+    const selectedNode = useCanvasStore(selectPrimarySelectedNode);
     const isAILoading = useAIStore(s => s.isAILoading);
     const aiSuggestions = useAIStore(s => s.aiSuggestions);
     const setAILoading = useAIStore(s => s.setAILoading);

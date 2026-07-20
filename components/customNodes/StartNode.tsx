@@ -1,19 +1,20 @@
 ﻿
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
-import { useCanvasStore } from '../../store/useCanvasStore';
+import { createIsNodeSelectedSelector, useCanvasStore } from '../../store/useCanvasStore';
 import { BaseNodeData } from '../../types';
 const StartNode: React.FC<NodeProps<BaseNodeData>> = ({ id }) => {
-    const selectedNode = useCanvasStore(s => s.selectedNode);
-    const isSelected = selectedNode?.id === id;
+    const isSelectedSelector = useMemo(() => createIsNodeSelectedSelector(id), [id]);
+    const isSelected = useCanvasStore(isSelectedSelector);
 
     return (
         <>
             <div className={`
-                px-6 py-3 rounded-full shadow-sm transition-all duration-200 transform
+                px-6 py-3 rounded-full shadow-sm
+                transition-[border-color,box-shadow,background-color,opacity] duration-200
                 flex items-center justify-center gap-2.5 
                 bg-white border
-                ${isSelected ? 'border-transparent ring-2 ring-blue-500 shadow-md scale-105' : 'border-gray-200/75'}
+                ${isSelected ? 'border-transparent ring-2 ring-blue-500 shadow-md' : 'border-gray-200/75'}
             `}>
                 <span className="text-green-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
