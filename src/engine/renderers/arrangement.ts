@@ -29,6 +29,9 @@ interface TimelineItem {
 interface TimelineData {
   events?: TimelineItem[];
   buttonText?: string;
+  importantTalks?: {
+    hint?: string;
+  };
 }
 
 export const renderMatching: NodeRenderer = (node, controls, context) => {
@@ -155,16 +158,83 @@ export const renderTimeline: NodeRenderer = (node, controls, context) => {
 
       controlsWrap.append(up, down);
       row.append(controlsWrap, text);
+      if (document.body.classList.contains("important-talks-theme")) {
+        row.classList.add("talks-timeline-card");
+        const grip = document.createElement("span");
+        grip.className = "talks-timeline-grip";
+        grip.setAttribute("aria-hidden", "true");
+        grip.textContent = "⠿";
+        row.appendChild(grip);
+      }
       list.appendChild(row);
     });
   };
 
   draw();
   controls.appendChild(list);
-  controls.appendChild(createActionButton(data.buttonText ?? "Проверить", () => {
+  const button = createActionButton(data.buttonText ?? "Проверить", () => {
     const correct = JSON.stringify(items.map((item) => item.id)) ===
       JSON.stringify(original.map((item) => item.id));
     context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
     context.continueFrom(node, correct ? "correct" : "incorrect");
-  }));
+  });
+  controls.appendChild(button);
+
+  enhanceImportantTalksTimelineScene(controls, data, list, button);
 };
+
+function enhanceImportantTalksTimelineScene(
+  controls: HTMLElement,
+  data: TimelineData,
+  list: HTMLElement,
+  button: HTMLButtonElement,
+): void {
+  if (!document.body.classList.contains("important-talks-theme")) return;
+  const container = controls.parentElement;
+  if (!container) return;
+
+  container.classList.add("talks-timeline-scene");
+  controls.classList.add("talks-timeline-stack");
+  list.classList.add("talks-timeline-list");
+  button.classList.add("talks-timeline-cta");
+
+  const media = findTimelineDirectChild(container, "media-frame");
+  const title = findTimelineDirectChild(container, "node-title");
+  const question = findTimelineDirectChild(container, "node-desc");
+
+  const prompt = document.createElement("section");
+  prompt.className = "talks-timeline-prompt";
+  if (media) {
+    prompt.appendChild(media);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "talks-timeline-media-fallback";
+    fallback.setAttribute("aria-hidden", "true");
+    prompt.appendChild(fallback);
+  }
+
+  const copy = document.createElement("div");
+  copy.className = "talks-timeline-copy";
+  if (title) copy.appendChild(title);
+  if (question) copy.appendChild(question);
+  prompt.appendChild(copy);
+
+  const hint = document.createElement("aside");
+  hint.className = "talks-activity-hint talks-timeline-hint";
+  const hintIcon = document.createElement("span");
+  hintIcon.setAttribute("aria-hidden", "true");
+  hintIcon.textContent = "☝";
+  const hintText = document.createElement("span");
+  hintText.textContent = data.importantTalks?.hint?.trim()
+    || "Переместите карточки в правильном порядке";
+  hint.append(hintIcon, hintText);
+  prompt.appendChild(hint);
+
+  container.insertBefore(prompt, controls);
+}
+
+function findTimelineDirectChild(container: HTMLElement, className: string): HTMLElement | null {
+  return Array.from(container.children).find(
+    (child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains(className),
+  ) ?? null;
+}

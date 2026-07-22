@@ -959,6 +959,7 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
     const answers: Answer[] = data.answers ?? [];
     const correctOptions: string[] = data.correctOptions ?? [];
     const screenQuiz = data.screenQuiz || {};
+    const importantTalks = data.importantTalks || {};
 
     const correctCount = correctOptions.length;
     const totalAnswers = answers.length;
@@ -1001,6 +1002,10 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
             }
         });
         update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
+    };
+
+    const updateImportantTalks = (patch: Partial<NonNullable<MultipleChoiceNodeData['importantTalks']>>) => {
+        update(id, { importantTalks: { ...importantTalks, ...patch } });
     };
 
     // Генерация превью выходов
@@ -1046,6 +1051,12 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                     value={data.videoUrl || ''} 
                     onChange={e => update(id, { videoUrl: e.target.value })} 
                     placeholder="https://.../video.mp4"
+                />
+                <Input
+                    label="Подсказка для «Разговоров о важном»"
+                    value={importantTalks.hint ?? ''}
+                    onChange={e => updateImportantTalks({ hint: e.target.value })}
+                    placeholder="Можно выбрать несколько вариантов"
                 />
             </SettingsSection>
 
@@ -1740,6 +1751,11 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
     const { id, data } = node;
     const { question = '' } = data;
     const events: TimelineEvent[] = data.events ?? [];
+    const importantTalks = data.importantTalks || {};
+
+    const updateImportantTalks = (patch: Partial<NonNullable<TimelineNodeData['importantTalks']>>) => {
+        update(id, { importantTalks: { ...importantTalks, ...patch } });
+    };
 
     const handleEventTextChange = (index: number, text: string) => {
         const newEvents = [...events];
@@ -1770,6 +1786,13 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
             <SettingsSection title="Содержимое вопроса">
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={3} />
+                <UrlInput label="Картинка (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} />
+                <Input
+                    label="Подсказка для «Разговоров о важном»"
+                    value={importantTalks.hint ?? ''}
+                    onChange={e => updateImportantTalks({ hint: e.target.value })}
+                    placeholder="Переместите карточки в правильном порядке"
+                />
             </SettingsSection>
             <SettingsSection title="События (в правильном порядке)">
                 <div className="space-y-2">
@@ -1927,12 +1950,42 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
 
 const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
+    const importantTalks = data.importantTalks || {};
+    const updateImportantTalks = (patch: Partial<NonNullable<TextInputNodeData['importantTalks']>>) => {
+        update(id, { importantTalks: { ...importantTalks, ...patch } });
+    };
     return (
         <div className="space-y-8">
             <SettingsSection title="Содержимое вопроса">
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={data.question || ''} onChange={e => update(id, { question: e.target.value })} rows={4} />
                 <UrlInput label="Картинка (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} />
+                <Input label="Placeholder поля" value={data.placeholder || ''} onChange={e => update(id, { placeholder: e.target.value })} placeholder="Ваш ответ..." />
+            </SettingsSection>
+            <SettingsSection title="Экран «Разговоров о важном»">
+                <Input
+                    label="Заголовок итоговой подсказки"
+                    value={importantTalks.insightTitle ?? ''}
+                    onChange={e => updateImportantTalks({ insightTitle: e.target.value })}
+                    placeholder="Ваше мнение важно"
+                />
+                <Textarea
+                    label="Текст итоговой подсказки"
+                    value={importantTalks.hint ?? ''}
+                    onChange={e => updateImportantTalks({ hint: e.target.value })}
+                    rows={3}
+                    placeholder="Ваш ответ поможет понять, что действительно имеет значение..."
+                />
+                <Input
+                    label="Максимум символов"
+                    type="number"
+                    min="50"
+                    max="1000"
+                    step="10"
+                    value={importantTalks.maxLength ?? ''}
+                    onChange={e => updateImportantTalks({ maxLength: parseOptionalNumber(e.target.value, 50, 1000, 300) })}
+                    placeholder="300"
+                />
             </SettingsSection>
             <SettingsSection title="Проверка ответа">
                 <HelperText>Ответ считается верным, если он содержит ключевое слово. Проверка нечувствительна к регистру.</HelperText>

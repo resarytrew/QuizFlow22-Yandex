@@ -16,6 +16,7 @@ interface ChoiceData {
   };
   importantTalks?: {
     instruction?: string;
+    hint?: string;
   };
 }
 
@@ -194,4 +195,58 @@ export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
   });
   updateConfirm();
   controls.appendChild(confirmButton);
+
+  enhanceImportantTalksMultipleChoiceScene(controls, data, confirmButton);
 };
+
+function enhanceImportantTalksMultipleChoiceScene(
+  controls: HTMLElement,
+  data: ChoiceData,
+  confirmButton: HTMLButtonElement,
+): void {
+  if (!document.body.classList.contains("important-talks-theme")) return;
+  const container = controls.parentElement;
+  if (!container) return;
+
+  container.classList.add("talks-multiple-scene");
+  controls.classList.add("talks-multiple-options");
+  confirmButton.classList.add("talks-multiple-cta");
+
+  const media = findDirectChild(container, "media-frame");
+  const title = findDirectChild(container, "node-title");
+  const question = findDirectChild(container, "node-desc");
+
+  const prompt = document.createElement("section");
+  prompt.className = "talks-multiple-prompt";
+  if (media) {
+    prompt.appendChild(media);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "talks-multiple-media-fallback";
+    fallback.setAttribute("aria-hidden", "true");
+    prompt.appendChild(fallback);
+  }
+
+  const copy = document.createElement("div");
+  copy.className = "talks-multiple-copy";
+  if (title) copy.appendChild(title);
+  if (question) copy.appendChild(question);
+  prompt.appendChild(copy);
+
+  const wave = document.createElement("div");
+  wave.className = "talks-activity-wave";
+  wave.setAttribute("aria-hidden", "true");
+  prompt.appendChild(wave);
+
+  const hint = document.createElement("aside");
+  hint.className = "talks-activity-hint talks-multiple-hint";
+  const hintIcon = document.createElement("span");
+  hintIcon.setAttribute("aria-hidden", "true");
+  hintIcon.textContent = "✦";
+  const hintText = document.createElement("span");
+  hintText.textContent = data.importantTalks?.hint?.trim() || "Можно выбрать несколько вариантов";
+  hint.append(hintIcon, hintText);
+  prompt.appendChild(hint);
+
+  container.insertBefore(prompt, controls);
+}

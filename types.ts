@@ -135,6 +135,7 @@ export interface MultipleChoiceNodeData extends BaseNodeData {
   maxScore?: number;
   penaltyPerError?: number;
   minScore?: number;
+  importantTalks?: ImportantTalksMultipleChoiceContent;
 }
 
 export interface ResultNodeData extends BaseNodeData {
@@ -155,6 +156,20 @@ export interface ImportantTalksQuestionContent {
 export interface ImportantTalksResultContent {
   kicker?: string;
   insightTitle?: string;
+}
+
+export interface ImportantTalksMultipleChoiceContent {
+  hint?: string;
+}
+
+export interface ImportantTalksTimelineContent {
+  hint?: string;
+}
+
+export interface ImportantTalksTextInputContent {
+  hint?: string;
+  insightTitle?: string;
+  maxLength?: number;
 }
 
 export interface InfoNodeData extends BaseNodeData {
@@ -217,6 +232,7 @@ export interface TimelineNodeData extends BaseNodeData {
   events?: TimelineEvent[];
   correctOrder?: string[];
   title?: string;
+  importantTalks?: ImportantTalksTimelineContent;
 }
 
 export interface MatchColumnItem {
@@ -242,6 +258,8 @@ export interface TextInputNodeData extends BaseNodeData {
   title?: string;
   question?: string;
   keyword?: string;
+  placeholder?: string;
+  importantTalks?: ImportantTalksTextInputContent;
 }
 
 export interface AchievementNodeData extends BaseNodeData {

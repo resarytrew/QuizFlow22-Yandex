@@ -8,6 +8,7 @@ import {
 import { importantTalksInfoSceneStyles } from './importantTalksInfoScene.ts';
 import { importantTalksQuestionSceneStyles } from './importantTalksQuestionScene.ts';
 import { importantTalksResultSceneStyles } from './importantTalksResultScene.ts';
+import { importantTalksActivitySceneStyles } from './importantTalksActivityScenes.ts';
 
 const importantTalksStyles = `
 <style id="important-talks-theme">
@@ -1001,7 +1002,7 @@ function replaceRequired(source: string, pattern: string | RegExp, replacement: 
 
 let importantTalksTemplate = defaultTemplate.replace(
   '</head>',
-  `${importantTalksStyles}\n${importantTalksShellStyles}\n${importantTalksInfoSceneStyles}\n${importantTalksQuestionSceneStyles}\n${importantTalksResultSceneStyles}\n</head>`,
+  `${importantTalksStyles}\n${importantTalksShellStyles}\n${importantTalksInfoSceneStyles}\n${importantTalksQuestionSceneStyles}\n${importantTalksResultSceneStyles}\n${importantTalksActivitySceneStyles}\n</head>`,
 );
 importantTalksTemplate = replaceRequired(
   importantTalksTemplate,
