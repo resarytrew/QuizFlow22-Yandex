@@ -1,11 +1,12 @@
 import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
-import { getState } from "../state";
+import { getState, getTimeSince } from "../state";
 import { parseText, sanitizeAssetUrl } from "../sanitize";
 import { saveResults } from "../persistence";
 import { getDesignSettings } from "../designState";
 
 interface BasicNodeData {
+  title?: string;
   buttonText?: string;
   characterAvatar?: string;
   characterName?: string;
@@ -286,8 +287,172 @@ function enhanceImportantTalksResultScene(
   insight.append(insightIcon, insightCopy);
   content.appendChild(insight);
 
+  const meta = buildImportantTalksResultMeta();
+  if (meta) content.appendChild(meta);
+
   container.insertBefore(visual, controls);
   container.insertBefore(content, controls);
+
+  enhanceImportantTalksResultTools(controls, data);
+}
+
+function buildImportantTalksResultMeta(): HTMLElement | null {
+  const state = getState();
+  const durationLabel = formatDuration(getTimeSince(state.startTime));
+  const achievements = state.achievements.length;
+
+  const meta = document.createElement("div");
+  meta.className = "talks-result-meta";
+  meta.setAttribute("aria-label", "Сводка прохождения");
+  meta.append(
+    createResultChip("Время в разговоре", durationLabel),
+    createResultChip("Достижений открыто", String(achievements)),
+  );
+  return meta;
+}
+
+function createResultChip(label: string, value: string): HTMLElement {
+  const chip = document.createElement("span");
+  chip.className = "talks-result-chip";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "talks-result-chip-label";
+  labelEl.textContent = label;
+
+  const valueEl = document.createElement("strong");
+  valueEl.className = "talks-result-chip-value";
+  valueEl.textContent = value;
+
+  chip.append(labelEl, document.createTextNode(": "), valueEl);
+  return chip;
+}
+
+function enhanceImportantTalksResultTools(
+  controls: HTMLElement,
+  data: BasicNodeData,
+): void {
+  const state = getState();
+  const scoreLabel = document.getElementById("hud-score-label")?.textContent?.trim() || "Искры добра";
+  const score = String(state.score);
+  const screens = String(state.path.length);
+  const durationLabel = formatDuration(getTimeSince(state.startTime));
+  const achievements = state.achievements.length;
+  const title =
+    String((data.title as string | undefined) ?? "").trim() || "Итоги разговора";
+
+  const summaryText = buildImportantTalksSummary({
+    title,
+    scoreLabel,
+    score,
+    screens,
+    durationLabel,
+    achievements,
+  });
+
+  const copyButton = document.createElement("button");
+  copyButton.type = "button";
+  copyButton.className = "action-btn talks-result-tool talks-result-copy";
+  copyButton.textContent = "Скопировать результат";
+  copyButton.addEventListener("click", async () => {
+    const ok = await copyTextToClipboard(summaryText);
+    copyButton.classList.toggle("is-done", ok);
+    copyButton.textContent = ok ? "Скопировано ✓" : "Не удалось скопировать";
+    window.setTimeout(() => {
+      copyButton.textContent = "Скопировать результат";
+      copyButton.classList.remove("is-done");
+    }, 2200);
+  });
+
+  const printButton = document.createElement("button");
+  printButton.type = "button";
+  printButton.className = "action-btn talks-result-tool talks-result-print";
+  printButton.textContent = "Версия для печати";
+  printButton.addEventListener("click", () => {
+    if (typeof window.print === "function") window.print();
+  });
+
+  const tools = document.createElement("div");
+  tools.className = "talks-result-tools";
+  tools.setAttribute("role", "group");
+  tools.setAttribute("aria-label", "Действия с результатом");
+
+  const existingTools = Array.from(
+    controls.querySelectorAll<HTMLElement>(".action-btn:not(.talks-result-cta)"),
+  );
+  for (const existing of existingTools) {
+    existing.classList.add("talks-result-tool");
+    tools.appendChild(existing);
+  }
+  tools.append(copyButton, printButton);
+  controls.appendChild(tools);
+}
+
+interface ResultSummaryInput {
+  title: string;
+  scoreLabel: string;
+  score: string;
+  screens: string;
+  durationLabel: string;
+  achievements: number;
+}
+
+function buildImportantTalksSummary(input: ResultSummaryInput): string {
+  return [
+    "Разговоры о важном — итоги",
+    `«${input.title}»`,
+    "",
+    `${input.scoreLabel}: ${input.score}`,
+    `Пройдено экранов: ${input.screens}`,
+    `Время в разговоре: ${input.durationLabel}`,
+    `Достижений открыто: ${input.achievements}`,
+  ].join("\n");
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Запасной вариант ниже.
+  }
+  try {
+    if (typeof document.execCommand === "function") {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "absolute";
+      area.style.left = "-9999px";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(area);
+      return ok;
+    }
+  } catch {
+    // Копирование недоступно в этом окружении.
+  }
+  return false;
+}
+
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+function formatDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  const minuteWord = plural(minutes, "минута", "минуты", "минут");
+  const secondWord = plural(remainder, "секунда", "секунды", "секунд");
+  if (minutes <= 0) return `${remainder} ${secondWord}`;
+  return `${minutes} ${minuteWord} ${remainder} ${secondWord}`;
 }
 
 function enhanceImportantTalksInfoScene(
