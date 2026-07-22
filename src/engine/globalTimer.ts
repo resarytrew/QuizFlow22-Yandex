@@ -8,9 +8,12 @@ export function setupGlobalTimer(
     return () => {};
   }
 
-  let remaining = config.duration;
+  const duration = Math.max(1, Math.round(config.duration));
+  let remaining = duration;
   const container = document.getElementById("global-timer-container");
   container?.classList.remove("hidden");
+  container?.setAttribute("role", "timer");
+  container?.setAttribute("aria-live", "polite");
 
   const render = () => {
     if (!container) return;
@@ -18,8 +21,12 @@ export function setupGlobalTimer(
     const seconds = remaining % 60;
     container.textContent =
       `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    container.setAttribute("aria-label", `Осталось ${remaining} секунд`);
+    container.style.setProperty("--talks-global-timer-progress", `${(remaining / duration) * 360}deg`);
+    container.classList.toggle("is-warning", remaining <= Math.max(30, Math.ceil(duration / 4)));
     container.classList.toggle("is-urgent", remaining <= 10);
     container.classList.toggle("text-red-600", remaining <= 10);
+    container.classList.toggle("is-expired", remaining === 0);
   };
 
   render();

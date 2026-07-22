@@ -38,7 +38,7 @@ describe('Important Talks template', () => {
     expect(importantTalksTemplate).toContain('id="important-talks-info-scene-v3"');
     expect(importantTalksTemplate).toContain('id="important-talks-question-scene-v4"');
     expect(importantTalksTemplate).toContain('id="important-talks-result-scene-v5"');
-    expect(importantTalksTemplate).toContain('id="important-talks-activity-scenes-v6"');
+    expect(importantTalksTemplate).toContain('id="important-talks-activity-scenes-v7"');
     expect(importantTalksTemplate).toContain('/assets/important-talks/family-values.webp');
     expect(importantTalksTemplate).toContain('/assets/important-talks/single-choice-friendship.webp');
     expect(importantTalksTemplate).toContain('/assets/important-talks/result-shared-values.webp');
@@ -49,6 +49,8 @@ describe('Important Talks template', () => {
     expect(importantTalksTemplate).toContain('class="talks-background-decor"');
     expect(importantTalksTemplate).toContain('data-node-type="multipleChoiceNode"');
     expect(importantTalksTemplate).toContain('.match-grid');
+    expect(importantTalksTemplate).toContain('.talks-inline-feedback');
+    expect(importantTalksTemplate).toContain('.talks-node-timer');
     expect(importantTalksTemplate).toContain('.timeline-container');
     expect(importantTalksTemplate).toContain('data-node-type="textInputNode"');
     expect(importantTalksTemplate).toContain('.dialogue-card');

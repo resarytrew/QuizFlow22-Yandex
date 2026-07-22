@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import type { Node } from 'reactflow';
 import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode } from '../types.ts';
+import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode, ImportantTalksInteractionContent } from '../types.ts';
 import DesignPanel from './DesignPanel.tsx';
 import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
@@ -142,6 +142,88 @@ const Checkbox = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElemen
 
 const HelperText = ({ children }: { children?: React.ReactNode }) => (
     <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200/75 p-2.5 rounded-lg">{children}</p>
+);
+
+const ImportantTalksInteractionSettings = ({
+    timer,
+    content,
+    updateTimer,
+    updateContent,
+    includeTimer = true,
+}: {
+    timer?: number;
+    content: ImportantTalksInteractionContent;
+    updateTimer: (timer: number | undefined) => void;
+    updateContent: (patch: Partial<ImportantTalksInteractionContent>) => void;
+    includeTimer?: boolean;
+}) => (
+    <SettingsSection title="Фидбэк и таймер «Разговоров о важном»">
+        <HelperText>Эти параметры действуют только в тематическом шаблоне. После ответа участник увидит объяснение и сам продолжит прохождение.</HelperText>
+        {includeTimer && (
+            <>
+                <Checkbox
+                    label="Включить таймер на этом экране"
+                    checked={Boolean(timer && timer > 0)}
+                    onChange={event => updateTimer(event.target.checked ? 30 : undefined)}
+                />
+                {Boolean(timer && timer > 0) && (
+                    <Input
+                        label="Время на ответ, секунд"
+                        type="number"
+                        min="1"
+                        max="3600"
+                        value={timer ?? 30}
+                        onChange={event => updateTimer(parseOptionalNumber(event.target.value, 1, 3600, 30))}
+                    />
+                )}
+            </>
+        )}
+        <Input
+            label="Заголовок правильного ответа"
+            value={content.correctTitle ?? ''}
+            onChange={event => updateContent({ correctTitle: event.target.value })}
+            placeholder="Вы зажгли искру добра"
+        />
+        <Textarea
+            label="Пояснение правильного ответа"
+            value={content.correctText ?? ''}
+            onChange={event => updateContent({ correctText: event.target.value })}
+            rows={2}
+            placeholder="Почему этот ответ важен"
+        />
+        <Input
+            label="Заголовок неверного ответа"
+            value={content.incorrectTitle ?? ''}
+            onChange={event => updateContent({ incorrectTitle: event.target.value })}
+            placeholder="Посмотрите на ситуацию ещё раз"
+        />
+        <Textarea
+            label="Пояснение неверного ответа"
+            value={content.incorrectText ?? ''}
+            onChange={event => updateContent({ incorrectText: event.target.value })}
+            rows={2}
+            placeholder="Подсказка без раскрытия ответа"
+        />
+        <Input
+            label="Заголовок по окончании времени"
+            value={content.timeoutTitle ?? ''}
+            onChange={event => updateContent({ timeoutTitle: event.target.value })}
+            placeholder="Продолжим размышление"
+        />
+        <Textarea
+            label="Текст по окончании времени"
+            value={content.timeoutText ?? ''}
+            onChange={event => updateContent({ timeoutText: event.target.value })}
+            rows={2}
+            placeholder="Можно двигаться дальше — важные ответы иногда приходят не сразу"
+        />
+        <Input
+            label="Текст кнопки фидбэка"
+            value={content.feedbackButtonText ?? ''}
+            onChange={event => updateContent({ feedbackButtonText: event.target.value })}
+            placeholder="Продолжить"
+        />
+    </SettingsSection>
 );
 
 const MarkdownPreview = ({ text }: { text?: string }) => {
@@ -935,6 +1017,13 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                     />
                 )}
             </SettingsSection>
+            <ImportantTalksInteractionSettings
+                timer={timer}
+                content={importantTalks}
+                updateTimer={nextTimer => update(id, { timer: nextTimer })}
+                updateContent={updateImportantTalks}
+                includeTimer={false}
+            />
             <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
@@ -1319,6 +1408,12 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                 />
             </SettingsSection>
 
+            <ImportantTalksInteractionSettings
+                timer={data.timer}
+                content={importantTalks}
+                updateTimer={nextTimer => update(id, { timer: nextTimer })}
+                updateContent={updateImportantTalks}
+            />
             <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
@@ -1824,6 +1919,12 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Проверить" />
             </SettingsSection>
+            <ImportantTalksInteractionSettings
+                timer={data.timer}
+                content={importantTalks}
+                updateTimer={nextTimer => update(id, { timer: nextTimer })}
+                updateContent={updateImportantTalks}
+            />
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
@@ -1835,6 +1936,11 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     const leftColumn: MatchColumnItem[] = data.leftColumn ?? [];
     const rightColumn: MatchColumnItem[] = data.rightColumn ?? [];
     const correctPairs: MatchPair[] = data.correctPairs ?? [];
+    const importantTalks = data.importantTalks || {};
+
+    const updateImportantTalks = (patch: Partial<NonNullable<MatchingNodeData['importantTalks']>>) => {
+        update(id, { importantTalks: { ...importantTalks, ...patch } });
+    };
 
     const handleColumnChange = (columnIndex: 'leftColumn' | 'rightColumn', itemIndex: number, prop: 'text' | 'imageUrl', value: string) => {
         const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
@@ -1914,6 +2020,24 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
             <SettingsSection title="Содержимое вопроса">
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={3} />
+                <Input
+                    label="Подсказка для «Разговоров о важном»"
+                    value={importantTalks.hint ?? ''}
+                    onChange={event => updateImportantTalks({ hint: event.target.value })}
+                    placeholder="Выберите ценность слева, затем подходящий пример справа"
+                />
+                <Input
+                    label="Название левой колонки"
+                    value={importantTalks.leftTitle ?? ''}
+                    onChange={event => updateImportantTalks({ leftTitle: event.target.value })}
+                    placeholder="Ценность"
+                />
+                <Input
+                    label="Название правой колонки"
+                    value={importantTalks.rightTitle ?? ''}
+                    onChange={event => updateImportantTalks({ rightTitle: event.target.value })}
+                    placeholder="Пример поведения"
+                />
             </SettingsSection>
             <HelperText>Для каждого элемента укажите либо текст, либо URL изображения.</HelperText>
             {renderColumnEditor('Левая колонка', leftColumn, 'leftColumn')}
@@ -1943,6 +2067,12 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Проверить" />
             </SettingsSection>
+            <ImportantTalksInteractionSettings
+                timer={data.timer}
+                content={importantTalks}
+                updateTimer={nextTimer => update(id, { timer: nextTimer })}
+                updateContent={updateImportantTalks}
+            />
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
@@ -1992,6 +2122,12 @@ const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNo
                 <Input label="Ключевое слово" value={data.keyword || ''} onChange={e => update(id, { keyword: e.target.value })} />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Проверить" />
             </SettingsSection>
+            <ImportantTalksInteractionSettings
+                timer={data.timer}
+                content={importantTalks}
+                updateTimer={nextTimer => update(id, { timer: nextTimer })}
+                updateContent={updateImportantTalks}
+            />
              <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );

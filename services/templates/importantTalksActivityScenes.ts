@@ -1,8 +1,9 @@
 export const importantTalksActivitySceneStyles = `
-<style id="important-talks-activity-scenes-v6">
+<style id="important-talks-activity-scenes-v7">
   body.important-talks-theme #quiz-view:has(> .talks-text-scene),
   body.important-talks-theme #quiz-view:has(> .talks-multiple-scene),
-  body.important-talks-theme #quiz-view:has(> .talks-timeline-scene) {
+  body.important-talks-theme #quiz-view:has(> .talks-timeline-scene),
+  body.important-talks-theme #quiz-view:has(> .talks-matching-scene) {
     width: 100%;
     max-width: none !important;
     min-height: clamp(500px, calc(100dvh - 280px), 620px);
@@ -19,7 +20,9 @@ export const importantTalksActivitySceneStyles = `
   body.important-talks-theme #quiz-view:has(> .talks-multiple-scene)::before,
   body.important-talks-theme #quiz-view:has(> .talks-multiple-scene)::after,
   body.important-talks-theme #quiz-view:has(> .talks-timeline-scene)::before,
-  body.important-talks-theme #quiz-view:has(> .talks-timeline-scene)::after {
+  body.important-talks-theme #quiz-view:has(> .talks-timeline-scene)::after,
+  body.important-talks-theme #quiz-view:has(> .talks-matching-scene)::before,
+  body.important-talks-theme #quiz-view:has(> .talks-matching-scene)::after {
     display: none;
   }
 
@@ -492,10 +495,499 @@ export const importantTalksActivitySceneStyles = `
     box-shadow: 0 4px 10px rgba(22, 49, 110, 0.08);
   }
 
+  body.important-talks-theme .talks-timeline-grip {
+    width: 36px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #a9b4c9;
+    font: inherit;
+    font-size: 1.45rem;
+    letter-spacing: -0.2em;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  body.important-talks-theme .talks-timeline-grip:hover {
+    background: #edf5ff;
+    color: var(--talks-blue);
+  }
+
+  body.important-talks-theme .talks-timeline-grip:focus-visible {
+    outline: 3px solid rgba(23, 108, 233, 0.26);
+    outline-offset: 2px;
+  }
+
+  body.important-talks-theme .talks-timeline-card.is-dragging {
+    z-index: 8;
+    border-color: rgba(23, 108, 233, 0.5);
+    box-shadow: 0 20px 42px rgba(14, 66, 166, 0.22);
+    transform: scale(1.018) rotate(-0.25deg);
+  }
+
+  body.talks-timeline-dragging {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  body.important-talks-theme .timeline-order-live {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  body.important-talks-theme .talks-matching-scene {
+    width: 100%;
+    min-height: inherit;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  body.important-talks-theme .talks-matching-instruction {
+    min-height: 96px;
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 180px;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 28px;
+    border: 1px solid rgba(11, 82, 214, 0.08);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 12px 32px rgba(25, 55, 118, 0.1);
+    grid-column: 1 / -1;
+  }
+
+  body.important-talks-theme .talks-matching-instruction-icon {
+    width: 62px;
+    height: 62px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    border: 4px solid white;
+    border-radius: 50%;
+    background: linear-gradient(155deg, #176ce9, #073aab);
+    color: white;
+    font-size: 1.55rem;
+    font-weight: 900;
+    box-shadow: 0 8px 18px rgba(11, 82, 214, 0.22);
+  }
+
+  body.important-talks-theme .talks-matching-instruction-copy {
+    min-width: 0;
+    z-index: 2;
+    display: grid;
+    gap: 3px;
+  }
+
+  body.important-talks-theme .talks-matching-instruction .node-title {
+    margin: 0;
+    color: var(--talks-blue);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  body.important-talks-theme .talks-matching-instruction .node-desc {
+    margin: 0;
+    color: var(--talks-ink);
+    font-size: clamp(1.15rem, 1.65vw, 1.7rem);
+    font-weight: 760;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  body.important-talks-theme .talks-matching-hint {
+    margin: 4px 0 0;
+    color: #46618f;
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+
+  body.important-talks-theme .talks-matching-branch {
+    width: 160px;
+    height: 96px;
+    position: absolute;
+    right: 12px;
+    bottom: -20px;
+    opacity: 0.55;
+    background:
+      radial-gradient(circle at 74% 18%, #82aef2 0 4px, transparent 5px),
+      radial-gradient(circle at 52% 43%, #9fc1f4 0 4px, transparent 5px),
+      linear-gradient(128deg, transparent 48%, #a9c7f2 49% 51%, transparent 52%);
+    transform: rotate(-8deg);
+  }
+
+  body.important-talks-theme .talks-matching-workspace {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: 10px !important;
+    padding: 14px 18px 16px;
+    border: 1px solid rgba(11, 82, 214, 0.08);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 17px 42px rgba(25, 55, 118, 0.11);
+    grid-column: 1 / -1;
+  }
+
+  body.important-talks-theme .talks-matching-grid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(46px, 7vw, 112px);
+    align-content: center;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-col {
+    min-width: 0;
+    display: grid;
+    align-content: center;
+    gap: 8px;
+  }
+
+  body.important-talks-theme .match-col-title {
+    width: fit-content;
+    min-width: 170px;
+    margin: 0 auto 2px;
+    padding: 6px 20px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #176ce9, #073aab);
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.055em;
+    text-align: center;
+    text-transform: uppercase;
+    box-shadow: 0 6px 14px rgba(11, 82, 214, 0.18);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item {
+    min-height: 62px;
+    position: relative;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: center;
+    gap: 13px;
+    padding: 8px 16px 8px 10px;
+    border: 1px solid #dce3ef;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.98);
+    color: var(--talks-ink);
+    text-align: left;
+    box-shadow: 0 7px 18px rgba(22, 49, 110, 0.07);
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, opacity 180ms ease;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item::before,
+  body.important-talks-theme .talks-matching-grid .match-item::after {
+    content: none;
+    display: none;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item:hover {
+    border-color: rgba(23, 108, 233, 0.48);
+    box-shadow: 0 10px 24px rgba(22, 78, 184, 0.12);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item:focus-visible {
+    outline: 3px solid rgba(23, 108, 233, 0.24);
+    outline-offset: 2px;
+  }
+
+  body.important-talks-theme .match-item-marker {
+    width: 42px;
+    height: 42px;
+    grid-column: 1;
+    grid-row: 1;
+    display: grid;
+    place-items: center;
+    border: 3px solid white;
+    border-radius: 50%;
+    color: white;
+    font-weight: 900;
+    box-shadow: 0 5px 12px rgba(11, 82, 214, 0.18);
+  }
+
+  body.important-talks-theme .match-item-marker-left {
+    background: linear-gradient(155deg, #176ce9, #073aab);
+  }
+
+  body.important-talks-theme .match-item-marker-right {
+    background: linear-gradient(155deg, #f34b4f, #d51e28);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item-text {
+    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
+    font-size: clamp(0.9rem, 1.1vw, 1.08rem);
+    font-weight: 630;
+    line-height: 1.25;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item:has(.match-item-image) {
+    grid-template-columns: 46px 52px minmax(0, 1fr);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item-image {
+    width: 48px;
+    height: 48px;
+    grid-column: 2;
+    grid-row: 1;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item:has(.match-item-image) .match-item-text {
+    grid-column: 3;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item.selected {
+    border-color: var(--talks-blue);
+    background: #edf5ff;
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-item.matched {
+    border-color: rgba(23, 108, 233, 0.32);
+    background: color-mix(in srgb, #edf5ff 72%, white);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-col:first-child .match-item.matched::after,
+  body.important-talks-theme .talks-matching-grid .match-col:last-child .match-item.matched::before {
+    content: "";
+    display: block;
+    width: clamp(23px, 3.5vw, 56px);
+    position: absolute;
+    top: 50%;
+    border-top: 2px dashed rgba(23, 108, 233, 0.44);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-col:first-child .match-item.matched::after {
+    right: calc(clamp(23px, 3.5vw, 56px) * -1);
+  }
+
+  body.important-talks-theme .talks-matching-grid .match-col:last-child .match-item.matched::before {
+    left: calc(clamp(23px, 3.5vw, 56px) * -1);
+  }
+
+  body.important-talks-theme .talks-matching-status {
+    margin: 0;
+    color: #4a6592;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  body.important-talks-theme .talks-matching-cta {
+    width: min(480px, 100%);
+    min-height: 58px;
+    justify-self: center;
+    margin: 0;
+    border: 4px solid rgba(255, 255, 255, 0.9);
+    border-radius: 22px;
+    background: linear-gradient(180deg, #176ce9, #073aab);
+    color: white;
+    font-size: 1.08rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    box-shadow: 0 10px 22px rgba(8, 62, 166, 0.22);
+  }
+
+  body.important-talks-theme .talks-matching-cta:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+
+  body.important-talks-theme .talks-node-timer {
+    --talks-node-timer-progress: 360deg;
+    min-width: 158px;
+    min-height: 58px;
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 14;
+    display: grid;
+    grid-template-columns: 42px auto;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px 7px 8px;
+    border: 1px solid rgba(11, 82, 214, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--talks-blue);
+    box-shadow: 0 10px 24px rgba(25, 55, 118, 0.12);
+    backdrop-filter: blur(10px);
+  }
+
+  body.important-talks-theme .talks-node-timer-dial {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    display: block;
+    border-radius: 50%;
+    background: conic-gradient(currentColor var(--talks-node-timer-progress), #e6edf7 0);
+  }
+
+  body.important-talks-theme .talks-node-timer-dial::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: inherit;
+    background: white;
+  }
+
+  body.important-talks-theme .talks-node-timer-copy {
+    display: grid;
+    line-height: 1.05;
+  }
+
+  body.important-talks-theme .talks-node-timer-label {
+    color: #60749a;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  body.important-talks-theme .talks-node-timer-value {
+    margin-top: 3px;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+  }
+
+  body.important-talks-theme .talks-node-timer.is-warning {
+    color: #b77900;
+  }
+
+  body.important-talks-theme .talks-node-timer.is-urgent,
+  body.important-talks-theme .talks-node-timer.is-expired {
+    border-color: rgba(213, 30, 40, 0.2);
+    color: var(--talks-red);
+    background: rgba(255, 247, 247, 0.96);
+  }
+
+  body.important-talks-theme .has-talks-node-timer .talks-text-response,
+  body.important-talks-theme .has-talks-node-timer .talks-multiple-options,
+  body.important-talks-theme .has-talks-node-timer .talks-timeline-stack {
+    padding-top: 80px;
+  }
+
+  body.important-talks-theme .talks-feedback-open > :not(.talks-inline-feedback):not(.talks-node-timer) {
+    opacity: 0.28;
+    pointer-events: none;
+  }
+
+  body.important-talks-theme .talks-inline-feedback {
+    width: min(700px, calc(100% - 40px));
+    min-height: 230px;
+    position: absolute;
+    inset: 50% auto auto 50%;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    gap: 20px 24px;
+    padding: 30px 34px;
+    border: 1px solid rgba(11, 82, 214, 0.12);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.98);
+    color: var(--talks-ink);
+    box-shadow: 0 28px 76px rgba(15, 49, 116, 0.28), inset 0 1px 0 white;
+    transform: translate(-50%, -50%);
+  }
+
+  body.important-talks-theme .talks-inline-feedback-mark {
+    width: 82px;
+    height: 82px;
+    grid-row: 1;
+    display: grid;
+    place-items: center;
+    border: 5px solid white;
+    border-radius: 50% 50% 50% 18px;
+    background: linear-gradient(155deg, #176ce9, #073aab);
+    color: white;
+    font-size: 2rem;
+    font-weight: 900;
+    box-shadow: 0 10px 24px rgba(11, 82, 214, 0.24);
+  }
+
+  body.important-talks-theme .talks-inline-feedback.is-incorrect .talks-inline-feedback-mark,
+  body.important-talks-theme .talks-inline-feedback.is-timeout .talks-inline-feedback-mark {
+    background: linear-gradient(155deg, #f05256, #d51e28);
+    box-shadow: 0 10px 24px rgba(213, 30, 40, 0.2);
+  }
+
+  body.important-talks-theme .talks-inline-feedback-body {
+    min-width: 0;
+  }
+
+  body.important-talks-theme .talks-inline-feedback-kicker {
+    color: var(--talks-blue);
+    font-size: 0.73rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  body.important-talks-theme .talks-inline-feedback.is-incorrect .talks-inline-feedback-kicker,
+  body.important-talks-theme .talks-inline-feedback.is-timeout .talks-inline-feedback-kicker {
+    color: var(--talks-red);
+  }
+
+  body.important-talks-theme .talks-inline-feedback h2 {
+    margin: 5px 0 8px;
+    color: var(--talks-ink);
+    font-size: clamp(1.45rem, 2.2vw, 2.05rem);
+    font-weight: 850;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+
+  body.important-talks-theme .talks-inline-feedback p {
+    max-width: 56ch;
+    margin: 0;
+    color: #53688f;
+    font-size: 0.96rem;
+    line-height: 1.5;
+  }
+
+  body.important-talks-theme .talks-inline-feedback-button {
+    min-height: 54px;
+    grid-column: 2;
+    justify-self: start;
+    padding: 11px 30px;
+    border: 3px solid white;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #176ce9, #073aab);
+    color: white;
+    font-size: 0.98rem;
+    font-weight: 850;
+    box-shadow: 0 9px 20px rgba(8, 62, 166, 0.2);
+  }
+
   @media (max-width: 1380px) {
     body.important-talks-theme #quiz-view:has(> .talks-text-scene),
     body.important-talks-theme #quiz-view:has(> .talks-multiple-scene),
-    body.important-talks-theme #quiz-view:has(> .talks-timeline-scene) {
+    body.important-talks-theme #quiz-view:has(> .talks-timeline-scene),
+    body.important-talks-theme #quiz-view:has(> .talks-matching-scene) {
       min-height: clamp(470px, calc(100dvh - 240px), 540px);
     }
 
@@ -562,12 +1054,21 @@ export const importantTalksActivitySceneStyles = `
       width: 44px;
       height: 44px;
     }
+
+    body.important-talks-theme .talks-matching-instruction {
+      min-height: 86px;
+    }
+
+    body.important-talks-theme .talks-matching-grid .match-item {
+      min-height: 56px;
+    }
   }
 
   @media (max-width: 900px) {
     body.important-talks-theme #quiz-view:has(> .talks-text-scene),
     body.important-talks-theme #quiz-view:has(> .talks-multiple-scene),
-    body.important-talks-theme #quiz-view:has(> .talks-timeline-scene) {
+    body.important-talks-theme #quiz-view:has(> .talks-timeline-scene),
+    body.important-talks-theme #quiz-view:has(> .talks-matching-scene) {
       min-height: 0;
     }
 
@@ -583,6 +1084,14 @@ export const importantTalksActivitySceneStyles = `
     body.important-talks-theme .talks-multiple-prompt,
     body.important-talks-theme .talks-timeline-prompt {
       min-height: 420px;
+    }
+
+    body.important-talks-theme .talks-matching-scene {
+      grid-template-rows: auto auto;
+    }
+
+    body.important-talks-theme .talks-matching-grid {
+      gap: 32px;
     }
   }
 
@@ -689,6 +1198,137 @@ export const importantTalksActivitySceneStyles = `
       border-width: 3px;
       border-radius: 20px;
       font-size: 1.05rem;
+    }
+
+    body.important-talks-theme .talks-matching-instruction {
+      min-height: 0;
+      grid-template-columns: 50px minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 21px;
+    }
+
+    body.important-talks-theme .talks-matching-instruction-icon {
+      width: 46px;
+      height: 46px;
+      border-width: 3px;
+      font-size: 1.1rem;
+    }
+
+    body.important-talks-theme .talks-matching-branch {
+      display: none;
+    }
+
+    body.important-talks-theme .talks-matching-instruction .node-desc {
+      font-size: 1.05rem;
+    }
+
+    body.important-talks-theme .talks-matching-hint {
+      font-size: 0.75rem;
+    }
+
+    body.important-talks-theme .talks-matching-workspace {
+      padding: 10px;
+      border-radius: 22px;
+    }
+
+    body.important-talks-theme .talks-matching-grid {
+      gap: 14px;
+    }
+
+    body.important-talks-theme .match-col-title {
+      min-width: 0;
+      width: 100%;
+      padding-inline: 8px;
+      font-size: 0.61rem;
+    }
+
+    body.important-talks-theme .talks-matching-grid .match-item {
+      min-height: 68px;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 8px;
+      padding: 7px 8px 7px 6px;
+      border-radius: 15px;
+    }
+
+    body.important-talks-theme .match-item-marker {
+      width: 32px;
+      height: 32px;
+      border-width: 2px;
+      font-size: 0.8rem;
+    }
+
+    body.important-talks-theme .talks-matching-grid .match-item-text {
+      font-size: 0.76rem;
+    }
+
+    body.important-talks-theme .talks-matching-grid .match-item:has(.match-item-image) {
+      grid-template-columns: 34px 38px minmax(0, 1fr);
+    }
+
+    body.important-talks-theme .talks-matching-grid .match-item-image {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+    }
+
+    body.important-talks-theme .talks-matching-grid .match-col:first-child .match-item.matched::after,
+    body.important-talks-theme .talks-matching-grid .match-col:last-child .match-item.matched::before {
+      display: none;
+    }
+
+    body.important-talks-theme .talks-matching-cta {
+      min-height: 56px;
+      border-width: 3px;
+      border-radius: 18px;
+      font-size: 0.98rem;
+    }
+
+    body.important-talks-theme .talks-node-timer {
+      min-width: 142px;
+      min-height: 52px;
+      top: 8px;
+      right: 8px;
+      grid-template-columns: 36px auto;
+      border-radius: 16px;
+    }
+
+    body.important-talks-theme .talks-node-timer-dial {
+      width: 34px;
+      height: 34px;
+    }
+
+    body.important-talks-theme .has-talks-node-timer .talks-matching-instruction {
+      padding-top: 70px;
+    }
+
+    body.important-talks-theme .talks-inline-feedback {
+      width: calc(100% - 20px);
+      min-height: 0;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 14px;
+      padding: 22px 18px;
+      border-radius: 22px;
+    }
+
+    body.important-talks-theme .talks-inline-feedback-mark {
+      width: 56px;
+      height: 56px;
+      border-width: 3px;
+      font-size: 1.35rem;
+    }
+
+    body.important-talks-theme .talks-inline-feedback h2 {
+      font-size: 1.25rem;
+    }
+
+    body.important-talks-theme .talks-inline-feedback p {
+      font-size: 0.84rem;
+    }
+
+    body.important-talks-theme .talks-inline-feedback-button {
+      grid-column: 1 / -1;
+      justify-self: stretch;
     }
   }
 

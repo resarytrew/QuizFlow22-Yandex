@@ -313,6 +313,7 @@ export const importantTalksShellStyles = `
   body.important-talks-theme .talks-divider { display: none; }
 
   body.important-talks-theme .timer-pill {
+    --talks-global-timer-progress: 360deg;
     width: 66px;
     min-width: 66px;
     height: 66px;
@@ -320,9 +321,13 @@ export const importantTalksShellStyles = `
     display: grid;
     place-items: center;
     padding: 0;
-    border: 3px solid var(--talks-blue);
+    position: relative;
+    isolation: isolate;
+    border: 5px solid transparent;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.86);
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98)) padding-box,
+      conic-gradient(currentColor var(--talks-global-timer-progress), #dfe8f5 0) border-box;
     color: var(--talks-blue);
     font-size: 0.95rem;
     font-weight: 800;
@@ -333,6 +338,16 @@ export const importantTalksShellStyles = `
   body.important-talks-theme .timer-pill::before,
   body.important-talks-theme .timer-pill::after {
     display: none;
+  }
+
+  body.important-talks-theme .timer-pill.is-warning {
+    color: #b77900;
+  }
+
+  body.important-talks-theme .timer-pill.is-urgent,
+  body.important-talks-theme .timer-pill.is-expired,
+  body.important-talks-theme .timer-pill.text-red-600 {
+    color: var(--talks-red);
   }
 
   body.important-talks-theme .talks-score {

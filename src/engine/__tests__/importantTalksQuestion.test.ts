@@ -52,7 +52,7 @@ describe('Important Talks single-choice scene', () => {
     expect(document.querySelectorAll('.talks-question-options .option-marker')).toHaveLength(4);
   });
 
-  it('keeps the existing answer transition contract', () => {
+  it('shows feedback before continuing to the selected answer route', () => {
     vi.useFakeTimers();
     document.body.classList.add('important-talks-theme');
     const processNode = vi.fn();
@@ -72,7 +72,9 @@ describe('Important Talks single-choice scene', () => {
     expect(answers.every((answer) => answer.disabled)).toBe(true);
     expect(processNode).not.toHaveBeenCalled();
 
-    vi.advanceTimersByTime(260);
+    const continueButton = document.querySelector<HTMLButtonElement>('.talks-inline-feedback-button');
+    expect(continueButton).not.toBeNull();
+    continueButton?.click();
     expect(processNode).toHaveBeenCalledWith('next');
   });
 

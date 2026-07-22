@@ -59,6 +59,7 @@ export interface BaseNodeData {
   isRequiredWatch?: boolean; // Block navigation until video ends
   backgroundImageUrl?: string;
   buttonText?: string;
+  timer?: number;
   soundSettings?: NodeSoundSettings;
   parentId?: string;
   screenQuiz?: Partial<ScreenQuizSettings>;
@@ -149,7 +150,17 @@ export interface ImportantTalksInfoContent {
   agendaItems?: string[];
 }
 
-export interface ImportantTalksQuestionContent {
+export interface ImportantTalksInteractionContent {
+  correctTitle?: string;
+  correctText?: string;
+  incorrectTitle?: string;
+  incorrectText?: string;
+  timeoutTitle?: string;
+  timeoutText?: string;
+  feedbackButtonText?: string;
+}
+
+export interface ImportantTalksQuestionContent extends ImportantTalksInteractionContent {
   instruction?: string;
 }
 
@@ -158,18 +169,24 @@ export interface ImportantTalksResultContent {
   insightTitle?: string;
 }
 
-export interface ImportantTalksMultipleChoiceContent {
+export interface ImportantTalksMultipleChoiceContent extends ImportantTalksInteractionContent {
   hint?: string;
 }
 
-export interface ImportantTalksTimelineContent {
+export interface ImportantTalksTimelineContent extends ImportantTalksInteractionContent {
   hint?: string;
 }
 
-export interface ImportantTalksTextInputContent {
+export interface ImportantTalksTextInputContent extends ImportantTalksInteractionContent {
   hint?: string;
   insightTitle?: string;
   maxLength?: number;
+}
+
+export interface ImportantTalksMatchingContent extends ImportantTalksInteractionContent {
+  hint?: string;
+  leftTitle?: string;
+  rightTitle?: string;
 }
 
 export interface InfoNodeData extends BaseNodeData {
@@ -252,6 +269,7 @@ export interface MatchingNodeData extends BaseNodeData {
   rightColumn?: MatchColumnItem[];
   correctPairs?: MatchPair[];
   title?: string;
+  importantTalks?: ImportantTalksMatchingContent;
 }
 
 export interface TextInputNodeData extends BaseNodeData {

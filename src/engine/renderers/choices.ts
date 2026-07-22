@@ -3,6 +3,10 @@ import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { parseText } from "../sanitize";
 import { getDesignSettings } from "../designState";
+import {
+  setupImportantTalksInteraction,
+  type ImportantTalksInteractionController,
+} from "../importantTalksInteraction";
 
 interface ChoiceData {
   answers?: Answer[];
@@ -11,12 +15,20 @@ interface ChoiceData {
   minSelections?: number;
   maxSelections?: number;
   buttonText?: string;
+  timer?: number;
   soundSettings?: {
     onButtonPress?: string;
   };
   importantTalks?: {
     instruction?: string;
     hint?: string;
+    correctTitle?: string;
+    correctText?: string;
+    incorrectTitle?: string;
+    incorrectText?: string;
+    timeoutTitle?: string;
+    timeoutText?: string;
+    feedbackButtonText?: string;
   };
 }
 
@@ -127,6 +139,7 @@ function enhanceImportantTalksQuestionScene(
 export const renderQuestion: NodeRenderer = (node, controls, context) => {
   const data = node.data as ChoiceData;
   const buttons: HTMLButtonElement[] = [];
+  let interaction: ImportantTalksInteractionController | null = null;
 
   (data.answers ?? data.options ?? []).forEach((answer, index) => {
     const button = createAnswerButton(answer, index);
@@ -135,17 +148,26 @@ export const renderQuestion: NodeRenderer = (node, controls, context) => {
       button.setAttribute("aria-pressed", "true");
       for (const item of buttons) item.disabled = true;
 
-      context.playSound(
-        answer.isCorrect ? "correctAnswer" : "incorrectAnswer",
-        data.soundSettings?.onButtonPress,
-      );
-      setTimeout(() => context.continueFrom(node, answer.id ?? String(index)), 260);
+      if (interaction) {
+        interaction.complete({
+          outcome: answer.isCorrect ? "correct" : "incorrect",
+          handles: [answer.id ?? String(index)],
+          soundOverride: data.soundSettings?.onButtonPress,
+        });
+      } else {
+        context.playSound(
+          answer.isCorrect ? "correctAnswer" : "incorrectAnswer",
+          data.soundSettings?.onButtonPress,
+        );
+        setTimeout(() => context.continueFrom(node, answer.id ?? String(index)), 260);
+      }
     });
     buttons.push(button);
     controls.appendChild(button);
   });
 
   enhanceImportantTalksQuestionScene(controls, data);
+  interaction = setupImportantTalksInteraction(node, controls, context);
 };
 
 export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
@@ -155,6 +177,7 @@ export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
   const min = Math.max(0, Number(data.minSelections ?? 0));
   const max = Math.max(min, Number(data.maxSelections ?? answers.length));
   let confirmButton: HTMLButtonElement | null = null;
+  let interaction: ImportantTalksInteractionController | null = null;
 
   const updateConfirm = () => {
     if (!confirmButton) return;
@@ -188,15 +211,23 @@ export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
     const hits = values.filter((id) => correct.includes(id)).length;
     const hasWrong = values.some((id) => !correct.includes(id));
     const isCorrect = hits === correct.length && !hasWrong && values.length === correct.length;
-    context.playSound(isCorrect ? "correctAnswer" : "incorrectAnswer");
-    if (!context.continueFrom(node, `correct-${hits}`)) {
-      context.continueFrom(node, isCorrect ? "correct" : "incorrect");
+    if (interaction) {
+      interaction.complete({
+        outcome: isCorrect ? "correct" : "incorrect",
+        handles: [`correct-${hits}`, isCorrect ? "correct" : "incorrect"],
+      });
+    } else {
+      context.playSound(isCorrect ? "correctAnswer" : "incorrectAnswer");
+      if (!context.continueFrom(node, `correct-${hits}`)) {
+        context.continueFrom(node, isCorrect ? "correct" : "incorrect");
+      }
     }
   });
   updateConfirm();
   controls.appendChild(confirmButton);
 
   enhanceImportantTalksMultipleChoiceScene(controls, data, confirmButton);
+  interaction = setupImportantTalksInteraction(node, controls, context);
 };
 
 function enhanceImportantTalksMultipleChoiceScene(

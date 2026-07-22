@@ -1,16 +1,28 @@
 import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { getState, setVariable } from "../state";
+import {
+  setupImportantTalksInteraction,
+  type ImportantTalksInteractionController,
+} from "../importantTalksInteraction";
 
 interface TextInputData {
   placeholder?: string;
   buttonText?: string;
   acceptedAnswers?: unknown[];
   keyword?: string;
+  timer?: number;
   importantTalks?: {
     hint?: string;
     insightTitle?: string;
     maxLength?: number;
+    correctTitle?: string;
+    correctText?: string;
+    incorrectTitle?: string;
+    incorrectText?: string;
+    timeoutTitle?: string;
+    timeoutText?: string;
+    feedbackButtonText?: string;
   };
 }
 
@@ -45,6 +57,7 @@ export const renderTextInput: NodeRenderer = (node, controls, context) => {
   const input = isImportantTalks
     ? document.createElement("textarea")
     : document.createElement("input");
+  let interaction: ImportantTalksInteractionController | null = null;
   input.className = "text-field";
   input.placeholder = data.placeholder ?? "Ваш ответ...";
   if (input instanceof HTMLInputElement) input.type = "text";
@@ -60,13 +73,21 @@ export const renderTextInput: NodeRenderer = (node, controls, context) => {
     const correct = accepted.some(
       (answer: unknown) => actual === String(answer).trim().toLowerCase(),
     );
-    context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
-    context.continueFrom(node, correct ? "correct" : "incorrect");
+    if (interaction) {
+      interaction.complete({
+        outcome: correct ? "correct" : "incorrect",
+        handles: [correct ? "correct" : "incorrect"],
+      });
+    } else {
+      context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
+      context.continueFrom(node, correct ? "correct" : "incorrect");
+    }
   });
   controls.appendChild(button);
 
   if (isImportantTalks && input instanceof HTMLTextAreaElement) {
     enhanceImportantTalksTextInputScene(controls, data, input, button);
+    interaction = setupImportantTalksInteraction(node, controls, context);
   }
 };
 
