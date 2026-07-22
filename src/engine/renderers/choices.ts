@@ -1,6 +1,6 @@
 import type { Answer } from "../types";
 import type { NodeRenderer } from "./types";
-import { createActionButton } from "./common";
+import { createActionButton, enableRovingFocus } from "./common";
 import { parseText } from "../sanitize";
 import { getDesignSettings } from "../designState";
 import {
@@ -167,6 +167,7 @@ export const renderQuestion: NodeRenderer = (node, controls, context) => {
   });
 
   enhanceImportantTalksQuestionScene(controls, data);
+  enableRovingFocus(controls, ".option");
   interaction = setupImportantTalksInteraction(node, controls, context);
 };
 
@@ -227,6 +228,7 @@ export const renderMultipleChoice: NodeRenderer = (node, controls, context) => {
   controls.appendChild(confirmButton);
 
   enhanceImportantTalksMultipleChoiceScene(controls, data, confirmButton);
+  enableRovingFocus(controls, ".option");
   interaction = setupImportantTalksInteraction(node, controls, context);
 };
 

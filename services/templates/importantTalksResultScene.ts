@@ -327,14 +327,15 @@ export const importantTalksResultSceneStyles = `
     grid-area: controls !important;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
     gap: 10px;
     margin: 0 !important;
   }
 
   body.important-talks-theme .talks-result-cta {
     width: 100%;
-    grid-column: auto;
+    grid-column: 1 / -1;
     min-height: 72px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -388,6 +389,114 @@ export const importantTalksResultSceneStyles = `
 
   body.important-talks-theme.design-hide-description .talks-result-insight .node-desc {
     display: none;
+  }
+
+  body.important-talks-theme .talks-result-tools {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 !important;
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-tool {
+    flex: 1 1 200px;
+    min-width: 0;
+    min-height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 12px 18px;
+    border: 1px solid color-mix(in srgb, var(--talks-blue) 22%, white);
+    border-radius: 18px;
+    background: white;
+    color: var(--talks-blue);
+    font-family: 'Manrope', system-ui, sans-serif;
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: none;
+    cursor: pointer;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-tool::before {
+    content: "";
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    background: currentColor;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-copy::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M16 1H4a2 2 0 0 0-2 2v12h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z'/%3E%3C/svg%3E");
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-print::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 8V3H5v5H3v8h4v5h10v-5h4V8h-2ZM8 5h8v3H8V5Zm8 13H8v-4h8v4Zm3-5h-2V9h2v4Z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 8V3H5v5H3v8h4v5h10v-5h4V8h-2ZM8 5h8v3H8V5Zm8 13H8v-4h8v4Zm3-5h-2V9h2v4Z'/%3E%3C/svg%3E");
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-tool:hover {
+    background: #f3f8ff;
+    transform: translateY(-1px);
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-tool:active {
+    transform: translateY(1px);
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-tool:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--talks-blue) 32%, white);
+    outline-offset: 3px;
+  }
+
+  body.important-talks-theme .talks-result-tools .talks-result-tool.is-done {
+    border-color: color-mix(in srgb, var(--talks-red) 40%, white);
+    color: var(--talks-red);
+    background: color-mix(in srgb, var(--talks-red) 8%, white);
+  }
+
+  body.important-talks-theme .talks-result-meta {
+    order: 4;
+    width: 100%;
+    margin-top: clamp(16px, 2vw, 24px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  body.important-talks-theme .talks-result-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 9px 17px;
+    border-radius: 999px;
+    background: linear-gradient(110deg, #eef5ff, rgba(248, 251, 255, 0.9));
+    border: 1px solid rgba(11, 82, 214, 0.10);
+    color: var(--talks-ink);
+    font-size: 0.94rem;
+    font-weight: 600;
+  }
+
+  body.important-talks-theme .talks-result-chip-label {
+    color: #53688f;
+    font-weight: 650;
+  }
+
+  body.important-talks-theme .talks-result-chip-value {
+    color: var(--talks-blue);
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
   }
 
   @media (max-width: 1380px) {
@@ -505,6 +614,28 @@ export const importantTalksResultSceneStyles = `
       min-height: 48px;
       grid-column: 1 / -1;
       order: 2;
+    }
+
+    body.important-talks-theme .talks-result-tools {
+      gap: 8px;
+    }
+
+    body.important-talks-theme .talks-result-tools .talks-result-tool {
+      flex-basis: 100%;
+      min-height: 50px;
+      padding: 11px 16px;
+      font-size: 0.94rem;
+    }
+
+    body.important-talks-theme .talks-result-meta {
+      gap: 8px;
+    }
+
+    body.important-talks-theme .talks-result-chip {
+      flex: 1 1 auto;
+      justify-content: center;
+      padding: 8px 13px;
+      font-size: 0.86rem;
     }
 
     body.important-talks-theme .talks-result-cta {

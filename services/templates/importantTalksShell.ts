@@ -697,6 +697,128 @@ export const importantTalksShellStyles = `
     body.important-talks-theme .talks-botanical,
     body.important-talks-theme .talks-dot-field { opacity: 0.12; }
   }
+
+  body.important-talks-theme :is(a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--talks-blue) 60%, white);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  html:focus-within {
+    scroll-behavior: smooth;
+  }
+
+  body.important-talks-theme #quiz-view {
+    scroll-margin-top: 24px;
+  }
+
+  @media (prefers-contrast: more) {
+    body.important-talks-theme .option,
+    body.important-talks-theme .match-item,
+    body.important-talks-theme .talks-timeline-card,
+    body.important-talks-theme .talks-info-intro,
+    body.important-talks-theme .talks-info-agenda,
+    body.important-talks-theme .field,
+    body.important-talks-theme .allocator-row,
+    body.important-talks-theme .talks-result-insight,
+    body.important-talks-theme .talks-text-insight {
+      border-width: 2px;
+      border-color: #0a2a6b;
+    }
+
+    body.important-talks-theme .talks-question-prompt,
+    body.important-talks-theme .talks-result-title,
+    body.important-talks-theme .btn,
+    body.important-talks-theme .action-btn,
+    body.important-talks-theme .talks-info-cta,
+    body.important-talks-theme .talks-result-cta {
+      color: #06225e;
+    }
+  }
+
+  @media print {
+    body.important-talks-theme,
+    body.important-talks-theme .quiz-shell {
+      background: #ffffff !important;
+      background-image: none !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+
+    body.important-talks-theme * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body.important-talks-theme .talks-background-decor,
+    body.important-talks-theme .talks-ribbon,
+    body.important-talks-theme .talks-user-hud,
+    body.important-talks-theme .talks-journey,
+    body.important-talks-theme .talks-info-button,
+    body.important-talks-theme .global-timer-container,
+    body.important-talks-theme .talks-node-timer,
+    body.important-talks-theme .talks-inline-feedback,
+    body.important-talks-theme .achievement-toast,
+    body.important-talks-theme .talks-support-hud,
+    body.important-talks-theme .quiz-hud,
+    body.important-talks-theme #image-modal {
+      display: none !important;
+    }
+
+    body.important-talks-theme .quiz-topbar {
+      margin: 0 0 14px;
+    }
+
+    body.important-talks-theme .quiz-main {
+      padding: 0 !important;
+    }
+
+    body.important-talks-theme #quiz-view,
+    body.important-talks-theme .quiz-shell {
+      overflow: visible !important;
+    }
+
+    body.important-talks-theme #quiz-view {
+      min-height: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    body.important-talks-theme .talks-info-scene,
+    body.important-talks-theme .talks-result-scene,
+    body.important-talks-theme .talks-question-scene,
+    body.important-talks-theme .talks-text-scene,
+    body.important-talks-theme .talks-multiple-scene,
+    body.important-talks-theme .talks-timeline-scene,
+    body.important-talks-theme .talks-matching-scene {
+      display: block !important;
+      grid-template-columns: none !important;
+      grid-template-rows: none !important;
+      gap: 0 !important;
+      min-height: 0 !important;
+      padding: 0 !important;
+    }
+
+    body.important-talks-theme .talks-result-tools,
+    body.important-talks-theme .talks-result-meta,
+    body.important-talks-theme .talks-activity-hint {
+      display: none !important;
+    }
+
+    body.important-talks-theme .talks-info-visual,
+    body.important-talks-theme .talks-result-visual,
+    body.important-talks-theme .talks-question-hero,
+    body.important-talks-theme .talks-text-prompt,
+    body.important-talks-theme .talks-multiple-prompt,
+    body.important-talks-theme .talks-timeline-prompt {
+      break-inside: avoid;
+      box-shadow: none !important;
+      border-color: #c9d6ea !important;
+    }
+  }
 </style>`;
 
 export const importantTalksBackgroundDecor = `
