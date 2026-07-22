@@ -414,8 +414,8 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch {
-    // Запасной вариант ниже.
+  } catch (error) {
+    console.warn("[ImportantTalks] Clipboard API unavailable, falling back to execCommand", error);
   }
   try {
     if (typeof document.execCommand === "function") {
@@ -431,8 +431,8 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
       document.body.removeChild(area);
       return ok;
     }
-  } catch {
-    // Копирование недоступно в этом окружении.
+  } catch (error) {
+    console.warn("[ImportantTalks] Clipboard copy failed", error);
   }
   return false;
 }
