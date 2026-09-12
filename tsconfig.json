@@ -30,5 +30,5 @@
 
     "useDefineForClassFields": true
   },
-  "exclude": ["legacy/**", "dokuments/**"]
+  "exclude": ["yc-functions/**", "legacy/**", "dokuments/**"]
 }
