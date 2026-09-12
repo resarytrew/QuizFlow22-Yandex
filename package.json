@@ -67,7 +67,8 @@
     "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "build:engine": "rollup -c build/rollup.engine.config.js",
-    "build": "npm run build:engine && vite build",
+    "build": "npm run build:engine && vite build && npm run check:seo",
+    "check:seo": "node scripts/check-seo.mjs",
     "migrate:media:yandex": "node scripts/migrate-media-to-yandex.cjs"
   }
 }

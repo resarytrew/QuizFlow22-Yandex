@@ -154,6 +154,16 @@ jobs:
         run: |
           yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --path '/*'
 
+      - name: Verify public SEO endpoints through CDN
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if npm run check:seo -- https://mykviz.ru; then
+              exit 0
+            fi
+            sleep 30
+          done
+          exit 1
+
   deploy-functions:
     runs-on: ubuntu-latest
     timeout-minutes: 20
