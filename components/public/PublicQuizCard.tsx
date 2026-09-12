@@ -123,7 +123,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
       <div className="p-4 flex-1 flex flex-col gap-2">
         <div className="flex items-start justify-between gap-1">
           <h3 className="text-[13px] font-semibold text-gray-900 leading-snug">
-            {quiz.name}
+            <a href={`/quizzes/${quiz.id}.html`} className="hover:underline">{quiz.name}</a>
           </h3>
           {publishedDate && (
             <span className="shrink-0 text-[10px] text-gray-400 mt-0.5 whitespace-nowrap">{publishedDate}</span>

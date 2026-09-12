@@ -8,3 +8,4 @@ Disallow: /play/
 Disallow: /__quiz_engine.js
 
 Sitemap: https://mykviz.ru/sitemap.xml
+Sitemap: https://mykviz.ru/quizzes/sitemap.xml
