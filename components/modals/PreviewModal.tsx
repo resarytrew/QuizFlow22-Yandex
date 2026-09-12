@@ -33,9 +33,8 @@ const PreviewModal: React.FC<Props> = ({ isOpen, onClose, htmlContent }) => {
               srcDoc={htmlContent}
               title="Quiz Preview"
               className="w-full h-full border-0"
-              // allow-same-origin matches the other quiz iframes so
-              // postMessage + supabase auth work the same way. See
-              // QuizPlayer.tsx for the full rationale.
+              // Keep the same origin as the other quiz frames so the
+              // postMessage bridge behaves consistently.
               sandbox="allow-scripts allow-same-origin"
               referrerPolicy="no-referrer"
             />

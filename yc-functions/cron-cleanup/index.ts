@@ -75,6 +75,29 @@ export async function handler() {
   );
   results.push(`old_csp_reports: ${oldCsp}`);
 
+  const expiredAuthSessions = await execute(
+    `DELETE FROM public.auth_sessions
+     WHERE expires_at < now() - interval '30 days'
+        OR revoked_at < now() - interval '30 days'`
+  );
+  results.push(`auth_sessions_cleaned: ${expiredAuthSessions}`);
+
+  const expiredAuthArtifacts = await execute(
+    `WITH deleted_codes AS (
+       DELETE FROM public.auth_codes WHERE expires_at < now() - interval '1 day' RETURNING 1
+     ), deleted_resets AS (
+       DELETE FROM public.auth_reset_tokens WHERE expires_at < now() - interval '1 day' RETURNING 1
+     ), deleted_states AS (
+       DELETE FROM public.auth_oauth_states WHERE expires_at < now() - interval '1 day' RETURNING 1
+     ) SELECT count(*) FROM deleted_codes, deleted_resets, deleted_states`
+  ).catch(() => 0);
+  results.push(`auth_artifacts_cleaned: ${expiredAuthArtifacts}`);
+
+  const oldAuthLimits = await execute(
+    `DELETE FROM public.auth_rate_limits WHERE updated_at < now() - interval '1 day'`
+  ).catch(() => 0);
+  results.push(`auth_rate_limits_cleaned: ${oldAuthLimits}`);
+
   console.log('[cron] cleanup results:', results.join(', '));
 
   return {

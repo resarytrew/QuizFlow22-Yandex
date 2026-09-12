@@ -8,7 +8,7 @@
  * - HTML-шаблон (по templateId)
  * - JS-движок (quizEngineScript)
  * - CSS (скомпилированный Tailwind)
- * - Supabase-конфиг (из env)
+ * - конфигурацию API приложения
  *
  * И собирает из них один self-contained HTML-файл,
  * который можно открыть в любом браузере без сервера.
@@ -145,7 +145,7 @@ function generateUnsafe(
   //    НЕ навредит безопасности preview. Но мы всё равно не инжектим
   //    iframe CSP в preview: external CDN-скрипты в шаблонах
   //    (cdn.jsdelivr.net, cdnjs.cloudflare.com) НЕ нужны движку
-  //    (он gracefully handles missing supabase / mathjs), и их
+  //    (он корректно работает без необязательных CDN-библиотек), и их
   //    присутствие в iframe только замусорит консоль CSP-ошибками.
   html = inlineTailwind(html);
   if (templateId === DEFAULT_TEMPLATE_ID || templateId === "importantTalks") {

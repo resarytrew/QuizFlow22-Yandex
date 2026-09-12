@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import toast from 'react-hot-toast';
-import { supabase } from '../../services/supabaseClient';
+import { authClient } from '../../services/authClient';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useAdminStore } from '../../store/useAdminStore';
 import { fetchAdminSession } from '../../services/adminApi';
@@ -24,40 +24,24 @@ async function prepareMfa(): Promise<MfaSetupResult> {
     return { alreadyVerified: true, factorId: null, enrollment: null };
   }
 
-  const factors = await supabase.auth.mfa.listFactors();
-  if (factors.error) throw factors.error;
-
-  const verified = factors.data.totp[0];
-  if (verified) {
+  const status = await authClient.mfaStatus();
+  if (status.verified && status.factorId) {
     return {
       alreadyVerified: false,
-      factorId: verified.id,
+      factorId: status.factorId,
       enrollment: null,
     };
   }
-
-  const stale = factors.data.all.find(
-    (factor) => factor.factor_type === 'totp' && factor.status === 'unverified',
-  );
-  if (stale) {
-    const unenrolled = await supabase.auth.mfa.unenroll({ factorId: stale.id });
-    if (unenrolled.error) throw unenrolled.error;
-  }
-
-  const enrolled = await supabase.auth.mfa.enroll({
-    factorType: 'totp',
-    friendlyName: 'Поток Admin',
-    issuer: 'Поток',
-  });
-  if (enrolled.error) throw enrolled.error;
+  const enrolled = await authClient.mfaEnroll();
+  if (!enrolled.factorId || !enrolled.qrCode || !enrolled.secret) throw new Error('Не удалось создать фактор 2FA.');
 
   return {
     alreadyVerified: false,
-    factorId: enrolled.data.id,
+    factorId: enrolled.factorId,
     enrollment: {
-      factorId: enrolled.data.id,
-      qrCodeSvg: enrolled.data.totp.qr_code,
-      secret: enrolled.data.totp.secret,
+      factorId: enrolled.factorId,
+      qrCodeSvg: enrolled.qrCode,
+      secret: enrolled.secret,
     },
   };
 }
@@ -74,7 +58,7 @@ export function qrImageSource(value: string): string {
 const AdminMfaPage: React.FC = () => {
   const navigate = useNavigate();
   const signOut = useAuthStore((s) => s.signOut);
-  const setSession = useAuthStore((s) => s.setSession);
+  const setUser = useAuthStore((s) => s.setUser);
   const resetAdmin = useAdminStore((s) => s.reset);
   const refreshAdminSession = useAdminStore((s) => s.refreshSession);
   const [factorId, setFactorId] = useState<string | null>(null);
@@ -126,23 +110,12 @@ const AdminMfaPage: React.FC = () => {
     setVerifying(true);
     setError(null);
     try {
-      const result = await supabase.auth.mfa.challengeAndVerify({
-        factorId: activeFactorId,
-        code: normalizedCode,
-      });
-      if (result.error) throw result.error;
-      const refreshedSession = await supabase.auth.refreshSession();
-      if (refreshedSession.error) throw refreshedSession.error;
-      if (refreshedSession.data.session) {
-        setSession(refreshedSession.data.session);
-      } else {
-        const currentSession = await supabase.auth.getSession();
-        if (currentSession.error) throw currentSession.error;
-        setSession(currentSession.data.session);
-      }
+      await authClient.mfaVerify(activeFactorId, normalizedCode);
+      const { user } = await authClient.me();
+      setUser(user);
       resetAdmin();
       const nextStaff = await refreshAdminSession();
-      if (nextStaff.current_aal !== 'aal2') {
+      if (nextStaff.current_aal !== 'mfa') {
         throw new Error('2FA confirmed, but the secure admin session was not refreshed yet. Please try again.');
       }
       toast.success('Второй фактор подтверждён.');

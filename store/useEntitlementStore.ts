@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { supabase, isSupabaseReady } from '../services/supabaseClient';
 import { api } from '../services/apiClient';
+import { useAuthStore } from './useAuthStore';
 import type { Entitlement, Plan, Subscription, Payment } from '../types';
 
 interface EntitlementState {
@@ -55,19 +55,13 @@ export const useEntitlementStore = create<EntitlementState>((set, get) => ({
     }),
 
   refresh: async (userId: string) => {
-    if (!isSupabaseReady || !supabase) {
-      set({ initialized: true, entitlement: FREE_ENTITLEMENT });
-      return;
-    }
-
     if (get().networkUnreachable) {
       return;
     }
 
     set({ loading: true, lastError: null });
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const sessionUserId = sessionData.session?.user?.id;
+      const sessionUserId = useAuthStore.getState().user?.id;
       if (!sessionUserId || sessionUserId !== userId) {
         set({ initialized: true, loading: false, entitlement: FREE_ENTITLEMENT });
         return;
