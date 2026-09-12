@@ -4,8 +4,7 @@
 // sandbox="allow-scripts allow-same-origin" — NOT just
 // "allow-scripts". Without allow-same-origin, the iframe is in a
 // "unique origin" sandbox and:
-//   - supabase-js inside the quiz can't persist auth tokens
-//     (no cookies, no localStorage)
+//   - browser APIs that depend on the document origin are unavailable
 //   - window.parent.postMessage between iframe and parent fails
 //     the same-origin check
 //   - QuizPlayer / LivePreview / modals render as completely

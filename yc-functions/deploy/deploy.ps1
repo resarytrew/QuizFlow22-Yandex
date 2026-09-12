@@ -16,9 +16,7 @@ param(
   [Parameter(Mandatory=$false)]
   [string]$ServiceAccountId = $(Read-Host "YC_SERVICE_ACCOUNT_ID"),
   [Parameter(Mandatory=$false)]
-  [string]$LockboxSecretId = $(Read-Host "YC_LOCKBOX_SECRET_ID"),
-  [Parameter(Mandatory=$false)]
-  [string]$SupabaseAnonKey = ""
+  [string]$LockboxSecretId = $(Read-Host "YC_LOCKBOX_SECRET_ID")
 )
 
 $ErrorActionPreference = "Stop"
@@ -54,7 +52,9 @@ Write-Host "Package created: $zipPath" -ForegroundColor Green
 
 $secrets = @(
   "PG_HOST", "PG_PORT", "PG_USER", "PG_PASSWORD", "PG_DATABASE", "PG_CA_CERT",
-  "SUPABASE_URL", "SUPABASE_ANON_KEY",
+  "OTP_PEPPER", "SESSION_PEPPER", "MFA_ENCRYPTION_KEY",
+  "YANDEX_OAUTH_CLIENT_ID", "YANDEX_OAUTH_CLIENT_SECRET",
+  "POSTBOX_SMTP_USER", "POSTBOX_SMTP_PASSWORD", "POSTBOX_FROM_EMAIL", "POSTBOX_FROM_NAME",
   "YC_ACCESS_KEY_ID", "YC_SECRET_ACCESS_KEY", "S3_BUCKET",
   "YOOKASSA_SHOP_ID", "YOOKASSA_SECRET_KEY",
   "FRONTEND_URL", "ALLOWED_ORIGINS",
@@ -65,12 +65,7 @@ $secrets = @(
 )
 
 $secretArgs = $secrets | ForEach-Object {
-  "--secret", "environment-variable=$_,name=$LockboxSecretId,key=$_"
-}
-
-$environmentArgs = @()
-if ($SupabaseAnonKey) {
-  $environmentArgs = @("--environment=SUPABASE_ANON_KEY=$SupabaseAnonKey")
+  "--secret", "environment-variable=$_,id=$LockboxSecretId,key=$_"
 }
 
 Write-Host "Deploying $CloudFunctionName..." -ForegroundColor Cyan
@@ -84,7 +79,6 @@ yc serverless function version create `
   --service-account-id=$ServiceAccountId `
   --folder-id=$FolderId `
   --source-path=$zipPath `
-  $environmentArgs `
   $secretArgs
 
 if ($LASTEXITCODE -eq 0) {

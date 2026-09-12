@@ -179,9 +179,6 @@ export default defineConfig(({ mode }) => {
                 'reactflow',
                 'dagre',
               ],
-              'vendor-supabase': [
-                '@supabase/supabase-js',
-              ],
               'vendor-utils': [
                 'clsx',
                 'canvas-confetti',

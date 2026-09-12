@@ -26,23 +26,21 @@ describe('router search schemas', () => {
     ).toThrow();
   });
 
-  it('keeps supported auth callback parameters', async () => {
+  it('keeps supported QuizFlow auth callback parameters', async () => {
     const { authConfirmSearchSchema } = await import('../routes/authConfirm');
 
     expect(
       authConfirmSearchSchema.parse({
-        code: 'oauth-code',
-        token_hash: 'token',
-        type: 'email',
+        status: 'success',
+        link: 'required',
+        email: 'user@example.com',
         error: 'access_denied',
-        error_description: 'Expired',
       })
     ).toEqual({
-      code: 'oauth-code',
-      token_hash: 'token',
-      type: 'email',
+      status: 'success',
+      link: 'required',
+      email: 'user@example.com',
       error: 'access_denied',
-      error_description: 'Expired',
     });
   });
 

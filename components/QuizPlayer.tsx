@@ -56,9 +56,8 @@ const QuizPlayer: React.FC<QuizPlayerProps> = ({ quizId }) => {
                 srcDoc={htmlContent}
                 title="Quiz Player"
                 className="w-screen h-screen border-0"
-                // allow-same-origin is required for the supabase-js client
-                // inside the generated quiz HTML to persist auth tokens
-                // and for the postMessage bridge to the parent
+                // allow-same-origin is required by the postMessage bridge
+                // between the generated quiz and its parent page.
                 // (window.parent.postMessage handlers in the video
                 // player + achievement toasts). User-supplied text in
                 // the generated HTML is already sanitized via

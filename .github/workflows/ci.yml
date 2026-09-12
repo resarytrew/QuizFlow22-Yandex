@@ -41,10 +41,7 @@ jobs:
 
       - name: Build production bundle
         env:
-          # Placeholder values; the build does not need real credentials.
-          VITE_SUPABASE_URL: https://example.supabase.co
-          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
-          VITE_API_URL: https://example.apigw.yandexcloud.net/api
+          VITE_API_URL: /api
         run: npm run build
 
       - name: Verify build output
