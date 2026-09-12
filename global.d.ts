@@ -2,8 +2,7 @@
 // and to provide minimal types for untyped runtime dependencies.
 
 interface ImportMetaEnv {
-  VITE_SUPABASE_URL?: string;
-  VITE_SUPABASE_ANON_KEY?: string;
+  VITE_API_URL?: string;
   VITE_AI_PROXY_URL?: string;
   VITE_PRIMARY_SITE_URL?: string;
   VITE_ADDITIONAL_SITE_ORIGINS?: string;

@@ -3,6 +3,7 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { quizEnginePlugin } from './vite-plugin-quiz-engine';
 import { replaceInlineScriptCspMarker } from './utils/viteCsp';
+import { seoPlugin } from './seo/vite-plugin-seo';
 
 function reactRefreshCspPlugin(): Plugin {
   return {
@@ -148,7 +149,7 @@ export default defineConfig(({ mode }) => {
         // Allowing LAN-wide binding by default exposes the dev server
         // (with HMR websocket) to anyone on the same network.
       },
-      plugins: [react(), reactRefreshCspPlugin(), localAiProxyPlugin(env), quizEnginePlugin()],
+      plugins: [react(), reactRefreshCspPlugin(), localAiProxyPlugin(env), quizEnginePlugin(), seoPlugin()],
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
@@ -177,9 +178,6 @@ export default defineConfig(({ mode }) => {
               'vendor-flow': [
                 'reactflow',
                 'dagre',
-              ],
-              'vendor-supabase': [
-                '@supabase/supabase-js',
               ],
               'vendor-utils': [
                 'clsx',

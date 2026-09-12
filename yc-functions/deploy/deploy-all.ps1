@@ -4,9 +4,7 @@ param(
   [Parameter(Mandatory=$false)]
   [string]$ServiceAccountId = $(Read-Host "YC_SERVICE_ACCOUNT_ID"),
   [Parameter(Mandatory=$false)]
-  [string]$LockboxSecretId = $(Read-Host "YC_LOCKBOX_SECRET_ID"),
-  [Parameter(Mandatory=$false)]
-  [string]$SupabaseAnonKey = ""
+  [string]$LockboxSecretId = $(Read-Host "YC_LOCKBOX_SECRET_ID")
 )
 
 $ErrorActionPreference = "Stop"
@@ -50,8 +48,7 @@ foreach ($fn in $functions) {
     -EntryPoint "index.handler" `
     -FolderId $FolderId `
     -ServiceAccountId $ServiceAccountId `
-    -LockboxSecretId $LockboxSecretId `
-    -SupabaseAnonKey $SupabaseAnonKey
+    -LockboxSecretId $LockboxSecretId
 
   if ($LASTEXITCODE -ne 0) {
     Write-Error "Deployment failed for $($fn.CloudName)"

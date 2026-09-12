@@ -55,9 +55,7 @@ jobs:
 
       - name: Build production bundle
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: /api
         run: npm run build
 
       - name: Configure AWS CLI credentials for Yandex Object Storage
@@ -154,6 +152,16 @@ jobs:
         run: |
           yc cdn cache purge --resource-id "$YC_CDN_RESOURCE_ID" --path '/*'
 
+      - name: Verify public SEO endpoints through CDN
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if npm run check:seo -- https://mykviz.ru; then
+              exit 0
+            fi
+            sleep 30
+          done
+          exit 1
+
   deploy-functions:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -210,7 +218,9 @@ jobs:
 
           SECRETS=(
             PG_HOST PG_PORT PG_DATABASE PG_USER PG_PASSWORD PG_CA_CERT
-            SUPABASE_URL SUPABASE_ANON_KEY
+            OTP_PEPPER SESSION_PEPPER MFA_ENCRYPTION_KEY
+            YANDEX_OAUTH_CLIENT_ID YANDEX_OAUTH_CLIENT_SECRET
+            POSTBOX_SMTP_USER POSTBOX_SMTP_PASSWORD POSTBOX_FROM_EMAIL POSTBOX_FROM_NAME
             YC_ACCESS_KEY_ID YC_SECRET_ACCESS_KEY S3_BUCKET
             YANDEX_MEDIA_PUBLIC_BASE
             YOOKASSA_SHOP_ID YOOKASSA_SECRET_KEY
@@ -223,12 +233,12 @@ jobs:
 
           SECRET_FLAGS=()
           for SECRET_KEY in "${SECRETS[@]}"; do
-            SECRET_FLAGS+=(--secret "environment-variable=$SECRET_KEY,name=$LOCKBOX_SECRET_ID,key=$SECRET_KEY")
+            SECRET_FLAGS+=(--secret "environment-variable=$SECRET_KEY,id=$LOCKBOX_SECRET_ID,key=$SECRET_KEY")
           done
 
           yc serverless function version create \
             --function-name potok-api-quizzes \
-            --runtime nodejs18 \
+            --runtime nodejs22 \
             --entrypoint index.handler \
             --memory 512m \
             --execution-timeout 60s \
@@ -251,11 +261,6 @@ jobs:
           info:
             title: Potok API
             version: 3.0.0
-          x-yc-apigateway:
-            cors:
-              origin: "*"
-              methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-              headers: ["authorization", "content-type", "x-request-id", "x-admin-secret", "x-cron-secret"]
           paths:
             /api/{proxy+}:
               x-yc-apigateway-any-method:

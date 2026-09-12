@@ -24,7 +24,7 @@ import { quizEngineScript } from '../quizEngine';
 
 const TEMPLATE_IDS = [
   'default', 'ww2', 'economic', 'yandex',
-  'army', 'science', 'math', 'history', 'newyear', 'screenQuiz',
+  'army', 'science', 'math', 'history', 'newyear', 'screenQuiz', 'importantTalks',
 ];
 
 function makeNodes() {
@@ -96,7 +96,7 @@ describe('Quiz HTML required globals (C-QUIZ-DATA bug)', () => {
     // Strip the CSP meta so JSDOM doesn't reject the inline scripts
     // (jsdom is strict about meta CSP; we only care about the JS).
     //
-    // Also strip EXTERNAL <script src=...> tags (Supabase CDN, mathjs CDN,
+    // Also strip EXTERNAL <script src=...> tags (mathjs CDN,
     // etc.) — with `resources: 'usable'` JSDOM would block subsequent
     // inline scripts until those externals either load or fail, making
     // the test flaky on slow networks. We only care about the engine +
@@ -966,4 +966,3 @@ describe('screenQuiz template', () => {
     dom.window.close();
   }, 8000);
 });
-

@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 let pool: Pool | null = null;
 
@@ -53,6 +53,23 @@ export async function execute(sql: string, params?: any[]): Promise<number> {
   const pool = getPool();
   const result = await pool.query(sql, params);
   return result.rowCount ?? 0;
+}
+
+export async function withTransaction<T>(
+  work: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const value = await work(client);
+    await client.query('COMMIT');
+    return value;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function queryAsUser<T = any>(

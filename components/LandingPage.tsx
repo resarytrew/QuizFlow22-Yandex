@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { overviewHtml } from '../seo/content';
 import AuthModal from "./modals/AuthModal.tsx";
 import MagneticButton from "./MagneticButton.tsx";
 import LandingPricingSection from "./landing/LandingPricingSection.tsx";
@@ -2487,6 +2488,7 @@ const LandingPage: React.FC = () => {
         <HowItWorksSection />
         <AuthorSection />
         <LandingPricingSection />
+        <div dangerouslySetInnerHTML={{ __html: overviewHtml() }} />
         <FinalCTA onCTA={handleCTA} />
       </main>
 

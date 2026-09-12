@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { qrImageSource } from './AdminMfaPage';
 
 describe('qrImageSource', () => {
-  it('keeps a Supabase data URL unchanged', () => {
+  it('keeps a QR data URL unchanged', () => {
     const source = 'data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C/svg%3E';
     expect(qrImageSource(source)).toBe(source);
   });

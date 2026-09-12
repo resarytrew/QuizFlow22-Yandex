@@ -4,7 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0",
     "@tanstack/react-router": "^1.170.15",
     "@tanstack/react-router-devtools": "^1.167.0",
     "canvas-confetti": "1.9.3",
@@ -58,7 +57,7 @@
     "lint": "npm run typecheck && npm run lint:eslint",
     "install:functions": "npm --prefix yc-functions ci",
     "lint:functions": "npm --prefix yc-functions run lint",
-    "test:functions": "npm --prefix yc-functions run build",
+    "test:functions": "npm --prefix yc-functions test && npm --prefix yc-functions run build",
     "pretest": "npm run build:engine",
     "test": "vitest run",
     "pretest:watch": "npm run build:engine",
@@ -67,7 +66,7 @@
     "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "build:engine": "rollup -c build/rollup.engine.config.js",
-    "build": "npm run build:engine && vite build",
-    "migrate:media:yandex": "node scripts/migrate-media-to-yandex.cjs"
+    "build": "npm run build:engine && vite build && npm run check:seo",
+    "check:seo": "node scripts/check-seo.mjs"
   }
 }

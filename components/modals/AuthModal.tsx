@@ -1,14 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase, isSupabaseReady } from '../../services/supabaseClient.ts';
+import { authClient } from '../../services/authClient.ts';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/useAuthStore.ts';
-import {
-  getAuthCallbackRedirectUrl,
-  getAuthRedirectOrigin,
-  getPasswordResetRedirectUrl,
-} from '../../utils/siteOrigins.ts';
 
 interface Props {
   id: string;
@@ -26,9 +21,6 @@ const isPasswordStrong = (value: string): boolean =>
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
 
-const isExistingIdentityResponse = (data: Awaited<ReturnType<typeof supabase.auth.signUp>>['data']): boolean =>
-  Array.isArray(data.user?.identities) && data.user.identities.length === 0;
-
 const AuthModal: React.FC<Props> = ({
   id,
   isOpen,
@@ -36,7 +28,7 @@ const AuthModal: React.FC<Props> = ({
   onSuccess,
   initialMode = 'sign-in',
 }) => {
-  const setSession = useAuthStore((state) => state.setSession);
+  const setUser = useAuthStore((state) => state.setUser);
   const setAuthInitialized = useAuthStore((state) => state.setAuthInitialized);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -174,10 +166,7 @@ const AuthModal: React.FC<Props> = ({
 
     setLoading(true);
     try {
-      const { error } = await supabase!.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: getPasswordResetRedirectUrl(),
-      });
-      if (error) throw error;
+      await authClient.forgotPassword(normalizedEmail);
       toast.success('Инструкции по сбросу пароля отправлены на ваш email');
     } catch (err: unknown) {
       toast.error(translateError(err));
@@ -187,24 +176,12 @@ const AuthModal: React.FC<Props> = ({
   };
 
   const handleYandexSignIn = async () => {
-    if (!isSupabaseReady) {
-      setError("Система авторизации недоступна.");
-      return;
-    }
-
     setSocialLoading('yandex');
     setError(null);
     setMessage(null);
 
     try {
-      type OAuthProvider = Parameters<typeof supabase.auth.signInWithOAuth>[0]['provider'];
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'custom:yandex' as unknown as OAuthProvider,
-        options: {
-          redirectTo: getAuthCallbackRedirectUrl(),
-        },
-      });
-      if (error) throw error;
+      authClient.startYandexLogin();
     } catch (err: unknown) {
       setError(translateError(err));
       setSocialLoading(null);
@@ -213,11 +190,6 @@ const AuthModal: React.FC<Props> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSupabaseReady) {
-      setError("Система авторизации недоступна.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -234,36 +206,12 @@ const AuthModal: React.FC<Props> = ({
 
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email: normalizedEmail,
-          password,
-          options: {
-            emailRedirectTo: getAuthRedirectOrigin(),
-          },
-        });
-        if (error) throw error;
-
-        if (isExistingIdentityResponse(data)) {
-          throw new Error(EXISTING_ACCOUNT_MESSAGE);
-        }
-        
-        if (data.session) {
-          setSession(data.session);
-          setAuthInitialized(true);
-          toast.success('Регистрация успешна!');
-          onSuccess?.();
-          handleClose();
-        } else {
-          setPendingSignupEmail(normalizedEmail);
-          setMessage('Подтвердите почту. Мы отправили на неё 6-значный код.');
-        }
+        await authClient.register(normalizedEmail, password);
+        setPendingSignupEmail(normalizedEmail);
+        setMessage('Если адрес доступен для регистрации, на него отправлен 6-значный код.');
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-        if (error) throw error;
-        if (!data.session) {
-          throw new Error('Сессия не была создана. Попробуйте войти повторно.');
-        }
-        setSession(data.session);
+        const { user } = await authClient.login(normalizedEmail, password);
+        setUser(user);
         setAuthInitialized(true);
         toast.success('С возвращением!');
         onSuccess?.();
@@ -278,10 +226,6 @@ const AuthModal: React.FC<Props> = ({
 
   const handleVerifySignupCode = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isSupabaseReady) {
-      setError("Система авторизации недоступна.");
-      return;
-    }
     if (!pendingSignupEmail) {
       setError('Сначала отправьте форму регистрации.');
       return;
@@ -292,17 +236,8 @@ const AuthModal: React.FC<Props> = ({
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: pendingSignupEmail,
-        token: signupCode.trim(),
-        type: 'email',
-      });
-      if (error) throw error;
-      if (!data.session) {
-        throw new Error('Почта подтверждена, но сессия не была создана. Попробуйте войти.');
-      }
-
-      setSession(data.session);
+      const { user } = await authClient.verifyEmail(pendingSignupEmail, signupCode.trim());
+      setUser(user);
       setAuthInitialized(true);
       toast.success('Почта подтверждена. Регистрация завершена!');
       onSuccess?.();
@@ -315,10 +250,6 @@ const AuthModal: React.FC<Props> = ({
   };
 
   const handleResendSignupCode = async () => {
-    if (!isSupabaseReady) {
-      setError("Система авторизации недоступна.");
-      return;
-    }
     if (!pendingSignupEmail) {
       setError('Сначала отправьте форму регистрации.');
       return;
@@ -328,11 +259,7 @@ const AuthModal: React.FC<Props> = ({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: pendingSignupEmail,
-      });
-      if (error) throw error;
+      await authClient.resendCode(pendingSignupEmail);
       setMessage('Код подтверждения отправлен повторно. Проверьте почту и папку «Спам».');
     } catch (err: unknown) {
       setError(translateError(err));

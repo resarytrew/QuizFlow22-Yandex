@@ -8,13 +8,6 @@ import LandingPage from '../../../components/LandingPage';
 export const landingSearchSchema = z.object({
   play: z.string().optional(),
   status: z.enum(['success', 'cancel', 'pending']).optional(),
-  code: z.string().optional(),
-  token_hash: z.string().optional(),
-  type: z.string().optional(),
-  access_token: z.string().optional(),
-  refresh_token: z.string().optional(),
-  error: z.string().optional(),
-  error_description: z.string().optional(),
   page: z.string().optional(),
   authModal: z.literal('open').optional(),
 });
@@ -38,21 +31,6 @@ export const Route = createRoute({
       throw redirect({
         to: '/billing/return',
         search: { status: search.status },
-        replace: true,
-      });
-    }
-    if (search.code || search.token_hash || search.error || search.access_token) {
-      throw redirect({
-        to: '/auth/confirm',
-        search: {
-          code: search.code,
-          token_hash: search.token_hash,
-          type: search.type,
-          access_token: search.access_token,
-          refresh_token: search.refresh_token,
-          error: search.error,
-          error_description: search.error_description,
-        },
         replace: true,
       });
     }

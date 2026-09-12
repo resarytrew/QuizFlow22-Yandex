@@ -103,7 +103,7 @@ describe('router loaders', () => {
     expect(setPendingTemplate).toHaveBeenCalledWith(null);
   });
 
-  it('rejects a malformed public quiz id before querying Supabase', async () => {
+  it('rejects a malformed public quiz id before querying the API', async () => {
     const { loadQuizForPlayer } = await import('../routes/playQuiz');
 
     await expect(loadQuizForPlayer('not-a-uuid')).rejects.toBeDefined();

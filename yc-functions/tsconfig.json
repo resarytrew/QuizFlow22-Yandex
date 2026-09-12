@@ -18,6 +18,6 @@
     },
     "baseUrl": "."
   },
-  "include": ["_shared/**/*.ts", "api-router/**/*.ts", "api-quizzes/**/*.ts", "api-results/**/*.ts", "api-billing/**/*.ts", "api-admin/**/*.ts", "api-support/**/*.ts", "api-ai-proxy/**/*.ts", "upload-asset/**/*.ts", "cron-cleanup/**/*.ts"],
+  "include": ["_shared/**/*.ts", "api-router/**/*.ts", "api-auth/**/*.ts", "api-quizzes/**/*.ts", "api-results/**/*.ts", "api-billing/**/*.ts", "api-admin/**/*.ts", "api-support/**/*.ts", "api-ai-proxy/**/*.ts", "upload-asset/**/*.ts", "cron-cleanup/**/*.ts", "migrate-auth-schema/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -10,7 +10,8 @@ export type QuizTemplateId =
   | "math"
   | "history"
   | "newyear"
-  | "screenQuiz";
+  | "screenQuiz"
+  | "importantTalks";
 
 export enum CustomNodeType {
   Start = "startNode",
@@ -58,6 +59,7 @@ export interface BaseNodeData {
   isRequiredWatch?: boolean; // Block navigation until video ends
   backgroundImageUrl?: string;
   buttonText?: string;
+  timer?: number;
   soundSettings?: NodeSoundSettings;
   parentId?: string;
   screenQuiz?: Partial<ScreenQuizSettings>;
@@ -118,6 +120,7 @@ export interface QuestionNodeData extends BaseNodeData {
   timer?: number;
   title?: string;
   correctAnswer?: string;
+  importantTalks?: ImportantTalksQuestionContent;
 }
 
 export interface MultipleChoiceNodeData extends BaseNodeData {
@@ -133,15 +136,62 @@ export interface MultipleChoiceNodeData extends BaseNodeData {
   maxScore?: number;
   penaltyPerError?: number;
   minScore?: number;
+  importantTalks?: ImportantTalksMultipleChoiceContent;
 }
 
 export interface ResultNodeData extends BaseNodeData {
   title?: string;
   showScore?: boolean;
+  importantTalks?: ImportantTalksResultContent;
+}
+
+export interface ImportantTalksInfoContent {
+  agendaTitle?: string;
+  agendaItems?: string[];
+}
+
+export interface ImportantTalksInteractionContent {
+  correctTitle?: string;
+  correctText?: string;
+  incorrectTitle?: string;
+  incorrectText?: string;
+  timeoutTitle?: string;
+  timeoutText?: string;
+  feedbackButtonText?: string;
+}
+
+export interface ImportantTalksQuestionContent extends ImportantTalksInteractionContent {
+  instruction?: string;
+}
+
+export interface ImportantTalksResultContent {
+  kicker?: string;
+  insightTitle?: string;
+}
+
+export interface ImportantTalksMultipleChoiceContent extends ImportantTalksInteractionContent {
+  hint?: string;
+}
+
+export interface ImportantTalksTimelineContent extends ImportantTalksInteractionContent {
+  hint?: string;
+}
+
+export interface ImportantTalksTextInputContent extends ImportantTalksInteractionContent {
+  hint?: string;
+  insightTitle?: string;
+  maxLength?: number;
+}
+
+export interface ImportantTalksMatchingContent extends ImportantTalksInteractionContent {
+  hint?: string;
+  leftTitle?: string;
+  rightTitle?: string;
 }
 
 export interface InfoNodeData extends BaseNodeData {
   title?: string;
+  importantTalks?: ImportantTalksInfoContent;
 }
 
 export interface ScoreNodeData extends BaseNodeData {
@@ -199,6 +249,7 @@ export interface TimelineNodeData extends BaseNodeData {
   events?: TimelineEvent[];
   correctOrder?: string[];
   title?: string;
+  importantTalks?: ImportantTalksTimelineContent;
 }
 
 export interface MatchColumnItem {
@@ -218,12 +269,15 @@ export interface MatchingNodeData extends BaseNodeData {
   rightColumn?: MatchColumnItem[];
   correctPairs?: MatchPair[];
   title?: string;
+  importantTalks?: ImportantTalksMatchingContent;
 }
 
 export interface TextInputNodeData extends BaseNodeData {
   title?: string;
   question?: string;
   keyword?: string;
+  placeholder?: string;
+  importantTalks?: ImportantTalksTextInputContent;
 }
 
 export interface AchievementNodeData extends BaseNodeData {
@@ -320,7 +374,9 @@ export interface GlobalTimer {
 export interface DesignSettings {
   brand?: {
     logoUrl?: string;
+    avatarUrl?: string;
     brandName?: string;
+    scoreLabel?: string;
     primaryColor?: string;
     accentColor?: string;
     neutralColor?: string;
@@ -808,7 +864,7 @@ export interface BillingSnapshot {
 // --- Administration ---
 
 export type AdminRole = 'owner' | 'admin' | 'moderator' | 'support';
-export type AdminAuthenticatorLevel = 'aal1' | 'aal2';
+export type AdminAuthenticatorLevel = 'normal' | 'mfa';
 
 export interface AdminStaffSession {
   user_id: string;
