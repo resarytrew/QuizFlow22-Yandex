@@ -45,7 +45,7 @@ export function guideLinks() {
 }
 
 // Trusted, escaped editorial content shared by the initial HTML and the React landing.
-export function overviewHtml(heading: 'h1' | 'h2' = 'h2') {
+export function overviewHtml(heading: 'h1' | 'h2' = 'h1') {
   return `<section class="seo-content"><${heading}>${siteTitle}</${heading}><p>${siteDescription}</p><p>В Потоке вопросы и информационные экраны соединяются на графе. Настраивайте переходы между ответами, добавляйте изображения, аудио и видео, проверяйте сценарий в предпросмотре и делитесь готовым квизом.</p><h3>Квизы для обучения и интерактивных сценариев</h3><p>Подготовьте учебный тест, викторину для занятия, опрос с разными маршрутами или интерактивную историю. Начните с шаблона или соберите собственный сценарий в редакторе.</p>${guideLinks()}<p><a href="/#/templates">Выбрать шаблон</a> · <a href="/#/docs">Документация</a> · <a href="/#/?authModal=open">Начать создание квиза</a></p></section>`;
 }
 
