@@ -4,7 +4,7 @@
   "scripts": {
     "lint": "tsc -p tsconfig.json --noEmit",
     "build:shared": "tsc -p tsconfig.json",
-    "build": "npm run build:shared && npm run build:router && npm run build:quizzes && npm run build:results && npm run build:billing && npm run build:admin && npm run build:support && npm run build:ai-proxy && npm run build:upload && npm run build:cron && npm run build:promo && npm run build:grant-pro && npm run build:session",
+    "build": "npm run build:shared && npm run build:router && npm run build:quizzes && npm run build:results && npm run build:billing && npm run build:admin && npm run build:support && npm run build:ai-proxy && npm run build:upload && npm run build:cron && npm run build:promo && npm run build:grant-pro && npm run build:session && npm run build:seo",
     "build:router": "esbuild api-router/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-router/index.js",
     "build:quizzes": "esbuild api-quizzes/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-quizzes/index.js",
     "build:results": "esbuild api-results/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-results/index.js",
@@ -18,7 +18,8 @@
     "build:grant-pro": "esbuild billing-admin-grant-pro/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/billing-admin-grant-pro/index.js",
     "build:session": "esbuild save-quiz-session/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/save-quiz-session/index.js",
     "build:api-router": "npm run build:router",
-    "build:cron-cleanup": "npm run build:cron"
+    "build:cron-cleanup": "npm run build:cron",
+    "build:seo": "esbuild public-quiz-seo/index.ts --bundle --minify --platform=node --target=node22 --outfile=dist/public-quiz-seo/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
