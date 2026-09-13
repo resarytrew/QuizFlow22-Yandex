@@ -142,6 +142,17 @@ jobs:
           curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i $HOME/yandex-cloud -n
           echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
 
+      - name: Configure yc CLI
+        if: ${{ env.YC_CDN_RESOURCE_ID != '' }}
+        env:
+          YC_TOKEN: ${{ secrets.YC_OAUTH_TOKEN }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+        run: |
+          yc config set token "$YC_TOKEN"
+          yc config set cloud-id "$YC_CLOUD_ID"
+          yc config set folder-id "$YC_FOLDER_ID"
+
       - name: Purge Yandex CDN cache
         if: ${{ env.YC_CDN_RESOURCE_ID != '' }}
         env:
