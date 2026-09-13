@@ -99,7 +99,11 @@ describe('TOTP secret protection', () => {
     expect(decryptSecret(enrollment.encryptedSecret)).toBe(enrollment.secret);
     const generator = new OTPAuth.TOTP({ issuer: 'Поток', algorithm: 'SHA1', digits: 6, period: 30, secret: OTPAuth.Secret.fromBase32(enrollment.secret) });
     expect(verifyTotp(generator.generate(), enrollment.encryptedSecret)).toBe(true);
-    const tampered = enrollment.encryptedSecret.slice(0, -1) + (enrollment.encryptedSecret.endsWith('A') ? 'B' : 'A');
+    const parts = enrollment.encryptedSecret.split('.');
+    const ciphertext = Buffer.from(parts[3], 'base64url');
+    ciphertext[0] ^= 1;
+    parts[3] = ciphertext.toString('base64url');
+    const tampered = parts.join('.');
     expect(() => decryptSecret(tampered)).toThrow();
   });
 });

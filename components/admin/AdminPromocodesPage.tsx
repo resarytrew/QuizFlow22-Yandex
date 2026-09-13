@@ -1,3 +1,4 @@
+import { AdminDialog } from './AdminDialog';
 import React, { FormEvent, useEffect, useState } from 'react';
 import { useAdminStore } from '../../store/useAdminStore';
 import type { AdminProPlan } from '../../types';
@@ -42,7 +43,7 @@ const CreatePromoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <AdminDialog label="Создание промокода" onClose={onClose} busy={isBusy}>
       <div className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#121015] p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-2 inline-flex rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-200">
           Создание
@@ -101,7 +102,7 @@ const CreatePromoModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </AdminDialog>
   );
 };
 
@@ -143,8 +144,8 @@ const AdminPromocodesPage: React.FC = () => {
           <h1 className="mt-3 font-lora text-4xl font-bold md:text-6xl">Промокоды</h1>
           <p className="mt-3 text-sm text-white/50">Создание и управление промокодами на бесплатный PRO.</p>
         </div>
-        <div className="flex w-full max-w-2xl gap-3">
-          <form onSubmit={submitSearch} className="flex flex-1 gap-2 rounded-full border border-white/10 bg-white/[0.06] p-2">
+        <div className="flex w-full min-w-0 max-w-2xl flex-col gap-3 sm:flex-row">
+          <form onSubmit={submitSearch} className="flex min-w-0 flex-1 gap-2 rounded-full border border-white/10 bg-white/[0.06] p-2">
             <input name="components-admin-adminpromocodespage-148-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по коду"
               className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none" />
             <button className="rounded-full bg-amber-300 px-5 py-2.5 text-sm font-bold text-black">Найти</button>

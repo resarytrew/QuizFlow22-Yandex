@@ -1,5 +1,6 @@
+import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
-import { query, queryOne } from '../_shared/db';
+import { query, queryOne, withTransaction } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 
 export async function handler(event: any) {
@@ -8,23 +9,24 @@ export async function handler(event: any) {
   if (httpMethod === 'OPTIONS') return handleCors(event);
 
   try {
-    const user = await verifyAuth(event);
+    const user = await verifyAuth(event, { allowBlocked: true });
     if (!user) return unauthorized();
     await ensureUser(user.id, user.email);
 
     const ticketId = pathParameters?.ticketId;
 
     if (httpMethod === 'GET' && !ticketId) return await listTickets(user.id);
-    if (httpMethod === 'POST' && !ticketId) return await createTicket(user.id, user.email, body);
+    if (httpMethod === 'POST' && !ticketId) return await withTransaction(() => createTicket(user.id, user.email, body));
     if (httpMethod === 'GET' && ticketId) {
       return await listMessages(user.id, ticketId);
     }
     if (httpMethod === 'POST' && ticketId) {
-      return await sendMessage(user.id, ticketId, body);
+      return await withTransaction(() => sendMessage(user.id, ticketId, body));
     }
 
     return notFound();
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('Support error:', error);
     return {
       statusCode: 500,
@@ -74,7 +76,7 @@ async function createTicket(userId: string, email: string, body: string) {
 
 async function assertTicketOwner(userId: string, ticketId: string) {
   return await queryOne(
-    `SELECT id FROM public.support_tickets WHERE id = $1 AND user_id = $2`,
+    `SELECT id,status FROM public.support_tickets WHERE id = $1 AND user_id = $2 FOR UPDATE`,
     [ticketId, userId],
   );
 }
@@ -84,12 +86,12 @@ async function listMessages(userId: string, ticketId: string) {
   if (!ticket) return notFound();
 
   const rows = await query(
-    `SELECT id, ticket_id, sender_user_id, sender_kind,
+    `SELECT id, ticket_id, sender_user_id, CASE WHEN sender_kind='admin' THEN 'staff' ELSE sender_kind END AS sender_kind,
             COALESCE(body, message) as body,
             attachment_name, attachment_url, created_at
      FROM public.support_ticket_messages
      WHERE ticket_id = $1
-     ORDER BY created_at ASC`,
+     ORDER BY created_at ASC,id ASC`,
     [ticketId],
   );
   return ok(rows);
@@ -98,6 +100,7 @@ async function listMessages(userId: string, ticketId: string) {
 async function sendMessage(userId: string, ticketId: string, body: string) {
   const ticket = await assertTicketOwner(userId, ticketId);
   if (!ticket) return notFound();
+  if (['closed','resolved'].includes(ticket.status)) return { statusCode:409,headers:corsHeaders(),body:JSON.stringify({error:'ticket_closed'}) };
 
   const input = JSON.parse(body || '{}');
   const text = String(input.body || '').trim();
@@ -112,7 +115,7 @@ async function sendMessage(userId: string, ticketId: string, body: string) {
 
   await query(
     `UPDATE public.support_tickets
-     SET status = CASE WHEN status = 'closed' THEN status ELSE 'waiting_user' END,
+     SET status = 'in_progress',
          updated_at = now()
      WHERE id = $1`,
     [ticketId],

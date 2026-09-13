@@ -28,6 +28,7 @@ function formatDate(value: string | null): string {
 }
 
 const AdminQuizzesPage: React.FC = () => {
+  const canManage = useAdminStore(s=>s.staff?.permissions.includes('quizzes.moderate') ?? false);
   const quizzes = useAdminStore((s) => s.quizzes);
   const isLoading = useAdminStore((s) => s.isQuizzesLoading);
   const error = useAdminStore((s) => s.error);
@@ -207,7 +208,7 @@ const AdminQuizzesPage: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        disabled={isLoading}
+                        disabled={isLoading || !canManage}
                         onClick={() => applyModeration(quiz, 'approved')}
                         className="rounded-full bg-emerald-300 px-3 py-1.5 text-xs font-bold text-emerald-950 disabled:opacity-50"
                       >
@@ -215,7 +216,7 @@ const AdminQuizzesPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        disabled={isLoading}
+                        disabled={isLoading || !canManage}
                         onClick={() => applyModeration(quiz, 'hidden')}
                         className="rounded-full border border-amber-300/30 px-3 py-1.5 text-xs font-bold text-amber-100 disabled:opacity-50"
                       >
@@ -223,7 +224,7 @@ const AdminQuizzesPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        disabled={isLoading}
+                        disabled={isLoading || !canManage}
                         onClick={() => applyModeration(quiz, 'blocked')}
                         className="rounded-full border border-red-300/30 px-3 py-1.5 text-xs font-bold text-red-100 disabled:opacity-50"
                       >
@@ -231,7 +232,7 @@ const AdminQuizzesPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        disabled={isLoading}
+                        disabled={isLoading || !canManage}
                         onClick={() => applyModeration(quiz, 'deleted')}
                         className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-bold text-white/65 disabled:opacity-50"
                       >

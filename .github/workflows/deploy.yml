@@ -16,7 +16,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  checks:
+    uses: ./.github/workflows/verify.yml
+    secrets:
+      api_url: ${{ secrets.VITE_API_URL }}
   build-and-deploy:
+    needs: [checks, deploy-functions]
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_functions != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -32,31 +37,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
-      - name: Install dependencies
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: dist
+
+      - name: Install dependencies for public SEO verification
         run: npm ci
-
-      - name: Install Yandex function dependencies
-        run: npm run install:functions
-
-      - name: Typecheck
-        run: npm run lint
-
-      - name: Run frontend unit tests
-        run: npm test
-
-      - name: Type-check Yandex functions
-        run: npm run lint:functions
-
-      - name: Bundle Yandex functions
-        run: npm run test:functions
-
-      - name: Build production bundle
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-        run: npm run build
 
       - name: Configure AWS CLI credentials for Yandex Object Storage
         env:
@@ -75,7 +65,6 @@ jobs:
       - name: Sync immutable hashed assets to Yandex Object Storage
         run: |
           aws --endpoint-url=https://storage.yandexcloud.net s3 sync ./dist/assets s3://${{ secrets.YC_BUCKET }}/assets \
-            --delete \
             --cache-control "public, max-age=31536000, immutable"
 
       - name: Upload immutable root assets to Yandex Object Storage
@@ -174,9 +163,10 @@ jobs:
           exit 1
 
   deploy-functions:
+    needs: checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_functions == 'true'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
@@ -185,7 +175,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: yc-functions/package-lock.json
 
@@ -204,13 +194,13 @@ jobs:
           yc config set cloud-id "$YC_CLOUD_ID"
           yc config set folder-id "$YC_FOLDER_ID"
 
-      - name: Install dependencies
-        working-directory: yc-functions
-        run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: functions-${{ github.sha }}
+          path: yc-functions/dist
 
-      - name: Build unified API router
-        working-directory: yc-functions
-        run: npm run build:router
+      - name: Apply verified additive admin migration
+        run: node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply
 
       - name: Deploy unified API function
         working-directory: yc-functions

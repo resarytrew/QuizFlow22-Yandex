@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,10 +16,30 @@
     "outDir": "dist",
     "rootDir": ".",
     "paths": {
-      "@shared/*": ["./_shared/*"]
+      "@shared/*": [
+        "./_shared/*"
+      ]
     },
     "baseUrl": "."
   },
-  "include": ["public-quiz-seo/**/*.ts", "_shared/**/*.ts", "api-router/**/*.ts", "api-auth/**/*.ts", "api-quizzes/**/*.ts", "api-results/**/*.ts", "api-billing/**/*.ts", "api-admin/**/*.ts", "api-support/**/*.ts", "api-ai-proxy/**/*.ts", "upload-asset/**/*.ts", "cron-cleanup/**/*.ts", "migrate-auth-schema/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "public-quiz-seo/**/*.ts",
+    "_shared/**/*.ts",
+    "api-router/**/*.ts",
+    "api-auth/**/*.ts",
+    "api-quizzes/**/*.ts",
+    "api-results/**/*.ts",
+    "api-billing/**/*.ts",
+    "api-admin/**/*.ts",
+    "api-support/**/*.ts",
+    "api-ai-proxy/**/*.ts",
+    "upload-asset/**/*.ts",
+    "cron-cleanup/**/*.ts",
+    "migrate-auth-schema/**/*.ts",
+    "deploy/admin-migration.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

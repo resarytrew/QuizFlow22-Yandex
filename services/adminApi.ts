@@ -1,3 +1,4 @@
+import type { AdminSupportMutationResponse, AdminReportMutationResponse } from "../types";
 import { api } from './apiClient';
 import type {
   AdminFinancesParams,
@@ -26,7 +27,7 @@ import type {
   SupportTicketMessage,
 } from '../types';
 
-type AdminSupportReplyResponse = { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
+type AdminSupportReplyResponse = AdminSupportMutationResponse & { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
 type AdminPromocodeMutationResponse = { staff: AdminStaffSession; promocode: AdminPromocodeItem; generated_at: string };
 
 export class AdminApiError extends Error {
@@ -60,7 +61,7 @@ export async function fetchAdminReports(params?: AdminReportsParams): Promise<Ad
   return api.adminReports(params);
 }
 
-export async function updateAdminReportStatus(payload: { report_id: string; status: string; resolution?: string }): Promise<AdminOperationResponse> {
+export async function updateAdminReportStatus(payload: { report_id: string; status: string; resolution?: string }): Promise<AdminReportMutationResponse> {
   return api.updateAdminReportStatus(payload);
 }
 
@@ -68,7 +69,7 @@ export async function fetchAdminSupport(params?: AdminSupportParams): Promise<Ad
   return api.adminSupport(params);
 }
 
-export async function updateAdminSupportStatus(payload: { ticket_id: string; status: string; internal_note?: string; resolution?: string }): Promise<AdminOperationResponse> {
+export async function updateAdminSupportStatus(payload: { ticket_id: string; status: string; internal_note?: string; resolution?: string }): Promise<AdminSupportMutationResponse> {
   return api.updateAdminSupportStatus(payload);
 }
 

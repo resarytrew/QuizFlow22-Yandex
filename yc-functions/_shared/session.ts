@@ -12,6 +12,9 @@ export interface SessionUser {
   emailVerified: boolean;
   role: string;
   authLevel: 'normal' | 'mfa';
+  sessionId?: string;
+  accountStatus?: string | null;
+  blockedUntil?: string | null;
 }
 
 export function sessionRecordIsActive(record: { expiresAt: number; revokedAt?: number | null }, now = Date.now()): boolean {
@@ -118,13 +121,12 @@ export async function verifySession(event: RequestContext): Promise<SessionUser 
       WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now()
         AND u.auth_disabled_at IS NULL`, [sha256(token)]);
   if (!row) return null;
-  if (row.status === 'blocked') return null;
-  if (row.status === 'temporarily_blocked' && (!row.blocked_until || Date.parse(row.blocked_until) > Date.now())) return null;
 
   void execute(`UPDATE public.auth_sessions SET last_seen_at = now()
     WHERE id = $1 AND (last_seen_at IS NULL OR last_seen_at < now() - interval '1 hour')`, [row.id]).catch(() => undefined);
   return {
     id: row.user_id,
+    sessionId: row.id, accountStatus: row.status, blockedUntil: row.blocked_until,
     email: row.email,
     emailVerified: Boolean(row.email_verified_at),
     role: row.role,
@@ -144,7 +146,7 @@ export async function revokeAllSessions(userId: string): Promise<void> {
 export async function elevateCurrentSession(event: RequestContext): Promise<boolean> {
   const token = sessionTokenFromEvent(event);
   if (!token) return false;
-  return (await execute(`UPDATE public.auth_sessions SET mfa_verified_at = now()
+  return (await execute(`UPDATE public.auth_sessions SET mfa_verified_at = now(), admin_last_seen_at = NULL
     WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()`, [sha256(token)])) === 1;
 }
 

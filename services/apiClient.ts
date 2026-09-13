@@ -1,3 +1,6 @@
+import toast from 'react-hot-toast';
+import { validateAdminEntity } from '../yc-functions/_shared/admin-contracts';
+import type { AdminSupportMutationResponse, AdminReportMutationResponse } from "../types";
 import type {
   AdminFinancesParams,
   AdminFinancesResponse,
@@ -53,7 +56,7 @@ type BillingEntitlementResponse = {
   has_media_upload?: boolean;
   yookassa_subscription_id?: string | null;
 };
-type AdminSupportReplyResponse = { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
+type AdminSupportReplyResponse = AdminSupportMutationResponse & { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
 type AdminPromocodeMutationResponse = { staff: AdminStaffSession; promocode: AdminPromocodeItem; generated_at: string };
 
 function withQuery(path: string, params?: object): string {
@@ -83,11 +86,17 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || `API error: ${response.status}`);
+    const requestId = error.request_id || response.headers.get('X-Request-ID');
+    throw new Error(`${error.error || `API error: ${response.status}`}${requestId ? ` (ID: ${requestId})` : ''}`);
   }
 
   if (response.status === 204) return undefined as T;
-  return response.json();
+  const data = await response.json();
+  if (path.startsWith('/admin/')) {
+    validateAdminEntity(data);
+    if (options.method && options.method !== 'GET') toast.success('Изменения сохранены');
+  }
+  return data;
 }
 
 interface Quiz {
@@ -214,11 +223,11 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  updateAdminReportStatus: (payload: { report_id: string; status: string; resolution?: string }) => apiRequest<AdminOperationResponse>('/admin/report-status', {
+  updateAdminReportStatus: (payload: { report_id: string; status: string; resolution?: string }) => apiRequest<AdminReportMutationResponse>('/admin/report-status', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
-  updateAdminSupportStatus: (payload: { ticket_id: string; status: string; internal_note?: string; resolution?: string }) => apiRequest<AdminOperationResponse>('/admin/support-status', {
+  updateAdminSupportStatus: (payload: { ticket_id: string; status: string; internal_note?: string; resolution?: string }) => apiRequest<AdminSupportMutationResponse>('/admin/support-status', {
     method: 'POST',
     body: JSON.stringify(payload),
   }),

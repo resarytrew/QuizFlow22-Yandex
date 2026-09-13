@@ -1,3 +1,4 @@
+import { isAccountBlocked } from '../_shared/admin-policy';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { queryOne, execute, withTransaction } from '../_shared/db';
@@ -232,8 +233,7 @@ async function login(event: Event) {
     FROM public.users u JOIN public.auth_credentials c ON c.user_id = u.id
     LEFT JOIN public.profiles p ON p.user_id = u.id
     WHERE lower(u.email) = $1 AND u.auth_disabled_at IS NULL
-      AND COALESCE(p.status, 'active') <> 'blocked'
-      AND (COALESCE(p.status, 'active') <> 'temporarily_blocked' OR p.blocked_until < now())`, [email]);
+`, [email]);
   const validHash = user?.password_hash || await dummyPasswordHash;
   const valid = Boolean(user?.password_hash) && await verifyPassword(password, validHash);
   if (!valid) {
@@ -404,6 +404,7 @@ async function yandexCallback(event: Event) {
 async function requireAdmin(event: Event) {
   const user = await verifySession(event);
   if (!user) fail('Требуется вход.', 401);
+  if (isAccountBlocked(user.accountStatus,user.blockedUntil)) fail('account_blocked',403);
   const staff = await queryOne<{ id: string }>('SELECT id FROM public.admin_staff WHERE user_id = $1 AND is_active = true', [user.id]);
   if (!staff) fail('Доступ запрещён.', 403);
   return user;

@@ -23,15 +23,7 @@ export async function handler() {
 
   // 3. Downgrade entitlements for canceled/expired subscriptions
   const downgraded = await execute(
-    `UPDATE public.entitlements
-     SET plan = 'free', features = '{"max_quizzes":3,"ai_tier":"basic","hide_branding":false,"premium_templates":false,"unlimited_logic":false}'::jsonb,
-         valid_until = NULL, source = 'system'
-     WHERE user_id IN (
-       SELECT user_id FROM public.subscriptions
-       WHERE status IN ('canceled', 'expired')
-         AND current_period_end < now()
-     )
-     AND plan != 'free'`
+    `SELECT public.refresh_effective_entitlement(user_id) FROM public.entitlements`
   );
   results.push(`entitlements_downgraded: ${downgraded}`);
 

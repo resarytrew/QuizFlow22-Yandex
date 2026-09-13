@@ -47,3 +47,7 @@ Untitled-*.txt
 [{]
 scripts/.gen*.cjs
 scripts/.preview.html
+
+.cache/
+playwright-report/
+test-results/

@@ -6,6 +6,8 @@ export interface AuthUser {
   emailVerified: boolean;
   role: string;
   authLevel: 'normal' | 'mfa';
+  accountStatus?: string | null;
+  blockedUntil?: string | null;
 }
 
 export class AuthRequestError extends Error {

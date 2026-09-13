@@ -1,5 +1,6 @@
+import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
-import { query, queryOne } from '../_shared/db';
+import { query, queryOne, withTransaction } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 import { getYookassaPayment, isYookassaIp, getClientIp, timingSafeEqual } from '../_shared/yookassa';
 import { randomUUID } from 'node:crypto';
@@ -24,7 +25,7 @@ export async function handler(event: any) {
   }
 
   try {
-    const user = await verifyAuth(event);
+    const user = await verifyAuth(event, { allowBlocked: ['get-entitlement', 'cancel-subscription'].includes(pathParameters?.action) });
     if (!user) return unauthorized();
     await ensureUser(user.id, user.email);
 
@@ -34,11 +35,12 @@ export async function handler(event: any) {
       case 'get-entitlement':
         return await getEntitlement(user);
       case 'cancel-subscription':
-        return await cancelSubscription(user);
+        return await withTransaction(async()=>{ await query("SELECT id FROM public.users WHERE id=$1 FOR UPDATE",[user.id]); return cancelSubscription(user); });
       default:
         return notFound();
     }
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('Billing error:', error);
     return {
       statusCode: 500,
@@ -259,12 +261,12 @@ async function handleWebhook(event: any, body: string) {
       case 'payment.succeeded':
       case 'payment.waiting_for_capture':
         if (userId && planId) {
-          await activateOrRenewSubscription(userId, planId, payment);
+          await withTransaction(async()=>{ await query("SELECT id FROM public.users WHERE id=$1 FOR UPDATE",[userId]); await activateOrRenewSubscription(userId, planId, payment); });
         }
         break;
       case 'payment.canceled':
         if (userId) {
-          await cancelSubscriptionByPayment(userId);
+          await withTransaction(async()=>{ await query("SELECT id FROM public.users WHERE id=$1 FOR UPDATE",[userId]); await cancelSubscriptionByPayment(userId); });
         }
         break;
       default:
@@ -319,16 +321,8 @@ async function activateOrRenewSubscription(userId: string, planId: string, payme
     );
   }
 
-  // Upsert entitlement
-  await query(
-    `INSERT INTO public.entitlements (user_id, plan, features, valid_until, source)
-     VALUES ($1, 'pro', $2, $3, 'payment')
-     ON CONFLICT (user_id) DO UPDATE SET
-       plan = 'pro', features = $2, valid_until = $3, source = 'payment'`,
-    [userId, JSON.stringify(plan.features || {}), newEnd.toISOString()],
-  );
+  await query('SELECT public.refresh_effective_entitlement($1)', [userId]);
 
-  // Update payment status
   await query(
     `UPDATE public.payments SET status = 'succeeded' WHERE provider_payment_id = $1`,
     [payment.id],
@@ -343,13 +337,10 @@ async function cancelSubscriptionByPayment(userId: string) {
     [userId],
   );
 
-  // Revert entitlement to free
-  await query(
-    `UPDATE public.entitlements
-     SET plan = 'free', features = $1, valid_until = NULL, source = 'system'
-     WHERE user_id = $2`,
-    [JSON.stringify({ max_quizzes: 3, ai_tier: 'basic', hide_branding: false, premium_templates: false, unlimited_logic: false }), userId],
-  );
+  // Recompute access, including manual grants.
+  await query('SELECT public.refresh_effective_entitlement($1)', [userId]);
+  return;
+
 }
 
 function ok(data: any, status = 200) {

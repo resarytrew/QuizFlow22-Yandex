@@ -116,6 +116,8 @@ const initialState = {
   error: null as string | null,
 };
 
+const grantKeys = new Map<string,string>();
+
 export const useAdminStore = create<AdminStoreState>((set, get) => ({
   ...initialState,
 
@@ -144,7 +146,6 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     try {
       const overview = await fetchAdminOverview();
       set({
-        staff: overview.staff,
         overview,
         isOverviewLoading: false,
       });
@@ -161,7 +162,6 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     try {
       const users = await fetchAdminUsers(params);
       set({
-        staff: users.staff,
         users,
         isUsersLoading: false,
       });
@@ -178,7 +178,6 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     try {
       const quizzes = await fetchAdminQuizzes(params);
       set({
-        staff: quizzes.staff,
         quizzes,
         isQuizzesLoading: false,
       });
@@ -194,7 +193,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     set({ isReportsLoading: true, error: null });
     try {
       const reports = await fetchAdminReports(params);
-      set({ staff: reports.staff, reports, isReportsLoading: false });
+      set({ reports, isReportsLoading: false });
       return reports;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'admin_reports_failed';
@@ -207,7 +206,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     set({ isSupportLoading: true, error: null });
     try {
       const support = await fetchAdminSupport(params);
-      set({ staff: support.staff, support, isSupportLoading: false });
+      set({ support, isSupportLoading: false });
       return support;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'admin_support_failed';
@@ -220,7 +219,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     set({ isFinancesLoading: true, error: null });
     try {
       const finances = await fetchAdminFinances(params);
-      set({ staff: finances.staff, finances, isFinancesLoading: false });
+      set({ finances, isFinancesLoading: false });
       return finances;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'admin_finances_failed';
@@ -233,7 +232,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     set({ isPromocodesLoading: true, error: null });
     try {
       const promocodes = await fetchAdminPromocodes(params);
-      set({ staff: promocodes.staff, promocodes, isPromocodesLoading: false });
+      set({ promocodes, isPromocodesLoading: false });
       return promocodes;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'admin_promocodes_failed';
@@ -243,11 +242,11 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   createPromocode: async (payload) => {
+    if (get().isPromocodesLoading) throw new Error('operation_in_progress');
     set({ isPromocodesLoading: true, error: null });
     try {
       const response = await createAdminPromocode(payload);
       set((state) => ({
-        staff: response.staff,
         promocodes: state.promocodes
           ? { ...state.promocodes, promocodes: [response.promocode, ...state.promocodes.promocodes] }
           : state.promocodes,
@@ -262,11 +261,12 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   togglePromocode: async (code, isActive) => {
-    set({ error: null });
+    if (get().isPromocodesLoading) throw new Error('operation_in_progress');
+    set({isPromocodesLoading:true,error:null});
     try {
       const response = await toggleAdminPromocode({ code, is_active: isActive });
       set((state) => ({
-        staff: response.staff,
+        isPromocodesLoading:false,
         promocodes: state.promocodes
           ? {
               ...state.promocodes,
@@ -279,16 +279,18 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
       return response.promocode;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'admin_promocode_toggle_failed';
-      set({ error: message });
+      set({ isPromocodesLoading:false,error: message });
       throw error;
     }
   },
 
   deletePromocode: async (code) => {
-    set({ error: null });
+    if (get().isPromocodesLoading) throw new Error('operation_in_progress');
+    set({isPromocodesLoading:true,error:null});
     try {
       await deleteAdminPromocode(code);
       set((state) => ({
+        isPromocodesLoading:false,
         promocodes: state.promocodes
           ? {
               ...state.promocodes,
@@ -298,29 +300,22 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
       }));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'admin_promocode_delete_failed';
-      set({ error: message });
+      set({ isPromocodesLoading:false,error: message });
       throw error;
     }
   },
 
   updateReportStatus: async (reportId, status, resolution = null) => {
+    if (get().isReportsLoading) throw new Error('operation_in_progress');
     set({ isReportsLoading: true, error: null });
     try {
-      await updateAdminReportStatus({ report_id: reportId, status, resolution: resolution ?? undefined });
+      const response = await updateAdminReportStatus({ report_id: reportId, status, resolution: resolution ?? undefined });
       set((state) => ({
         reports: state.reports
           ? {
               ...state.reports,
               reports: state.reports.reports.map((report) =>
-                report.id === reportId
-                  ? {
-                      ...report,
-                      status,
-                      resolution,
-                      resolved_at: ['approved', 'rejected', 'closed'].includes(status)
-                        ? new Date().toISOString()
-                        : null,
-                    }
+                report.id === reportId ? response.report
                   : report,
               ),
             }
@@ -335,12 +330,13 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   updateSupportStatus: async (ticketId, status, note = null) => {
+    if (get().isSupportLoading) throw new Error('operation_in_progress');
     set({ isSupportLoading: true, error: null });
     try {
-      await updateAdminSupportStatus({
+      const response = await updateAdminSupportStatus({
         ticket_id: ticketId,
         status,
-        internal_note: note ?? undefined,
+        internal_note: status === 'closed' ? undefined : note ?? undefined,
         resolution: status === 'closed' ? (note ?? undefined) : undefined,
       });
       set((state) => ({
@@ -348,14 +344,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
           ? {
               ...state.support,
               tickets: state.support.tickets.map((ticket) =>
-                ticket.id === ticketId
-                  ? {
-                      ...ticket,
-                      status,
-                      internal_note: note,
-                      resolution: status === 'closed' ? note : ticket.resolution,
-                      closed_at: status === 'closed' ? new Date().toISOString() : null,
-                    }
+                ticket.id === ticketId ? response.ticket
                   : ticket,
               ),
             }
@@ -370,6 +359,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   replySupport: async (ticketId, body) => {
+    if (get().isSupportLoading) throw new Error('operation_in_progress');
     set({ isSupportLoading: true, error: null });
     try {
       const response = await replyToAdminSupport({ ticket_id: ticketId, body });
@@ -378,12 +368,7 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
           ? {
               ...state.support,
               tickets: state.support.tickets.map((ticket) =>
-                ticket.id === ticketId
-                  ? {
-                      ...ticket,
-                      status: 'waiting_user',
-                      messages: [...(ticket.messages ?? []), response.message],
-                    }
+                ticket.id === ticketId ? response.ticket
                   : ticket,
               ),
             }
@@ -398,11 +383,11 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   updateUserStatus: async (payload) => {
+    if (get().isUsersLoading) throw new Error('operation_in_progress');
     set({ isUsersLoading: true, error: null });
     try {
       const response = await updateAdminUserStatus(payload);
       set((state) => ({
-        staff: response.staff,
         users: state.users
           ? {
               ...state.users,
@@ -423,11 +408,11 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   moderateQuiz: async (payload) => {
+    if (get().isQuizzesLoading) throw new Error('operation_in_progress');
     set({ isQuizzesLoading: true, error: null });
     try {
       const response = await moderateAdminQuiz(payload);
       set((state) => ({
-        staff: response.staff,
         quizzes: state.quizzes
           ? {
               ...state.quizzes,
@@ -448,9 +433,14 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
   },
 
   grantPro: async (payload) => {
+    if (get().isGrantingPro) throw new Error('operation_in_progress');
+    const signature = JSON.stringify(payload);
+    const key = payload.idempotency_key || grantKeys.get(signature) || crypto.randomUUID();
+    grantKeys.set(signature,key);
     set({ isGrantingPro: true, error: null });
     try {
-      const response = await grantAdminPro(payload);
+      const response = await grantAdminPro({ ...payload, idempotency_key:key });
+      grantKeys.delete(signature);
       set({ isGrantingPro: false });
       return response;
     } catch (error) {
@@ -460,5 +450,5 @@ export const useAdminStore = create<AdminStoreState>((set, get) => ({
     }
   },
 
-  reset: () => set(initialState),
+  reset: () => { grantKeys.clear(); set(initialState); },
 }));

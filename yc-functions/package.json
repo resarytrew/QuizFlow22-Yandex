@@ -4,10 +4,10 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "prebuild": "npm run clean",
-    "test": "vitest run --environment node",
+    "test": "vitest run --environment node --exclude \"integration/**\"",
     "lint": "tsc -p tsconfig.json --noEmit",
     "build:shared": "tsc -p tsconfig.json --noEmit",
-    "build": "npm run build:shared && npm run build:router && npm run build:auth && npm run build:quizzes && npm run build:results && npm run build:billing && npm run build:admin && npm run build:support && npm run build:ai-proxy && npm run build:upload && npm run build:cron && npm run build:promo && npm run build:grant-pro && npm run build:session && npm run build:seo",
+    "build": "npm run build:shared && npm run build:router && npm run build:auth && npm run build:quizzes && npm run build:results && npm run build:billing && npm run build:admin && npm run build:support && npm run build:ai-proxy && npm run build:upload && npm run build:cron && npm run build:promo && npm run build:grant-pro && npm run build:session && npm run build:seo && npm run build:admin-migration",
     "build:router": "esbuild api-router/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-router/index.js",
     "build:auth": "esbuild api-auth/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-auth/index.js",
     "build:migrate-auth": "esbuild migrate-auth-schema/index.ts --bundle --minify --platform=node --target=node22 --outfile=dist/migrate-auth-schema/index.js && node -e \"require('fs').copyFileSync('migrations/003_quizflow_auth.sql','dist/migrate-auth-schema/003_quizflow_auth.sql')\"",
@@ -24,7 +24,9 @@
     "build:session": "esbuild save-quiz-session/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/save-quiz-session/index.js",
     "build:api-router": "npm run build:router",
     "build:cron-cleanup": "npm run build:cron",
-    "build:seo": "esbuild public-quiz-seo/index.ts --bundle --minify --platform=node --target=node22 --outfile=dist/public-quiz-seo/index.js"
+    "build:seo": "esbuild public-quiz-seo/index.ts --bundle --minify --platform=node --target=node22 --outfile=dist/public-quiz-seo/index.js",
+    "test:integration": "vitest run --environment node integration",
+    "build:admin-migration": "esbuild deploy/admin-migration.ts --bundle --platform=node --target=node22 --outfile=dist/admin-migration/index.cjs && node -e \"require('fs').copyFileSync('migrations/004_admin_stabilization.sql','dist/admin-migration/004_admin_stabilization.sql')\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
@@ -32,7 +34,8 @@
     "nodemailer": "^10.0.9",
     "otpauth": "^9.5.2",
     "pg": "^8.13.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.4"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",

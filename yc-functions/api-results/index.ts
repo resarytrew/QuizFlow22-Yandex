@@ -1,3 +1,4 @@
+import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser, type AuthUser } from '../_shared/auth';
 import { query } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
@@ -24,6 +25,7 @@ export async function handler(event: any) {
   try {
     return await saveResult(event);
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('Results error:', error);
     return response(500, { error: 'Internal server error' }, headers);
   }

@@ -900,7 +900,7 @@ export interface AdminOverviewMetrics {
 }
 
 export interface AdminAuditEntry {
-  id: number;
+  id: string;
   actor_user_id: string | null;
   actor_account_code: number | null;
   actor_display_name: string | null;
@@ -986,6 +986,8 @@ export interface AdminUpdateUserStatusPayload {
 export type AdminProPlan = 'pro_monthly' | 'pro_yearly';
 
 export interface AdminGrantProPayload {
+  idempotency_key?: string;
+  days?: number;
   user_id: string;
   plan: AdminProPlan;
   reason?: string | null;
@@ -1024,26 +1026,7 @@ export type AdminQuizModerationStatus =
   | 'hidden'
   | 'deleted';
 
-export interface AdminQuizListItem {
-  id: string;
-  owner_user_id: string;
-  owner_account_code: number | null;
-  owner_display_name: string | null;
-  owner_username: string | null;
-  owner_status: string | null;
-  name: string;
-  visibility: QuizVisibility;
-  display_code: string | null;
-  raw_display_code: number | null;
-  moderation_status: AdminQuizModerationStatus;
-  moderation_reason: string | null;
-  moderated_at: string | null;
-  deleted_at: string | null;
-  is_published: boolean;
-  published_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export type AdminQuizListItem = import('./yc-functions/_shared/admin-contracts').AdminQuiz;
 
 export interface AdminQuizzesResponse {
   staff: AdminStaffSession;
@@ -1072,24 +1055,7 @@ export interface AdminProfileSummary {
 
 export type AdminReportStatus = 'new' | 'reviewing' | 'approved' | 'rejected' | 'closed';
 
-export interface AdminReportListItem {
-  id: string;
-  quiz_id: string;
-  reporter_user_id: string | null;
-  reason: string;
-  comment: string | null;
-  status: AdminReportStatus;
-  assigned_to: string | null;
-  resolution: string | null;
-  resolved_at: string | null;
-  created_at: string;
-  updated_at: string;
-  quiz_name: string | null;
-  quiz_display_code: string | null;
-  quiz_owner: AdminProfileSummary;
-  reporter: AdminProfileSummary;
-  assignee: AdminProfileSummary;
-}
+export type AdminReportListItem = import('./yc-functions/_shared/admin-contracts').AdminReport;
 
 export interface AdminReportsParams {
   page?: number;
@@ -1107,25 +1073,7 @@ export interface AdminReportsResponse {
 
 export type AdminSupportStatus = 'new' | 'in_progress' | 'waiting_user' | 'closed';
 
-export interface AdminSupportTicket {
-  id: string;
-  user_id: string | null;
-  email: string | null;
-  subject: string;
-  category: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: AdminSupportStatus;
-  message: string;
-  assigned_to: string | null;
-  internal_note: string | null;
-  resolution: string | null;
-  closed_at: string | null;
-  created_at: string;
-  updated_at: string;
-  user: AdminProfileSummary;
-  assignee: AdminProfileSummary;
-  messages?: SupportTicketMessage[];
-}
+export type AdminSupportTicket = import('./yc-functions/_shared/admin-contracts').AdminTicket;
 
 export interface AdminSupportParams {
   page?: number;
@@ -1265,3 +1213,6 @@ export const PRO_NODE_TYPES: ReadonlySet<CustomNodeType> = new Set<CustomNodeTyp
 export function isProNode(type: CustomNodeType): boolean {
   return PRO_NODE_TYPES.has(type);
 }
+
+export type AdminSupportMutationResponse = AdminOperationResponse & { ticket: import('./yc-functions/_shared/admin-contracts').AdminTicket };
+export type AdminReportMutationResponse = AdminOperationResponse & { report: import('./yc-functions/_shared/admin-contracts').AdminReport };

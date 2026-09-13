@@ -1,3 +1,4 @@
+import { AccountBlockedError } from '../_shared/auth';
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -57,6 +58,7 @@ export async function handler(event: any) {
         return badRequest('unknown action');
     }
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('Upload error:', error);
     return {
       statusCode: 500,
