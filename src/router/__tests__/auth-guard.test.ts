@@ -13,14 +13,6 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   };
 });
 
-// Mock the supabase client to avoid importing the actual module
-vi.mock('../../../services/supabaseClient', () => ({
-  supabase: null,
-  supabaseUrl: '',
-  supabaseAnonKey: '',
-  isSupabaseReady: false,
-}));
-
 // Mock the store to avoid importing the full Zustand setup
 vi.mock('../../../store/useQuizDataStore', () => ({
   useQuizDataStore: { getState: () => ({}) },

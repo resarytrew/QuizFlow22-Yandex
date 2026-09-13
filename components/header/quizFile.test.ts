@@ -74,7 +74,7 @@ describe('quiz file import and export', () => {
     },
   );
 
-  it('uses the outer Supabase quiz name when quiz_data has no name', () => {
+  it('uses the outer database quiz name when quiz_data has no name', () => {
     const content = JSON.stringify({
       name: 'Database export name',
       quiz_data: { nodes: [node], edges: [edge] },

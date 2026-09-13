@@ -15,7 +15,7 @@ export default tseslint.config(
       'scripts/.gen*.cjs',
       'yc-functions/**',
       'yc-functions/dist/**',
-      'supabase/functions/**',
+      'legacy/**',
       'dokuments/**',
     ],
   },

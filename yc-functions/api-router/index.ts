@@ -8,7 +8,9 @@ import { handler as uploadHandler } from '../upload-asset';
 import { handler as redeemPromoHandler } from '../billing-redeem-promo';
 import { handler as grantProHandler } from '../billing-admin-grant-pro';
 import { handler as sessionsHandler } from '../save-quiz-session';
-import { corsHeaders, handleCors } from '../_shared/cors';
+import { handler as authHandler } from '../api-auth';
+import { corsHeaders, handleCors, isAllowedOrigin } from '../_shared/cors';
+import { SESSION_COOKIE } from '../_shared/session';
 
 type Handler = (event: any) => Promise<any>;
 
@@ -77,13 +79,33 @@ function response(statusCode: number, body: unknown) {
 }
 
 async function dispatch(event: any, handler: Handler, params: Record<string, string | undefined> = {}) {
-  return handler(withParams(event, params));
+  const normalizedEvent = withParams(event, params);
+  const result = await handler(normalizedEvent);
+  return {
+    ...result,
+    headers: {
+      ...(result?.headers || {}),
+      ...corsHeaders(normalizedEvent.headers?.origin),
+    },
+  };
 }
 
 export async function handler(event: any) {
   if (event.httpMethod === 'OPTIONS') return handleCors(event);
 
   const [resource, ...rest] = apiSegments(event);
+  const method = String(event.httpMethod || 'GET').toUpperCase();
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const cookie = event.headers?.cookie || event.headers?.Cookie || '';
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+      && String(cookie).includes(`${SESSION_COOKIE}=`)
+      && !isAllowedOrigin(origin)) {
+    return dispatch(event, async () => ({
+      statusCode: 403,
+      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+      body: JSON.stringify({ error: 'Недопустимый источник запроса.' }),
+    }));
+  }
 
   try {
     switch (resource) {
@@ -118,6 +140,9 @@ export async function handler(event: any) {
 
       case 'sessions':
         return dispatch(event, sessionsHandler, { action: rest[0] || 'create' });
+
+      case 'auth':
+        return dispatch(event, authHandler, { action: rest.join('/') });
 
       default:
         return response(404, { error: 'Not found' });

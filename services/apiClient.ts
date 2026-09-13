@@ -33,7 +33,7 @@ import type {
   UserSupportTicket,
 } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : '')).replace(/\/$/, '');
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 type QueryValue = string | number | boolean | null | undefined;
 type QuizMutationPayload = Partial<Pick<Quiz, 'name' | 'visibility' | 'is_favorite' | 'quiz_data'>> & Record<string, unknown>;
@@ -55,7 +55,6 @@ type BillingEntitlementResponse = {
 };
 type AdminSupportReplyResponse = { staff: AdminStaffSession; message: SupportTicketMessage; generated_at: string };
 type AdminPromocodeMutationResponse = { staff: AdminStaffSession; promocode: AdminPromocodeItem; generated_at: string };
-type PublicQuizFallbackRow = Pick<PublicQuiz, 'id' | 'name' | 'quiz_data' | 'created_at' | 'published_at' | 'visibility' | 'is_favorite'>;
 
 function withQuery(path: string, params?: object): string {
   const entries = Object.entries(params ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
@@ -73,18 +72,11 @@ export async function apiRequest<T>(
     throw new Error('VITE_API_URL is not configured');
   }
 
-  const { supabase } = await import('./supabaseClient');
-  let token: string | undefined;
-  if (supabase) {
-    const { data: { session } } = await supabase.auth.getSession();
-    token = session?.access_token;
-  }
-
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
   });
@@ -96,35 +88,6 @@ export async function apiRequest<T>(
 
   if (response.status === 204) return undefined as T;
   return response.json();
-}
-
-async function listPublicQuizzesWithFallback(): Promise<PublicQuiz[]> {
-  try {
-    return await apiRequest<PublicQuiz[]>('/quizzes?public=true');
-  } catch (apiError) {
-    console.warn('[apiClient] Public gallery API failed, using Supabase fallback', apiError);
-
-    const { supabase, isSupabaseReady } = await import('./supabaseClient');
-    if (!isSupabaseReady || !supabase) throw apiError;
-
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('id,name,quiz_data,created_at,published_at,visibility,is_favorite')
-      .eq('visibility', 'public')
-      .is('deleted_at', null)
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(200);
-
-    if (error) throw apiError;
-
-    const rows = (data ?? []) as PublicQuizFallbackRow[];
-    return rows.map((quiz) => ({
-      ...quiz,
-      published_at: quiz.published_at || quiz.created_at,
-      is_published: Boolean(quiz.published_at),
-    }));
-  }
 }
 
 interface Quiz {
@@ -161,7 +124,7 @@ export const api = {
   deleteQuiz: (id: string) => apiRequest<void>(`/quizzes/${id}`, {
     method: 'DELETE',
   }),
-  listPublicQuizzes: listPublicQuizzesWithFallback,
+  listPublicQuizzes: () => apiRequest<PublicQuiz[]>('/quizzes?public=true'),
 
   // ─── Results ────────────────────────────────────────────────
   saveResult: (data: ResultMutationPayload) => apiRequest<{ id: string; score: number }>('/results', {

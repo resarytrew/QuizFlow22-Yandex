@@ -155,7 +155,7 @@ export function buildAllPlans(proPlans: Plan[]): DerivedPlan[] {
 
 /**
  * Хардкод PRO-тарифов для неавторизованных пользователей (LandingPage, etc).
- * Источник истины — `supabase/migrations/20260604000000_billing.sql`, дубликат для
+ * Источник истины — схема тарифов в Yandex PostgreSQL, дубликат для
  * случая, когда `useEntitlementStore.plans` ещё не загружен. При появлении
  * public-эндпоинта для `plans` это можно убрать.
  */

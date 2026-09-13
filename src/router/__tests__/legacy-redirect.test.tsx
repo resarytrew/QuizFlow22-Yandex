@@ -75,46 +75,6 @@ describe('landing legacy redirects', () => {
     );
   });
 
-  it('redirects /?token_hash=... to /auth/confirm', async () => {
-    const { Route } = await import('../routes/landing');
-
-    try {
-      await (Route.options.beforeLoad as Function)?.({
-        search: { token_hash: 'abc', type: 'email' },
-        context: { auth: { isAuthenticated: false, userId: null } },
-      });
-    } catch {
-      // redirect throws
-    }
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: '/auth/confirm',
-        search: { token_hash: 'abc', type: 'email' },
-      })
-    );
-  });
-
-  it('redirects /?code=... to /auth/confirm for OAuth callbacks', async () => {
-    const { Route } = await import('../routes/landing');
-
-    try {
-      await (Route.options.beforeLoad as Function)?.({
-        search: { code: 'oauth-code' },
-        context: { auth: { isAuthenticated: false, userId: null } },
-      });
-    } catch {
-      // redirect throws
-    }
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: '/auth/confirm',
-        search: { code: 'oauth-code' },
-      })
-    );
-  });
-
   it('redirects /?page=guide to /guide', async () => {
     const { Route } = await import('../routes/landing');
 
@@ -163,31 +123,6 @@ describe('landing legacy redirects', () => {
     }
 
     expect(mockNavigate).not.toHaveBeenCalled();
-  });
-
-  it('preserves auth callback errors when redirecting', async () => {
-    const { Route } = await import('../routes/landing');
-
-    try {
-      await (Route.options.beforeLoad as Function)?.({
-        search: {
-          error: 'access_denied',
-          error_description: 'Expired link',
-        },
-      });
-    } catch {
-      // redirect throws
-    }
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: '/auth/confirm',
-        search: expect.objectContaining({
-          error: 'access_denied',
-          error_description: 'Expired link',
-        }),
-      })
-    );
   });
 
   it('does not redirect for authModal=open', async () => {

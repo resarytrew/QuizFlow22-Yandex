@@ -864,7 +864,7 @@ export interface BillingSnapshot {
 // --- Administration ---
 
 export type AdminRole = 'owner' | 'admin' | 'moderator' | 'support';
-export type AdminAuthenticatorLevel = 'aal1' | 'aal2';
+export type AdminAuthenticatorLevel = 'normal' | 'mfa';
 
 export interface AdminStaffSession {
   user_id: string;

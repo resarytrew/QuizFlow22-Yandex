@@ -3,12 +3,6 @@ info:
   title: Potok API
   version: 3.0.0
 
-x-yc-apigateway:
-  cors:
-    origin: "*"
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    headers: ["authorization", "content-type", "x-request-id", "x-admin-secret", "x-cron-secret"]
-
 paths:
   /api/{proxy+}:
     x-yc-apigateway-any-method:

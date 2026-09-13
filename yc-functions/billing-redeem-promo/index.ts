@@ -12,7 +12,7 @@ export async function handler(event: any) {
   }
 
   try {
-    const user = await verifyAuth(headers.authorization);
+    const user = await verifyAuth(event);
     if (!user) return unauthorized();
     await ensureUser(user.id, user.email);
 

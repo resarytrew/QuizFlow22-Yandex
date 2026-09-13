@@ -43,7 +43,7 @@ export default defineConfig({
         'node_modules',
         'dist',
         'coverage',
-        'supabase',
+        'legacy',
         '**/*.test.{ts,tsx}',
         '**/*.spec.{ts,tsx}',
         '**/types.ts',
