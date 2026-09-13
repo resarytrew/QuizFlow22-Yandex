@@ -24,7 +24,7 @@ npm run dev
 Публичная frontend-конфигурация:
 
 ```text
-VITE_API_URL=/api
+VITE_API_URL=https://api.mykviz.ru/api
 VITE_PRIMARY_SITE_URL=https://mykviz.ru
 VITE_ADDITIONAL_SITE_ORIGINS=https://mykviz.online
 ```
