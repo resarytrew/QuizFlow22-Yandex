@@ -27,6 +27,7 @@ for (const path of [
   "yc_migration.sql",
   "yc-functions/migrations/003_quizflow_auth.sql",
   "yc-functions/migrations/004_admin_stabilization.sql",
+    "yc-functions/migrations/005_admin_workspace.sql",
 ])
   await db.query(readFileSync(path, "utf8"));
 const fixtures = {};
@@ -70,6 +71,12 @@ fixtures.report = (
     [fixtures.quiz.id, fixtures.user.id],
   )
 ).rows[0];
+fixtures.payment=(await db.query("INSERT INTO public.payments(user_id,plan_id,amount_kopecks,provider_payment_id) VALUES($1,'pro_monthly',39900,'e2e-payment-only') RETURNING id",[fixtures.user.id])).rows[0];
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async (input,options)=>{
+ if(String(input)==='https://api.yookassa.ru/v3/payments/e2e-payment-only') return new Response(JSON.stringify({id:'e2e-payment-only',status:'succeeded',paid:true,amount:{value:'399.00',currency:'RUB'},metadata:{user_id:fixtures.user.id,plan_id:'pro_monthly'}}),{status:200,headers:{'content-type':'application/json'}});
+ return originalFetch(input,options);
+};
 await db.end();
 mkdirSync(".cache", { recursive: true });
 writeFileSync(".cache/admin-e2e.json", JSON.stringify(fixtures));

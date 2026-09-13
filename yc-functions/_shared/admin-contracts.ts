@@ -86,6 +86,8 @@ export const TicketSchema = z.object({
   status: SupportStatusSchema.shape.status,
   message: z.string(),
   assigned_to: z.string().nullable(),
+  awaiting_since: date.nullable().default(null),
+  notes: z.array(z.object({id:z.uuid(),ticket_id:z.uuid(),body:z.string(),created_at:date})).default([]),
   internal_note: z.string().nullable(),
   resolution: z.string().nullable(),
   closed_at: date.nullable(),

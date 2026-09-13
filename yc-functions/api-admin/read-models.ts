@@ -355,15 +355,26 @@ export async function handleListSupport(event: any, ctx?: AdminStaffContext) {
   }
   if (search) {
     whereClause = whereClause
-      ? `${whereClause} AND st.subject ILIKE $${queryParams.length + 1}`
-      : `WHERE st.subject ILIKE $${queryParams.length + 1}`;
+      ? `${whereClause} AND (st.subject ILIKE $${queryParams.length + 1} OR st.email ILIKE $${queryParams.length + 1} OR EXISTS (SELECT 1 FROM public.users su WHERE su.id=st.user_id AND su.email ILIKE $${queryParams.length + 1}))`
+      : `WHERE (st.subject ILIKE $${queryParams.length + 1} OR st.email ILIKE $${queryParams.length + 1} OR EXISTS (SELECT 1 FROM public.users su WHERE su.id=st.user_id AND su.email ILIKE $${queryParams.length + 1}))`;
     queryParams.push(`%${search}%`);
   }
 
+  if (params.unanswered === "true")
+    whereClause +=
+      (whereClause ? " AND " : "WHERE ") +
+      "st.status IN ('open','in_progress') AND NOT EXISTS (SELECT 1 FROM public.support_ticket_messages m WHERE m.ticket_id=st.id AND m.sender_kind='admin' AND m.created_at >= (SELECT max(um.created_at) FROM public.support_ticket_messages um WHERE um.ticket_id=st.id AND um.sender_kind='user'))";
+  if (params.mine === "true" && ctx) {
+    whereClause +=
+      (whereClause ? " AND " : "WHERE ") +
+      `st.assigned_to=$${queryParams.length + 1}`;
+    queryParams.push(ctx.userId);
+  }
   const rows = await query(
     `SELECT st.id, st.user_id, st.email, st.subject, st.category, st.priority, st.status,
             st.message, st.assigned_to, st.internal_note, st.resolution, st.closed_at,
             st.created_at, st.updated_at, u.email as user_email,
+            CASE WHEN st.status IN ('open','in_progress') THEN COALESCE((SELECT max(m.created_at) FROM public.support_ticket_messages m WHERE m.ticket_id=st.id AND m.sender_kind='user'),st.created_at) ELSE NULL END AS awaiting_since,
             p.account_code, p.display_name, p.username,
             ap.account_code as assignee_account_code, ap.display_name as assignee_display_name, ap.username as assignee_username
      FROM public.support_tickets st
@@ -393,6 +404,10 @@ export async function handleListSupport(event: any, ctx?: AdminStaffContext) {
     [rows.map((row) => row.id)],
   );
 
+  const notes = await query(
+    "SELECT id,ticket_id,body,created_at FROM public.support_notes WHERE ticket_id=ANY($1::uuid[]) ORDER BY created_at,id",
+    [rows.map((r) => r.id)],
+  );
   return ok({
     staff: await staffSession(ctx),
     tickets: rows.map((row) => ({
@@ -411,6 +426,8 @@ export async function handleListSupport(event: any, ctx?: AdminStaffContext) {
             : row.status,
       message: row.message ?? "",
       assigned_to: row.assigned_to ?? null,
+      awaiting_since: row.awaiting_since,
+      notes: notes.filter((n) => n.ticket_id === row.id),
       internal_note: row.internal_note ?? null,
       resolution: row.resolution ?? null,
       closed_at: row.closed_at ?? null,
