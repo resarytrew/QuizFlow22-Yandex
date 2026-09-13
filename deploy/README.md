@@ -1,16 +1,15 @@
 # Развёртывание «Потока» в Yandex Cloud
 
-Production состоит из Yandex CDN/Object Storage, API Gateway/Cloud Functions, Managed PostgreSQL, Object Storage для media, Lockbox и Postbox. Frontend обращается к API по same-origin пути `/api`, поэтому session-cookie работает на обоих доменах без передачи токена JavaScript-коду.
+Production состоит из Yandex CDN/Object Storage, API Gateway/Cloud Functions, Managed PostgreSQL, Object Storage для media, Lockbox и Postbox. Frontend обращается к API через `https://api.mykviz.ru/api`; это поддомен того же сайта, поэтому cookie-сессия работает без передачи токена JavaScript-коду.
 
 ```text
-Браузер → mykviz.ru (Yandex CDN)
-                 ├─ /*    → Object Storage со статикой
-                 └─ /api  → API Gateway → Cloud Function → PostgreSQL/Postbox/Object Storage
+Браузер → mykviz.ru (Yandex CDN) → Object Storage со статикой
+        → api.mykviz.ru          → API Gateway → Cloud Function → PostgreSQL/Postbox/Object Storage
 ```
 
 ## Frontend
 
-Скопируйте `.env.production.example` в `.env.production` и укажите deployment-значения Object Storage/CDN. `VITE_API_URL` должен оставаться `/api`.
+Скопируйте `.env.production.example` в `.env.production` и укажите deployment-значения Object Storage/CDN. Для production задайте `VITE_API_URL=https://api.mykviz.ru/api`.
 
 ```powershell
 ./deploy/deploy.ps1
@@ -27,7 +26,7 @@ Production состоит из Yandex CDN/Object Storage, API Gateway/Cloud Func
 1. Добавьте реальные backend-секреты в Lockbox secret `potok-secrets`.
 2. Примените `yc-functions/migrations/003_quizflow_auth.sql` командой `./deploy/apply-auth-migration.ps1`.
 3. Запустите workflow `Deploy to Yandex Cloud` вручную с `deploy_functions=true` либо `yc-functions/deploy/deploy.ps1`.
-4. Выполните `./deploy/configure-api-cdn.ps1`, чтобы `/api` шёл к API Gateway без кеширования.
+4. Подключите `api.mykviz.ru` к API Gateway с сертификатом Certificate Manager и добавьте DNS CNAME на домен шлюза.
 
 Полный список значений и внешних настроек: [AUTH_CUTOVER.md](./AUTH_CUTOVER.md).
 
