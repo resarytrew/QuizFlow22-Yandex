@@ -24,6 +24,35 @@ for (const role of ["owner", "admin", "moderator", "support"]) {
       page.getByRole("heading", { name: "Пользователи", exact: true }),
     ).toBeVisible();
     await expect(page.getByText("E2E user", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "E2E user", exact: true }).click();
+    const card = page.getByRole("dialog", { name: "Карточка пользователя" });
+    await expect(
+      card.getByText("user@e2e.invalid", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("heading", { name: "Общая история", exact: true }),
+    ).toBeVisible();
+    await expect(card.getByRole("alert")).toHaveCount(0);
+    if (["owner", "admin"].includes(role)) {
+      await card
+        .getByRole("button", { name: "Проверить оплату", exact: true })
+        .click();
+      await expect(card.getByRole("status")).toContainText("Оплачен");
+      page.once("dialog", (d) => d.accept());
+      await card
+        .getByRole("button", { name: "Восстановить доступ", exact: true })
+        .click();
+      await expect(card.getByRole("status")).toContainText(
+        /восстановлен|уже учтён/,
+      );
+      await expect(
+        card.getByText("В системе: Оплачен", { exact: false }),
+      ).toBeVisible();
+    }
+    await card.screenshot({
+      path: `.cache/card-${role}-${isMobile ? "mobile" : "desktop"}.png`,
+    });
+    await card.getByRole("button", { name: "Закрыть", exact: true }).click();
     if (isMobile) {
       await page.getByRole("button", { name: "Разделы", exact: true }).click();
       await expect(
@@ -122,11 +151,15 @@ for (const role of ["owner", "admin", "moderator", "support"]) {
       await expect(
         page.getByText("E2E support", { exact: true }),
       ).toBeVisible();
-      page.once("dialog", (dialog) => dialog.accept("E2E persisted reply"));
       await page
         .getByRole("button", { name: "Ответить", exact: true })
         .first()
         .click();
+      await page
+        .getByLabel("Текст", { exact: true })
+        .fill("E2E persisted reply");
+      await page.getByRole("button", { name: "Предпросмотр ответа" }).click();
+      await page.getByRole("button", { name: "Отправить ответ" }).click();
       await expect(
         page.getByText("E2E persisted reply", { exact: true }).first(),
       ).toBeVisible();
@@ -134,12 +167,46 @@ for (const role of ["owner", "admin", "moderator", "support"]) {
       await expect(
         page.getByText("E2E persisted reply", { exact: true }).first(),
       ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Ответить", exact: true })
+        .first()
+        .click();
+      await page.getByLabel("Действие", { exact: true }).selectOption("note");
+      await page.getByLabel("Текст", { exact: true }).fill("E2E internal note");
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await expect(
+        page.getByText("E2E internal note", { exact: true }).first(),
+      ).toBeVisible();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(
+        page.getByText("E2E internal note", { exact: true }).first(),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Ответить", exact: true })
+        .first()
+        .click();
+      await page.getByLabel("Действие", { exact: true }).selectOption("assign");
+      await page
+        .getByRole("button", { name: "Сохранить", exact: true })
+        .click();
+      await expect(
+        page.getByRole("dialog", { name: "Работа с обращением" }),
+      ).toHaveCount(0);
+      await page.getByLabel("Назначенные мне").check();
+      await expect(
+        page.getByText("E2E support", { exact: true }),
+      ).toBeVisible();
       await page.goto("/#/admin/finances", { waitUntil: "domcontentloaded" });
       await expect(
         page.getByRole("heading", { name: "Доступ закрыт" }),
       ).toBeVisible();
     }
-    if (isMobile) expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    if (isMobile)
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(390);
     await page.screenshot({
       path: `.cache/admin-${role}-${isMobile ? "mobile" : "desktop"}.png`,
       fullPage: true,

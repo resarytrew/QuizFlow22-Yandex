@@ -1,6 +1,7 @@
+import { applyConfirmedPayment } from "../_shared/payment-application";
 import { handler as serviceGrantHandler } from "../billing-admin-grant-pro";
 import { handler as redeemHandler } from "../billing-redeem-promo";
-import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { beforeAll, afterAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { getPool, query, queryOne } from "../_shared/db";
@@ -52,6 +53,7 @@ beforeAll(async () => {
     "../yc_migration.sql",
     "migrations/003_quizflow_auth.sql",
     "migrations/004_admin_stabilization.sql",
+    "migrations/005_admin_workspace.sql",
   ])
     await query(readFileSync(file, "utf8"));
   // Upgrade is rerunnable without losing rows or overwriting overrides.
@@ -473,4 +475,343 @@ describe("admin PostgreSQL contracts", () => {
     ).toEqual([]);
     expect((await call("user", "GET", "users")).status).toBe(403);
   });
+});
+
+describe("administrative workspace", () => {
+  it("shows billing only to permitted staff and accepts missing profiles", async () => {
+    const id = randomUUID();
+    await query("INSERT INTO public.users(id,email) VALUES($1,$2)", [
+      id,
+      id + "@test.invalid",
+    ]);
+    const admin = await call("owner", "GET", "user-workspace", undefined, {
+      user_id: id,
+    });
+    expect(admin.status).toBe(200);
+    expect(admin.data.workspace.account.missing_profile).toBe(true);
+    const moderator = await call(
+      "moderator",
+      "GET",
+      "user-workspace",
+      undefined,
+      { user_id: id },
+    );
+    expect(moderator.data.workspace.access).toBeNull();
+    expect(moderator.data.workspace.payments).toEqual([]);
+    expect((await call("owner", "GET", "attention")).status).toBe(200);
+  });
+  it("applies a confirmed payment once under concurrency and keeps manual access", async () => {
+    const id = randomUUID(),
+      paymentId = randomUUID(),
+      providerId = randomUUID();
+    await query("INSERT INTO public.users(id,email) VALUES($1,$2)", [
+      id,
+      id + "@test.invalid",
+    ]);
+    await query(
+      "INSERT INTO public.payments(id,user_id,plan_id,amount_kopecks,provider_payment_id) VALUES($1,$2,'pro_monthly',39900,$3)",
+      [paymentId, id, providerId],
+    );
+    const provider = {
+      id: providerId,
+      status: "succeeded" as const,
+      paid: true,
+      amount: { value: "399.00", currency: "RUB" as const },
+      metadata: { user_id: id, plan_id: "pro_monthly" },
+    };
+    await expect(
+      applyConfirmedPayment(
+        paymentId,
+        { ...provider, amount: { value: "1.00", currency: "RUB" } },
+        "test",
+      ),
+    ).rejects.toThrow("payment_mismatch");
+    await expect(
+      applyConfirmedPayment(
+        paymentId,
+        { ...provider, refunded_amount: { value: "399.00", currency: "RUB" } },
+        "test",
+      ),
+    ).rejects.toThrow("payment_not_confirmed");
+    const manual = await grantPro(
+      { user_id: id, days: 90, idempotency_key: randomUUID() },
+      await requireAdminStaff(users.owner),
+      null,
+      null,
+    );
+    const results = await Promise.all([
+      applyConfirmedPayment(paymentId, provider, "test"),
+      applyConfirmedPayment(paymentId, provider, "test"),
+    ]);
+    expect(results.filter((r) => r.applied)).toHaveLength(1);
+    expect(
+      new Date(
+        (await queryOne(
+          "SELECT valid_until FROM public.entitlements WHERE user_id=$1",
+          [id],
+        ))!.valid_until,
+      ).toISOString(),
+    ).toBe(manual.valid_until);
+    expect(
+      (
+        await queryOne(
+          "SELECT count(*)::int AS n FROM public.payment_applications WHERE payment_id=$1",
+          [paymentId],
+        )
+      )?.n,
+    ).toBe(1);
+    expect(
+      (
+        await queryOne(
+          "SELECT plan FROM public.entitlements WHERE user_id=$1",
+          [id],
+        )
+      )?.plan,
+    ).toBe("pro");
+  });
+  it("keeps notes private and assigns a ticket", async () => {
+    const note = await call("support", "POST", "support-note", {
+      ticket_id: ticketId,
+      body: "Private investigation",
+    });
+    expect(note.status).toBe(200);
+    const assign = await call("support", "POST", "support-assign", {
+      ticket_id: ticketId,
+      user_id: users.support,
+    });
+    expect(assign.status).toBe(200);
+    expect(
+      (
+        await queryOne(
+          "SELECT assigned_to FROM public.support_tickets WHERE id=$1",
+          [ticketId],
+        )
+      )?.assigned_to,
+    ).toBe(users.support);
+    const workspace = await call(
+      "support",
+      "GET",
+      "user-workspace",
+      undefined,
+      { user_id: users.user },
+    );
+    expect(workspace.status).toBe(200);
+    expect(
+      workspace.data.workspace.notes.some(
+        (n: { body: string }) => n.body === "Private investigation",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("payment recovery and support compensation", () => {
+  it("checks provider status and rolls back recovery when audit fails", async () => {
+    const id = randomUUID(),
+      paymentId = randomUUID(),
+      providerId = randomUUID();
+    await query("INSERT INTO public.users(id,email) VALUES($1,$2)", [
+      id,
+      id + "@test.invalid",
+    ]);
+    await query(
+      "INSERT INTO public.payments(id,user_id,plan_id,amount_kopecks,provider_payment_id) VALUES($1,$2,'pro_monthly',39900,$3)",
+      [paymentId, id, providerId],
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            id: providerId,
+            status: "succeeded",
+            paid: true,
+            amount: { value: "399.00", currency: "RUB" },
+            metadata: { user_id: id },
+          }),
+        }),
+    );
+    try {
+      const check = await call("owner", "POST", "payment-check", {
+        payment_id: paymentId,
+      });
+      expect(check.status).toBe(200);
+      expect(check.data.result.provider_status).toBe("succeeded");
+      expect(
+        (
+          await queryOne("SELECT status FROM public.payments WHERE id=$1", [
+            paymentId,
+          ])
+        )?.status,
+      ).toBe("pending");
+      await query(
+        "CREATE FUNCTION public.fail_recovery_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action='payment-restore' THEN RAISE EXCEPTION 'test'; END IF; RETURN NEW; END $$; CREATE TRIGGER fail_recovery_audit BEFORE INSERT ON public.admin_audit_log FOR EACH ROW EXECUTE FUNCTION public.fail_recovery_audit()",
+      );
+      try {
+        expect(
+          (
+            await call("owner", "POST", "payment-restore", {
+              payment_id: paymentId,
+            })
+          ).status,
+        ).toBe(500);
+      } finally {
+        await query(
+          "DROP TRIGGER fail_recovery_audit ON public.admin_audit_log; DROP FUNCTION public.fail_recovery_audit()",
+        );
+      }
+      expect(
+        (
+          await queryOne(
+            "SELECT count(*)::int AS n FROM public.payment_applications WHERE payment_id=$1",
+            [paymentId],
+          )
+        )?.n,
+      ).toBe(0);
+      expect(
+        (
+          await queryOne("SELECT status FROM public.payments WHERE id=$1", [
+            paymentId,
+          ])
+        )?.status,
+      ).toBe("pending");
+      expect(
+        (
+          await call("owner", "POST", "payment-restore", {
+            payment_id: paymentId,
+          })
+        ).data.result.applied,
+      ).toBe(true);
+      expect(
+        (
+          await call("owner", "POST", "payment-restore", {
+            payment_id: paymentId,
+          })
+        ).data.result.already_applied,
+      ).toBe(true);
+      expect(
+        (
+          await call("support", "POST", "payment-restore", {
+            payment_id: paymentId,
+          })
+        ).status,
+      ).toBe(403);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+  it("issues a restricted one-use promo with repeat protection", async () => {
+    const body = {
+      ticket_id: ticketId,
+      days: 17,
+      body: "Incident compensation",
+      idempotency_key: randomUUID(),
+    };
+    const first = await call("owner", "POST", "support-promo", body);
+    expect(first.status, JSON.stringify(first.data)).toBe(200);
+    expect(
+      (await call("owner", "POST", "support-promo", body)).data.result.code,
+    ).toBe(first.data.result.code);
+    expect(
+      (await call("owner", "POST", "support-promo", { ...body, days: 18 }))
+        .status,
+    ).toBe(409);
+    const wrong = await redeemHandler(
+      event("admin", "POST", "", { code: first.data.result.code }),
+    );
+    expect(wrong.statusCode).toBe(400);
+    const right = await redeemHandler(
+      event("user", "POST", "", { code: first.data.result.code }),
+    );
+    expect(right.statusCode).toBe(200);
+    expect(
+      (
+        await redeemHandler(
+          event("user", "POST", "", { code: first.data.result.code }),
+        )
+      ).statusCode,
+    ).toBe(400);
+    const userTickets = await supportHandler(event("user", "GET", ""));
+    expect(userTickets.body).not.toContain("Private investigation");
+    expect((await call("support", "GET", "support-staff")).status).toBe(200);
+    expect(
+      (
+        await call("support", "GET", "support", undefined, {
+          mine: "true",
+          unanswered: "true",
+        })
+      ).status,
+    ).toBe(200);
+  });
+});
+
+it("retries failed webhooks and grants only after capture", async () => {
+  const id = randomUUID(),
+    paymentId = randomUUID(),
+    providerId = randomUUID();
+  await query("INSERT INTO public.users(id,email) VALUES($1,$2)", [
+    id,
+    id + "@test.invalid",
+  ]);
+  await query(
+    "INSERT INTO public.payments(id,user_id,plan_id,amount_kopecks,provider_payment_id,save_payment_method) VALUES($1,$2,'pro_monthly',39900,$3,true)",
+    [paymentId, id, providerId],
+  );
+  const payment = {
+    id: providerId,
+    status: "waiting_for_capture",
+    paid: true,
+    amount: { value: "399.00", currency: "RUB" },
+    payment_method: { id: "saved-test", saved: true },
+  };
+  const mock = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("test offline"))
+    .mockImplementation(async () => ({ ok: true, json: async () => payment }));
+  vi.stubGlobal("fetch", mock);
+  const notify = (kind: string) =>
+    billingHandler(
+      event("user", "POST", "yookassa-webhook", {
+        type: "notification",
+        event: kind,
+        object: { id: providerId },
+      }),
+    );
+  try {
+    expect((await notify("payment.succeeded")).statusCode).toBe(500);
+    expect((await notify("payment.waiting_for_capture")).statusCode).toBe(200);
+    expect(
+      await queryOne("SELECT id FROM public.subscriptions WHERE user_id=$1", [
+        id,
+      ]),
+    ).toBeNull();
+    payment.status = "succeeded";
+    expect((await notify("payment.succeeded")).statusCode).toBe(200);
+    expect((await notify("payment.succeeded")).statusCode).toBe(200);
+    expect(
+      (
+        await queryOne(
+          "SELECT count(*)::int AS n FROM public.payment_applications WHERE payment_id=$1",
+          [paymentId],
+        )
+      )?.n,
+    ).toBe(1);
+    const sub = await queryOne(
+      "SELECT payment_method_id,cancel_at_period_end FROM public.subscriptions WHERE user_id=$1",
+      [id],
+    );
+    expect(sub?.payment_method_id).toBe("saved-test");
+    expect(sub?.cancel_at_period_end).toBe(false);
+    expect(
+      (
+        await queryOne(
+          "SELECT error FROM public.webhook_events WHERE external_id=$1",
+          [providerId],
+        )
+      )?.error,
+    ).toBeNull();
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

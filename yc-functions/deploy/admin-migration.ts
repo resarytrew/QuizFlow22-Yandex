@@ -11,6 +11,9 @@ type Binding = {
   key: string;
 };
 async function main() {
+  const migration = process.argv.includes("--workspace")
+    ? "005_admin_workspace"
+    : "004_admin_stabilization";
   const env = { ...process.env };
   if (process.argv.includes("--from-yandex")) {
     const yc = process.env.YC_CLI || "yc";
@@ -81,10 +84,7 @@ async function main() {
       JSON.stringify({ event: "admin_schema_preflight", columns: schema.rows }),
     );
     if (!process.argv.includes("--apply")) return;
-    const sql = readFileSync(
-      path.join(__dirname, "004_admin_stabilization.sql"),
-      "utf8",
-    );
+    const sql = readFileSync(path.join(__dirname, migration + ".sql"), "utf8");
     const checksum = createHash("sha256").update(sql).digest("hex");
     await client.query("BEGIN");
     await client.query(
@@ -94,7 +94,8 @@ async function main() {
       "CREATE TABLE IF NOT EXISTS public.schema_migrations(version text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())",
     );
     const prior = await client.query(
-      "SELECT checksum FROM public.schema_migrations WHERE version='004_admin_stabilization'",
+      "SELECT checksum FROM public.schema_migrations WHERE version=$1",
+      [migration],
     );
     if (prior.rows.length) {
       if (prior.rows[0].checksum !== checksum)
@@ -110,8 +111,8 @@ async function main() {
       sql.replace(/^BEGIN;\s*/, "").replace(/COMMIT;\s*$/, ""),
     );
     await client.query(
-      "INSERT INTO public.schema_migrations(version,checksum) VALUES('004_admin_stabilization',$1)",
-      [checksum],
+      "INSERT INTO public.schema_migrations(version,checksum) VALUES($1,$2)",
+      [migration, checksum],
     );
     await client.query("COMMIT");
     console.log(

@@ -200,7 +200,9 @@ jobs:
           path: yc-functions/dist
 
       - name: Apply verified additive admin migration
-        run: node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply
+        run: |
+          node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply
+          node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply --workspace
 
       - name: Deploy unified API function
         working-directory: yc-functions
@@ -232,9 +234,21 @@ jobs:
             YC_CATALOG_ID YC_OAUTH_TOKEN
           )
 
+          # Only names are retained; never write secret payload values into logs or files.
+          AVAILABLE_KEYS=$(yc lockbox payload get --id "$LOCKBOX_SECRET_ID" --format json | jq -r '.entries[].key')
+          for REQUIRED_KEY in PG_HOST PG_DATABASE PG_USER PG_PASSWORD OTP_PEPPER SESSION_PEPPER MFA_ENCRYPTION_KEY FRONTEND_URL ALLOWED_ORIGINS; do
+            if ! grep -Fxq "$REQUIRED_KEY" <<< "$AVAILABLE_KEYS"; then
+              echo "::error::Missing required Lockbox key: $REQUIRED_KEY"
+              exit 1
+            fi
+          done
           SECRET_FLAGS=()
           for SECRET_KEY in "${SECRETS[@]}"; do
-            SECRET_FLAGS+=(--secret "environment-variable=$SECRET_KEY,id=$LOCKBOX_SECRET_ID,key=$SECRET_KEY")
+            if grep -Fxq "$SECRET_KEY" <<< "$AVAILABLE_KEYS"; then
+              SECRET_FLAGS+=(--secret "environment-variable=$SECRET_KEY,id=$LOCKBOX_SECRET_ID,key=$SECRET_KEY")
+            else
+              echo "Optional configuration absent; using runtime default: $SECRET_KEY"
+            fi
           done
 
           yc serverless function version create \

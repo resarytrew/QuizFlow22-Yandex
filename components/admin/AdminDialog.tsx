@@ -4,11 +4,13 @@ export function AdminDialog({
   label,
   onClose,
   busy = false,
+  wide = false,
 }: {
   children: React.ReactNode;
   label: string;
   onClose: () => void;
   busy?: boolean;
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -24,7 +26,7 @@ export function AdminDialog({
         event.preventDefault();
         if (!busy) onClose();
       }}
-      className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto border-0 bg-transparent p-0 text-white backdrop:bg-black/70"
+      className={`m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] ${wide ? "max-w-4xl" : "max-w-lg"} overflow-y-auto border-0 bg-transparent p-0 text-white backdrop:bg-black/70`}
     >
       {children}
     </dialog>

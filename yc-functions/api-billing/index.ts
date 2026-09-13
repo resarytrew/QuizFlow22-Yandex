@@ -1,3 +1,4 @@
+import { applyConfirmedPayment } from '../_shared/payment-application';
 import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
 import { query, queryOne, withTransaction } from '../_shared/db';
@@ -228,8 +229,8 @@ async function handleWebhook(event: any, body: string) {
 
   // Layer 5: Idempotency check via webhook_events table
   const existing = await queryOne(
-    `SELECT id FROM public.webhook_events WHERE provider = 'yookassa' AND external_id = $1`,
-    [externalId],
+    `SELECT id FROM public.webhook_events WHERE provider = 'yookassa' AND external_id = $1 AND processed_at IS NOT NULL AND event_type = $2`,
+    [externalId, payload.event],
   );
   if (existing) {
     return ok({ ok: true, dedup: true });
@@ -249,25 +250,23 @@ async function handleWebhook(event: any, body: string) {
     payment = await getYookassaPayment(externalId);
   } catch (err) {
     console.error('[webhook] failed to re-fetch payment:', (err as Error).message);
+    await query("UPDATE public.webhook_events SET error='provider_unavailable' WHERE provider='yookassa' AND external_id=$1",[externalId]);
     return { statusCode: 500, headers: corsHeaders(), body: JSON.stringify({ error: 'payment_fetch_failed' }) };
   }
 
-  const meta = payment.metadata ?? {};
-  const userId = meta.user_id;
-  const planId = meta.plan_id;
 
   try {
     switch (payload.event) {
-      case 'payment.succeeded':
-      case 'payment.waiting_for_capture':
-        if (userId && planId) {
-          await withTransaction(async()=>{ await query("SELECT id FROM public.users WHERE id=$1 FOR UPDATE",[userId]); await activateOrRenewSubscription(userId, planId, payment); });
-        }
+      case 'payment.succeeded': {
+        const local = await queryOne('SELECT id FROM public.payments WHERE provider_payment_id=$1',[externalId]);
+        if (!local) throw new Error('payment_not_found');
+        await applyConfirmedPayment(local.id,payment,'webhook');
         break;
+      }
+      case 'payment.waiting_for_capture':
+        return ok({ok:true});
       case 'payment.canceled':
-        if (userId) {
-          await withTransaction(async()=>{ await query("SELECT id FROM public.users WHERE id=$1 FOR UPDATE",[userId]); await cancelSubscriptionByPayment(userId); });
-        }
+        if (payment.status === 'canceled') await query("UPDATE public.payments SET status='canceled' WHERE provider_payment_id=$1 AND status='pending'",[externalId]);
         break;
       default:
         console.log('[webhook] unknown event:', payload.event);
@@ -275,8 +274,8 @@ async function handleWebhook(event: any, body: string) {
 
     // Mark as processed
     await query(
-      `UPDATE public.webhook_events SET processed_at = now() WHERE provider = 'yookassa' AND external_id = $1`,
-      [externalId],
+      `UPDATE public.webhook_events SET processed_at = now(),error=NULL,event_type=$2 WHERE provider = 'yookassa' AND external_id = $1`,
+      [externalId,payload.event],
     );
   } catch (err) {
     console.error('[webhook] processing error:', err);
@@ -288,59 +287,6 @@ async function handleWebhook(event: any, body: string) {
   }
 
   return ok({ ok: true });
-}
-
-async function activateOrRenewSubscription(userId: string, planId: string, payment: any) {
-  const plan = await queryOne(`SELECT * FROM public.plans WHERE id = $1`, [planId]);
-  if (!plan) throw new Error('plan not found: ' + planId);
-
-  const now = new Date();
-  const periodMs = plan.period === 'year'
-    ? 365 * 24 * 60 * 60 * 1000
-    : 30 * 24 * 60 * 60 * 1000;
-  const newEnd = new Date(now.getTime() + periodMs);
-
-  // Upsert subscription
-  const existingSub = await queryOne(
-    `SELECT id FROM public.subscriptions WHERE user_id = $1 AND status IN ('active', 'past_due')`,
-    [userId],
-  );
-
-  if (existingSub) {
-    await query(
-      `UPDATE public.subscriptions
-       SET status = 'active', current_period_end = $1, updated_at = now()
-       WHERE id = $2`,
-      [newEnd.toISOString(), existingSub.id],
-    );
-  } else {
-    await query(
-      `INSERT INTO public.subscriptions (user_id, plan_id, status, current_period_start, current_period_end, provider)
-       VALUES ($1, $2, 'active', $3, $4, 'yookassa')`,
-      [userId, planId, now.toISOString(), newEnd.toISOString()],
-    );
-  }
-
-  await query('SELECT public.refresh_effective_entitlement($1)', [userId]);
-
-  await query(
-    `UPDATE public.payments SET status = 'succeeded' WHERE provider_payment_id = $1`,
-    [payment.id],
-  );
-}
-
-async function cancelSubscriptionByPayment(userId: string) {
-  await query(
-    `UPDATE public.subscriptions
-     SET status = 'canceled', canceled_at = now(), updated_at = now()
-     WHERE user_id = $1 AND status IN ('active', 'past_due')`,
-    [userId],
-  );
-
-  // Recompute access, including manual grants.
-  await query('SELECT public.refresh_effective_entitlement($1)', [userId]);
-  return;
-
 }
 
 function ok(data: any, status = 200) {

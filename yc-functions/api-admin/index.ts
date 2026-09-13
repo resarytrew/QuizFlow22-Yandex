@@ -1,3 +1,4 @@
+import { userWorkspace, attention, workspaceMutation, supportStaff } from './workspace';
 import { handleSession, notFound, unauthorized } from "./responses";
 import {
   handlePromocodeCreate,
@@ -86,6 +87,15 @@ async function dispatchAdmin(event: any) {
 
     if (httpMethod === "GET") {
       switch (pathParameters?.action) {
+        case "support-staff":
+          if (!isMfaSatisfied(user)) throw new AdminAuthError(403, "mfa_required");
+          return await supportStaff();
+        case "user-workspace":
+          if (!isMfaSatisfied(user)) throw new AdminAuthError(403, "mfa_required");
+          return await userWorkspace(event.queryStringParameters?.user_id, ctx);
+        case "attention":
+          if (!isMfaSatisfied(user)) throw new AdminAuthError(403, "mfa_required");
+          return await attention(ctx);
         case "session":
           return await handleSession(ctx, user);
         case "overview":
@@ -142,6 +152,13 @@ async function dispatchAdmin(event: any) {
         throw new AdminAuthError(400, "invalid_request");
       const perform = async () => {
         switch (pathParameters?.action) {
+          case "payment-check":
+          case "payment-restore":
+          case "support-note":
+          case "support-assign":
+          case "support-promo":
+          case "support-compensate":
+            return await workspaceMutation(action, body, ctx, ip, userAgent);
           case "update-user":
             return await handleUpdateUser(body, ctx, ip, userAgent);
           case "user-status":

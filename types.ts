@@ -1076,6 +1076,8 @@ export type AdminSupportStatus = 'new' | 'in_progress' | 'waiting_user' | 'close
 export type AdminSupportTicket = import('./yc-functions/_shared/admin-contracts').AdminTicket;
 
 export interface AdminSupportParams {
+  unanswered?: boolean;
+  mine?: boolean;
   page?: number;
   limit?: number;
   q?: string;

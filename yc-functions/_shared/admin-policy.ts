@@ -1,5 +1,14 @@
 // Shared with the browser; this module must stay dependency-free.
 export const ADMIN_ROUTES: Readonly<Record<string, string>> = {
+  "GET user-workspace": "users.read",
+  "GET support-staff": "support.manage",
+  "GET attention": "dashboard.read",
+  "POST payment-check": "subscriptions.read",
+  "POST payment-restore": "subscriptions.manage",
+  "POST support-note": "support.manage",
+  "POST support-assign": "support.manage",
+  "POST support-promo": "billing.grant",
+  "POST support-compensate": "billing.grant",
   "GET session": "admin.access",
   "GET overview": "dashboard.read",
   "GET stats": "dashboard.read",

@@ -14,6 +14,7 @@ export interface YookassaPayment {
   id: string;
   status: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled';
   paid: boolean;
+  refunded_amount?: {value:string;currency:string};
   amount: { value: string; currency: 'RUB' };
   confirmation?: { type: 'redirect'; confirmation_url: string };
   payment_method?: { type: string; id: string; saved: boolean };
@@ -39,7 +40,8 @@ function authHeader(): string {
 }
 
 export async function getYookassaPayment(paymentId: string): Promise<YookassaPayment> {
-  const res = await fetch(`${YOOKASSA_API_URL}/payments/${paymentId}`, {
+  const res = await fetch(`${YOOKASSA_API_URL}/payments/${encodeURIComponent(paymentId)}`, {
+    signal: AbortSignal.timeout(10000),
     headers: { 'Authorization': authHeader() },
   });
   if (!res.ok) {

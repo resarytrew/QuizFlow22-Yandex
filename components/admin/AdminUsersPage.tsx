@@ -1,22 +1,24 @@
-import { AdminDialog } from './AdminDialog';
-import React, { FormEvent, useEffect, useState } from 'react';
-import { useAdminStore } from '../../store/useAdminStore';
-import type { AdminProPlan, AdminUserListItem } from '../../types';
+import AdminUserWorkspace from "./AdminUserWorkspace";
+import AdminAttention from "./AdminAttention";
+import { AdminDialog } from "./AdminDialog";
+import React, { FormEvent, useEffect, useState } from "react";
+import { useAdminStore } from "../../store/useAdminStore";
+import type { AdminProPlan, AdminUserListItem } from "../../types";
 
 const statusLabels = {
-  active: 'Активен',
-  temporarily_blocked: 'Временный блок',
-  blocked: 'Заблокирован',
+  active: "Активен",
+  temporarily_blocked: "Временный блок",
+  blocked: "Заблокирован",
 } as const;
 
 const planLabels: Record<AdminProPlan, string> = {
-  pro_monthly: '1 месяц (390 ₽/мес)',
-  pro_yearly: '1 год (3 490 ₽/год)',
+  pro_monthly: "1 месяц (390 ₽/мес)",
+  pro_yearly: "1 год (3 490 ₽/год)",
 };
 
 function formatDate(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('ru-RU');
+  if (!value) return "—";
+  return new Date(value).toLocaleString("ru-RU");
 }
 
 const GrantProModal: React.FC<{
@@ -25,8 +27,8 @@ const GrantProModal: React.FC<{
 }> = ({ user, onClose }) => {
   const grantPro = useAdminStore((s) => s.grantPro);
   const isGranting = useAdminStore((s) => s.isGrantingPro);
-  const [plan, setPlan] = useState<AdminProPlan>('pro_monthly');
-  const [reason, setReason] = useState('');
+  const [plan, setPlan] = useState<AdminProPlan>("pro_monthly");
+  const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
@@ -39,7 +41,7 @@ const GrantProModal: React.FC<{
       });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при выдаче PRO');
+      setError(err instanceof Error ? err.message : "Ошибка при выдаче PRO");
     }
   };
 
@@ -56,9 +58,10 @@ const GrantProModal: React.FC<{
           PRO подписка
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-white/55">
-          Пользователь <span className="font-semibold text-white">#{user.account_code}</span>
-          {' — '}
-          {user.display_name || user.username || 'Без имени'}
+          Пользователь{" "}
+          <span className="font-semibold text-white">#{user.account_code}</span>
+          {" — "}
+          {user.display_name || user.username || "Без имени"}
         </p>
 
         <div className="mt-6 space-y-4">
@@ -67,20 +70,20 @@ const GrantProModal: React.FC<{
               Срок подписки
             </label>
             <div className="grid grid-cols-2 gap-3">
-              {(['pro_monthly', 'pro_yearly'] as AdminProPlan[]).map((p) => (
+              {(["pro_monthly", "pro_yearly"] as AdminProPlan[]).map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setPlan(p)}
                   className={`rounded-2xl border p-4 text-left transition ${
                     plan === p
-                      ? 'border-amber-300 bg-amber-300/10 text-amber-100'
-                      : 'border-white/10 bg-black/20 text-white/60 hover:border-white/20'
+                      ? "border-amber-300 bg-amber-300/10 text-amber-100"
+                      : "border-white/10 bg-black/20 text-white/60 hover:border-white/20"
                   }`}
                 >
                   <div className="text-sm font-bold">{planLabels[p]}</div>
                   <div className="mt-1 text-xs text-inherit opacity-60">
-                    {p === 'pro_yearly' ? 'Скидка 27%' : 'Ежемесячно'}
+                    {p === "pro_yearly" ? "Скидка 27%" : "Ежемесячно"}
                   </div>
                 </button>
               ))}
@@ -91,14 +94,17 @@ const GrantProModal: React.FC<{
             <label className="mb-2 block text-sm font-semibold text-white/80">
               Причина (опционально)
             </label>
-            <textarea name="components-admin-adminuserspage-93-textarea"
+            <textarea
+              name="components-admin-adminuserspage-93-textarea"
               value={reason}
               onChange={(e) => setReason(e.target.value.slice(0, 500))}
               placeholder="Например: компенсация за сбой, промо-акция"
               className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition focus:border-amber-300 focus:ring-4 focus:ring-amber-300/10 placeholder:text-white/35 resize-none"
               rows={3}
             />
-            <p className="mt-1 text-right text-xs text-white/35">{reason.length}/500</p>
+            <p className="mt-1 text-right text-xs text-white/35">
+              {reason.length}/500
+            </p>
           </div>
 
           {error && (
@@ -115,7 +121,7 @@ const GrantProModal: React.FC<{
             onClick={handleSubmit}
             className="flex-1 rounded-full bg-gradient-to-r from-amber-300 to-orange-400 px-6 py-3.5 font-bold text-black shadow-lg shadow-amber-500/25 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isGranting ? 'Выдаём...' : 'Выдать PRO'}
+            {isGranting ? "Выдаём..." : "Выдать PRO"}
           </button>
           <button
             type="button"
@@ -138,18 +144,23 @@ const AdminUsersPage: React.FC = () => {
   const error = useAdminStore((s) => s.error);
   const loadUsers = useAdminStore((s) => s.loadUsers);
   const updateUserStatus = useAdminStore((s) => s.updateUserStatus);
-  const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [grantTarget, setGrantTarget] = useState<AdminUserListItem | null>(null);
+  const [grantTarget, setGrantTarget] = useState<AdminUserListItem | null>(
+    null,
+  );
 
-  const canManage=staff?.permissions.includes('users.manage') ?? false;
-  const canGrantPro = staff?.permissions?.includes('billing.grant') ?? false;
+  const canManage = staff?.permissions.includes("users.manage") ?? false;
+  const canGrantPro = staff?.permissions?.includes("billing.grant") ?? false;
 
   useEffect(() => {
-    void loadUsers({ page, limit: 20, q: submittedQuery }).catch(() => undefined);
+    void loadUsers({ page, limit: 20, q: submittedQuery }).catch(
+      () => undefined,
+    );
   }, [loadUsers, page, submittedQuery]);
 
+  const [workspaceUser, setWorkspaceUser] = useState<string | null>(null);
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmittedQuery(query.trim());
@@ -158,17 +169,17 @@ const AdminUsersPage: React.FC = () => {
 
   const blockUser = async (
     user: AdminUserListItem,
-    mode: 'temporarily_blocked' | 'blocked',
+    mode: "temporarily_blocked" | "blocked",
   ) => {
     const reason = window.prompt(
-      mode === 'blocked'
+      mode === "blocked"
         ? `Причина постоянной блокировки аккаунта #${user.account_code}`
         : `Причина временной блокировки аккаунта #${user.account_code}`,
-      '',
+      "",
     );
     if (reason === null) return;
     const blockedUntil =
-      mode === 'temporarily_blocked'
+      mode === "temporarily_blocked"
         ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         : null;
     await updateUserStatus({
@@ -180,11 +191,13 @@ const AdminUsersPage: React.FC = () => {
   };
 
   const unblockUser = async (user: AdminUserListItem) => {
-    const confirmed = window.confirm(`Разблокировать аккаунт #${user.account_code}?`);
+    const confirmed = window.confirm(
+      `Разблокировать аккаунт #${user.account_code}?`,
+    );
     if (!confirmed) return;
     await updateUserStatus({
       user_id: user.id,
-      status: 'active',
+      status: "active",
       blocked_until: null,
       reason: null,
     }).catch(() => undefined);
@@ -192,6 +205,13 @@ const AdminUsersPage: React.FC = () => {
 
   return (
     <main className="p-5 lg:p-8">
+      {workspaceUser && (
+        <AdminUserWorkspace
+          userId={workspaceUser}
+          onClose={() => setWorkspaceUser(null)}
+        />
+      )}
+      <AdminAttention />
       <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="mb-4 flex items-center gap-4">
@@ -213,7 +233,8 @@ const AdminUsersPage: React.FC = () => {
           onSubmit={submitSearch}
           className="flex w-full max-w-xl gap-3 rounded-full border border-white/10 bg-white/[0.06] p-2 backdrop-blur-xl"
         >
-          <input name="components-admin-adminuserspage-214-input"
+          <input
+            name="components-admin-adminuserspage-214-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="ID аккаунта или имя"
@@ -239,10 +260,12 @@ const AdminUsersPage: React.FC = () => {
           <div>
             <h2 className="font-bold">Реестр аккаунтов</h2>
             <p className="mt-1 text-xs text-white/40">
-              Всего: {users?.meta.total ?? '—'}
+              Всего: {users?.meta.total ?? "—"}
             </p>
           </div>
-          {isLoading && <span className="text-sm text-amber-200">Обновляем...</span>}
+          {isLoading && (
+            <span className="text-sm text-amber-200">Обновляем...</span>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -268,7 +291,12 @@ const AdminUsersPage: React.FC = () => {
                   </td>
                   <td className="px-5 py-4">
                     <div className="font-semibold text-white">
-                      {user.display_name || user.username || 'Без имени'}
+                      <button
+                        className="underline"
+                        onClick={() => setWorkspaceUser(user.id)}
+                      >
+                        {user.display_name || user.username || "Без имени"}
+                      </button>
                     </div>
                     <div className="mt-1 font-mono text-xs text-white/35">
                       {user.id}
@@ -305,7 +333,7 @@ const AdminUsersPage: React.FC = () => {
                           PRO
                         </button>
                       )}
-                      {user.status !== 'active' ? (
+                      {user.status !== "active" ? (
                         <button
                           type="button"
                           disabled={isLoading || !canManage}
@@ -319,7 +347,9 @@ const AdminUsersPage: React.FC = () => {
                           <button
                             type="button"
                             disabled={isLoading || !canManage}
-                            onClick={() => blockUser(user, 'temporarily_blocked')}
+                            onClick={() =>
+                              blockUser(user, "temporarily_blocked")
+                            }
                             className="rounded-full border border-amber-300/30 px-3 py-1.5 text-xs font-bold text-amber-100 disabled:opacity-50"
                           >
                             Блок 7 дней
@@ -327,7 +357,7 @@ const AdminUsersPage: React.FC = () => {
                           <button
                             type="button"
                             disabled={isLoading || !canManage}
-                            onClick={() => blockUser(user, 'blocked')}
+                            onClick={() => blockUser(user, "blocked")}
                             className="rounded-full border border-red-300/30 px-3 py-1.5 text-xs font-bold text-red-100 disabled:opacity-50"
                           >
                             Заблокировать
@@ -370,7 +400,10 @@ const AdminUsersPage: React.FC = () => {
       </section>
 
       {grantTarget && (
-        <GrantProModal user={grantTarget} onClose={() => setGrantTarget(null)} />
+        <GrantProModal
+          user={grantTarget}
+          onClose={() => setGrantTarget(null)}
+        />
       )}
     </main>
   );

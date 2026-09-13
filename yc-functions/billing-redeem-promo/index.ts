@@ -32,6 +32,7 @@ export async function handler(event: any) {
       [normalizedCode],
     );
     if (!promo) return badRequest('promocode_not_found');
+    if (promo.beneficiary_user_id && promo.beneficiary_user_id !== user.id) return badRequest('promocode_not_for_account');
     if (!promo.is_active) return badRequest('promocode_inactive');
 
     const now = new Date();
@@ -51,7 +52,7 @@ export async function handler(event: any) {
     );
     if (existingRedemption) return badRequest('promocode_already_used');
 
-    const planDays = promo.plan_id === 'pro_yearly' ? 365 : 30;
+    const planDays = promo.grant_days ?? (promo.plan_id === 'pro_yearly' ? 365 : 30);
     const redemption = await queryOne(`INSERT INTO public.promo_redemptions(code,user_id,valid_until)
       VALUES($1,$2,GREATEST(now(),(public.get_effective_entitlement($2)->>'valid_until')::timestamptz)+($3::integer * interval '1 day')) RETURNING valid_until`,
       [normalizedCode,user.id,planDays]);
