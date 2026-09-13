@@ -13,7 +13,7 @@ export async function handler(event: any) {
   }
 
   try {
-    const user = await verifyAuth(headers.authorization);
+    const user = await verifyAuth(event);
     if (!user) return unauthorized();
 
     let ctx: AdminStaffContext;
@@ -168,10 +168,10 @@ async function handleDashboard() {
 }
 
 function isMfaSatisfied(user: AuthUser): boolean {
-  return user.aal === 'aal2';
+  return user.authLevel === 'mfa';
 }
 
-async function staffSession(ctx: AdminStaffContext, user?: Pick<AuthUser, 'email' | 'aal'> | null) {
+async function staffSession(ctx: AdminStaffContext, user?: Pick<AuthUser, 'email' | 'authLevel'> | null) {
   const profile = await queryOne(
     `SELECT account_code FROM public.profiles WHERE user_id = $1`,
     [ctx.userId],
@@ -183,7 +183,7 @@ async function staffSession(ctx: AdminStaffContext, user?: Pick<AuthUser, 'email
     permissions: ctx.permissions,
     account_code: Number(profile?.account_code || 0),
     idle_timeout_minutes: 30,
-    current_aal: user?.aal ?? 'aal1',
+    current_aal: user?.authLevel || 'normal',
     ip_restricted: false,
   };
 }

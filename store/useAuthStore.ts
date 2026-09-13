@@ -1,47 +1,35 @@
 import { create } from 'zustand';
-import { supabase } from '../services/supabaseClient';
-import type { Session } from '@supabase/supabase-js';
+import { authClient, type AuthUser } from '../services/authClient';
 
 interface AuthStoreState {
   authInitialized: boolean;
+  user: AuthUser | null;
+  session: { user: AuthUser } | null;
+  isAuthenticated: boolean;
   setAuthInitialized: (initialized: boolean) => void;
-  session: Session | null;
-  setSession: (session: Session | null) => void;
+  setUser: (user: AuthUser | null) => void;
   signOut: () => Promise<void>;
   reset: () => void;
 }
 
 const initialState = {
   authInitialized: false,
-  session: null as Session | null,
+  user: null as AuthUser | null,
+  session: null as { user: AuthUser } | null,
+  isAuthenticated: false,
 };
 
 export const useAuthStore = create<AuthStoreState>((set) => ({
   ...initialState,
-
   setAuthInitialized: (initialized) => set({ authInitialized: initialized }),
-  setSession: (session) => set({ session }),
-
+  setUser: (user) => set({ user, session: user ? { user } : null, isAuthenticated: Boolean(user) }),
   signOut: async () => {
     try {
-      // 1. Reset all client stores BEFORE clearing the session.
-      //    The previous order (clear session first, reset later) exposed
-      //    a 1-frame window where the dashboard rendered the previous
-      //    user's data because the App-level useEffect([session]) only
-      //    resets entitlement+userQuizzes, not the canvas/UI/quiz data.
-      const [stores] = await Promise.all([
-        Promise.all([
-          import('./useCanvasStore'),
-          import('./useUIStore'),
-          import('./useQuizDataStore'),
-          import('./useAIStore'),
-          import('./useAutosaveStore'),
-          import('./useEntitlementStore'),
-          import('./useAdminStore'),
-        ]),
-        supabase?.auth.signOut().catch(console.warn),
+      await authClient.logout().catch((error) => console.warn('Logout request failed:', error));
+      const stores = await Promise.all([
+        import('./useCanvasStore'), import('./useUIStore'), import('./useQuizDataStore'),
+        import('./useAIStore'), import('./useAutosaveStore'), import('./useEntitlementStore'), import('./useAdminStore'),
       ]);
-
       const [canvas, ui, quiz, ai, autosave, entitlement, admin] = stores;
       canvas.useCanvasStore.getState().reset();
       quiz.useQuizDataStore.getState().reset();
@@ -49,22 +37,13 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
       autosave.useAutosaveStore.getState().reset();
       entitlement.useEntitlementStore.getState().reset();
       admin.useAdminStore.getState().reset();
-
-      // UI last — reset everything (we no longer touch setDashboardVisible
-      // because routing is now driven by TanStack Router, not UI state)
       ui.useUIStore.getState().reset();
-    } catch (e) {
-      console.error('SignOut: store reset failed:', e);
     } finally {
-      // Always clear the session last, even if some store reset threw.
-      // Without this, a partial failure would leave the previous user's
-      // session active and they could see another user's data on reload.
-      set({ session: null, authInitialized: true });
+      set({ user: null, session: null, isAuthenticated: false, authInitialized: true });
     }
     const { router } = await import('../src/router');
     await router.invalidate();
     await router.navigate({ to: '/', replace: true });
   },
-
   reset: () => set(initialState),
 }));

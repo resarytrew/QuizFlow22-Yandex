@@ -8,10 +8,12 @@ Markdown
 > перед выполнением любой задачи. При конфликте с другими инструкциями —
 > RULES.md имеет приоритет.
 
-**Версия:** 2.1
-**Последнее обновление:** 2026-06-23
+**Версия:** 3.0
+**Последнее обновление:** 2026-09-12
 **Платформа:** Поток (Поток) — визуальный конструктор ветвящихся квизов
-**Стек:** React 19 · TypeScript 5 · Zustand 5 · React Flow 11 · Vite 6 · Supabase Auth · Yandex Cloud Functions · Yandex API Gateway · Yandex Object Storage/CDN · Yandex Lockbox · ЮKassa
+**Стек:** React 19 · TypeScript 5 · Zustand 5 · React Flow 11 · Vite 6 · QuizFlow Auth · Yandex Managed PostgreSQL · Yandex Cloud Functions · Yandex API Gateway · Yandex Object Storage/CDN · Yandex Lockbox · Yandex Cloud Postbox · ЮKassa
+
+> Текущая auth-архитектура полностью работает в Yandex Cloud. Упоминания прежнего провайдера в журнале изменений и исторических разделах ниже описывают прошлое состояние и не являются действующими инструкциями.
 
 ---
 
@@ -88,7 +90,7 @@ Markdown
 │ ├── persistence.ts # Тестируемая копия persistence движка
 │ ├── media.ts # Тестируемая копия media движка
 │ ├── render.ts # Stub для тестовой изоляции
-│ ├── supabaseClient.ts # Supabase клиент
+│ ├── authClient.ts # Cookie-based QuizFlow Auth клиент
 │ ├── aiProxy.ts # Прокси для AI-провайдеров
 │ ├── billingService.ts # Биллинг API
 │ ├── openRouterClient.ts # OpenRouter fallback
@@ -108,9 +110,7 @@ Markdown
 │
 ├── types.ts # Все TypeScript типы проекта
 │
-├── supabase/ # Только Auth/JWT и исторические миграции; runtime-БД больше не здесь
-│ ├── migrations/ # Исторические SQL миграции Supabase, не источник новых runtime-схем
-│ └── functions/ # Legacy Deno Edge Functions, не использовать для новых runtime-фич
+├── legacy/supabase-migration/ # Исторический архив, исключённый из runtime/build/deploy
 │
 ├── yc-functions/ # Runtime backend в Yandex Cloud
 │ ├── api-router/ # Единая HTTP-функция/роутер для API Gateway
@@ -130,14 +130,14 @@ Markdown
 
 #### Runtime backend после миграции на Yandex Cloud
 
-ПРАВИЛО: Supabase оставлен только для регистрации, авторизации и выдачи JWT.
+ПРАВИЛО: Авторизация реализована в `yc-functions/api-auth` через opaque sessions в Yandex PostgreSQL; внешних auth runtime-зависимостей нет.
 ПРАВИЛО: Все runtime-данные приложения — квизы, профили, подписки, платежи, промокоды, поддержка, результаты, AI rate limits и assets metadata — обслуживаются через Yandex Cloud.
 ПРАВИЛО: Клиентский код ходит в backend только через `VITE_API_URL`, который указывает на Yandex API Gateway `/api`.
 ПРАВИЛО: Из-за квоты `serverless.functions.count = 10` backend разворачивается как одна универсальная HTTP-функция с внутренним роутером, а не как набор мелких Cloud Functions.
 ПРАВИЛО: Новые API-действия добавлять в модульные handlers внутри `yc-functions/`, затем подключать их к `api-router`; не создавать отдельную Cloud Function без явного решения владельца.
 ПРАВИЛО: Секреты хранятся в Yandex Lockbox и попадают в функцию через deploy bindings; реальные значения нельзя печатать в логах, документации и git.
-ПРАВИЛО: Supabase JWT проверяется на сервере Yandex-функции; frontend-проверки не считаются авторизацией.
-ПРАВИЛО: Service-role ключ Supabase допустим только server-side для проверки Auth/JWT или специальных admin-сценариев, никогда в `VITE_*`.
+ПРАВИЛО: Backend проверяет SHA-256 opaque session token из `HttpOnly` cookie по таблице `auth_sessions`; frontend-проверки не считаются авторизацией.
+ПРАВИЛО: Auth, OAuth и Postbox secrets хранятся только в Yandex Lockbox и никогда не используют префикс `VITE_`.
 
 #### Сторы: правила взаимодействия
 
@@ -365,7 +365,7 @@ const GEMINI_KEY = "AIzaSy..."; // УТЕЧКА
 3.6 Admin surface
 
 ПРАВИЛО: Фронт админки ходит только в `admin-api` через `services/adminApi.ts`.
-ПРАВИЛО: `admin-api` использует `_shared/admin.ts`: Supabase Auth token, active `admin_staff`, profile status, IP allow-list, permission и MFA `aal2`.
+ПРАВИЛО: `admin-api` использует QuizFlow session, active `admin_staff`, profile status, permission и повышенный уровень `mfa` текущей server-side сессии.
 ПРАВИЛО: staff permissions — только whitelist из `admin_role_permissions`; overrides должны проходить CHECK constraint.
 ПРАВИЛО: UUID остаются canonical ID. `account_code` и `quiz_display_codes` — только display/search aliases, не секреты доступа.
 ПРАВИЛО: Списки пользователей/квизов в админке читать только через `admin-api?action=users|quizzes`; поиск по цифровым ID выполняется на Edge Function, не прямыми запросами клиента к таблицам.
@@ -497,11 +497,11 @@ text
 
 Auth policy:
   - Email/password signup requires email confirmation.
-  - Signup confirmation uses the 6-digit email OTP from `{{ .Token }}` and finishes only after `supabase.auth.verifyOtp({ type: 'email' })`.
-  - Supabase Auth uses custom Yandex SMTP on `smtp.yandex.ru:465`; keep the app password in secrets/env only.
-  - Signup passwords must be at least 8 characters and include lowercase, uppercase, and a digit. Keep frontend validation and Supabase Auth password policy in sync.
-  - Repeated signup with an existing email must not continue to the OTP step; show a clear "email already exists" error instead.
-  - Social sign-in starts with custom OAuth provider `custom:yandex`; provider secrets never use `VITE_`.
+  - Signup confirmation uses a 6-digit HMAC-protected OTP stored in `auth_codes` and delivered through Yandex Cloud Postbox.
+  - Transactional email uses only `postbox.cloud.yandex.net:587` with STARTTLS; credentials live in Lockbox.
+  - Signup passwords must be at least 8 characters; the frontend may enforce a stricter policy.
+  - Registration, resend and password reset use neutral responses and must not reveal whether an email exists.
+  - Social sign-in uses direct Yandex ID Authorization Code flow with `state` and PKCE S256; provider secrets never use `VITE_`.
   - OAuth redirect target is `/#/auth/confirm` so TanStack hash routing can finish session detection.
 5.2 Что проверять перед коммитом
 Bash

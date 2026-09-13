@@ -1,17 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import toast from 'react-hot-toast';
-import {
-  isSupabaseReady,
-  supabase,
-} from '../../services/supabaseClient';
+import { authClient } from '../../services/authClient';
 import {
   AdminApiError,
   fetchAdminSession,
 } from '../../services/adminApi';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useAdminStore } from '../../store/useAdminStore';
-import { getPasswordResetRedirectUrl } from '../../utils/siteOrigins';
 
 const ATTEMPT_KEY = 'potok-admin-login-attempts-v2';
 const MAX_ATTEMPTS = 5;
@@ -87,7 +83,7 @@ function explainAdminError(error: unknown): string {
 
 const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const setSession = useAuthStore((s) => s.setSession);
+  const setUser = useAuthStore((s) => s.setUser);
   const setAuthInitialized = useAuthStore((s) => s.setAuthInitialized);
   const resetAdmin = useAdminStore((s) => s.reset);
   const [email, setEmail] = useState('');
@@ -119,7 +115,6 @@ const AdminLoginPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    if (!isSupabaseReady) return;
     void fetchAdminSession()
       .then((session) => {
         if (cancelled) return;
@@ -141,10 +136,7 @@ const AdminLoginPage: React.FC = () => {
       return;
     }
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getPasswordResetRedirectUrl(),
-      });
-      if (resetError) throw resetError;
+      await authClient.forgotPassword(email);
       toast.success('Письмо для восстановления отправлено.');
     } catch (err) {
       setError(explainAdminError(err));
@@ -154,26 +146,15 @@ const AdminLoginPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (blockedMs) return;
-    if (!isSupabaseReady) {
-      setError('Система авторизации недоступна.');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     resetAdmin();
-    let credentialsFailed = false;
+    let credentialsFailed = true;
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      credentialsFailed = Boolean(signInError || !data.session);
-      if (signInError) throw signInError;
-      if (!data.session) throw new Error('Сессия не создана.');
-
-      setSession(data.session);
+      const { user } = await authClient.login(email, password);
+      credentialsFailed = false;
+      setUser(user);
       setAuthInitialized(true);
 
       const adminSession = await fetchAdminSession();
@@ -190,8 +171,8 @@ const AdminLoginPage: React.FC = () => {
         if (next.blockedUntil) setBlockedUntil(next.blockedUntil);
       }
       setError(explainAdminError(err));
-      await supabase.auth.signOut().catch(() => undefined);
-      setSession(null);
+      await authClient.logout().catch(() => undefined);
+      setUser(null);
     } finally {
       setLoading(false);
     }

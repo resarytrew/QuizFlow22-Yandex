@@ -14,7 +14,7 @@ export async function handler(event: any) {
   if (httpMethod === 'OPTIONS') return handleCors(event);
 
   if (httpMethod === 'GET') {
-    return await getAnalytics(headers, event.queryStringParameters || {});
+    return await getAnalytics(event, event.queryStringParameters || {});
   }
 
   if (httpMethod !== 'POST') {
@@ -29,8 +29,9 @@ export async function handler(event: any) {
   }
 }
 
-async function getAnalytics(headers: any, params: any) {
-  const user = await verifyAuth(getHeader(headers, 'authorization'));
+async function getAnalytics(event: any, params: any) {
+  const headers = event.headers || {};
+  const user = await verifyAuth(event);
   if (!user) return response(401, { error: 'Unauthorized' }, headers);
 
   const quizId = params.quiz_id;
@@ -97,7 +98,7 @@ async function saveResult(event: any) {
     return response(400, { error: 'valid quiz_id is required' }, headers);
   }
 
-  const user = await optionalUser(headers);
+  const user = await optionalUser(event);
   if (user) await ensureUser(user.id, user.email);
 
   const quizRows = await query(
@@ -174,9 +175,9 @@ function canSavePublicResult(quiz: any, user: AuthUser | null): boolean {
   return quiz.visibility === 'private' && Boolean(user && user.id === quiz.user_id);
 }
 
-async function optionalUser(headers: any): Promise<AuthUser | null> {
+async function optionalUser(event: any): Promise<AuthUser | null> {
   try {
-    return await verifyAuth(getHeader(headers, 'authorization'));
+    return await verifyAuth(event);
   } catch {
     return null;
   }

@@ -11,14 +11,14 @@ export async function handler(event: any) {
     switch (httpMethod) {
       case 'GET':
         return pathParameters?.id
-          ? await getQuiz(headers, pathParameters.id)
-          : await listQuizzes(headers, queryStringParameters);
+          ? await getQuiz(event, pathParameters.id)
+          : await listQuizzes(event, queryStringParameters);
       case 'POST':
-        return await createQuiz(headers, body);
+        return await createQuiz(event, body);
       case 'PUT':
-        return await updateQuiz(headers, pathParameters?.id, body);
+        return await updateQuiz(event, pathParameters?.id, body);
       case 'DELETE':
-        return await deleteQuiz(headers, pathParameters?.id);
+        return await deleteQuiz(event, pathParameters?.id);
       default:
         return { statusCode: 405, headers: corsHeaders(), body: 'Method not allowed' };
     }
@@ -32,7 +32,7 @@ export async function handler(event: any) {
   }
 }
 
-async function listQuizzes(headers: any, params: any) {
+async function listQuizzes(event: any, params: any) {
   if (params?.public === 'true' || params?.public === true) {
     const baseSelect = `SELECT id, name, quiz_data, created_at, published_at, visibility, is_favorite,
                                (published_at IS NOT NULL) as is_published,
@@ -62,7 +62,7 @@ async function listQuizzes(headers: any, params: any) {
     return ok(rows);
   }
 
-  const user = await verifyAuth(headers.authorization);
+  const user = await verifyAuth(event);
   if (!user) return unauthorized();
 
   await ensureUser(user.id, user.email);
@@ -81,7 +81,7 @@ async function listQuizzes(headers: any, params: any) {
   return ok(rows);
 }
 
-async function getQuiz(headers: any, quizId: string) {
+async function getQuiz(event: any, quizId: string) {
   const quiz = await queryOne(
     `SELECT * FROM public.quizzes WHERE id = $1 AND deleted_at IS NULL`,
     [quizId],
@@ -91,14 +91,14 @@ async function getQuiz(headers: any, quizId: string) {
 
   if (quiz.visibility === 'public' || quiz.visibility === 'unlisted') return ok(quiz);
 
-  const user = await verifyAuth(headers.authorization);
+  const user = await verifyAuth(event);
   if (!user || user.id !== quiz.user_id) return unauthorized();
 
   return ok(quiz);
 }
 
-async function createQuiz(headers: any, body: string) {
-  const user = await verifyAuth(headers.authorization);
+async function createQuiz(event: any, body: string) {
+  const user = await verifyAuth(event);
   if (!user) return unauthorized();
 
   await ensureUser(user.id, user.email);
@@ -115,8 +115,8 @@ async function createQuiz(headers: any, body: string) {
   return ok(quiz, 201);
 }
 
-async function updateQuiz(headers: any, quizId: string, body: string) {
-  const user = await verifyAuth(headers.authorization);
+async function updateQuiz(event: any, quizId: string, body: string) {
+  const user = await verifyAuth(event);
   if (!user) return unauthorized();
 
   const updates = JSON.parse(body);
@@ -141,8 +141,8 @@ async function updateQuiz(headers: any, quizId: string, body: string) {
   return ok(quiz);
 }
 
-async function deleteQuiz(headers: any, quizId: string) {
-  const user = await verifyAuth(headers.authorization);
+async function deleteQuiz(event: any, quizId: string) {
+  const user = await verifyAuth(event);
   if (!user) return unauthorized();
 
   await query(

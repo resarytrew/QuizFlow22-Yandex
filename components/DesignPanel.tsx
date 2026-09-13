@@ -845,6 +845,8 @@ const DesignPanel: React.FC = () => {
             </div>
             <Field label="Название бренда"><Input value={ds.brand?.brandName || ''} onChange={(e) => updateSection('brand', { brandName: e.target.value })} placeholder="Поток / клиент / проект" /></Field>
             <Field label="Логотип"><UrlInput value={ds.brand?.logoUrl || ''} onChange={(value) => updateSection('brand', { logoUrl: value })} /></Field>
+            <Field label="Аватар участника" hint="Изображение используется в шаблонах с пользовательским HUD. Имя берётся из переменной playerName или name."><UrlInput value={ds.brand?.avatarUrl || ''} onChange={(value) => updateSection('brand', { avatarUrl: value })} /></Field>
+            <Field label="Название счёта"><Input value={ds.brand?.scoreLabel || ''} onChange={(e) => updateSection('brand', { scoreLabel: e.target.value })} placeholder="Очки / Баллы / Искры добра" /></Field>
             <Field label="Основной цвет"><ColorInput value={ds.brand?.primaryColor || ds.buttons.backgroundColor} onChange={(value) => updateSection('brand', { primaryColor: value })} /></Field>
             <Field label="Акцент"><ColorInput value={ds.brand?.accentColor || '#b9852b'} onChange={(value) => updateSection('brand', { accentColor: value })} /></Field>
             <Field label="Нейтральный цвет"><ColorInput value={ds.brand?.neutralColor || '#1d1a16'} onChange={(value) => updateSection('brand', { neutralColor: value })} /></Field>

@@ -6,6 +6,7 @@ set -euo pipefail
 
 FUNCTIONS=(
   "api-quizzes"
+  "api-auth"
   "api-results"
   "api-billing"
   "api-admin"
@@ -26,7 +27,15 @@ SECRETS=(
   "PG_USER"
   "PG_PASSWORD"
   "PG_CA_CERT"
-  "SUPABASE_URL"
+  "OTP_PEPPER"
+  "SESSION_PEPPER"
+  "MFA_ENCRYPTION_KEY"
+  "YANDEX_OAUTH_CLIENT_ID"
+  "YANDEX_OAUTH_CLIENT_SECRET"
+  "POSTBOX_SMTP_USER"
+  "POSTBOX_SMTP_PASSWORD"
+  "POSTBOX_FROM_EMAIL"
+  "POSTBOX_FROM_NAME"
   "YC_ACCESS_KEY_ID"
   "YC_SECRET_ACCESS_KEY"
   "S3_BUCKET"
@@ -103,14 +112,14 @@ for FN in "${FUNCTIONS[@]}"; do
   # Build secret flags
   SECRET_FLAGS=""
   for SECRET_KEY in "${SECRETS[@]}"; do
-    SECRET_FLAGS="$SECRET_FLAGS --secret environment-variable=$SECRET_KEY,name=$LOCKBOX_SECRET_ID,key=$SECRET_KEY"
+    SECRET_FLAGS="$SECRET_FLAGS --secret environment-variable=$SECRET_KEY,id=$LOCKBOX_SECRET_ID,key=$SECRET_KEY"
   done
 
   # Deploy new version
   echo "Deploying version..."
   eval yc serverless function version create \
     --function-name "$FUNCTION_NAME" \
-    --runtime nodejs18 \
+    --runtime nodejs22 \
     --entrypoint handler \
     --memory 256m \
     --execution-timeout 30s \

@@ -51,7 +51,7 @@ const AdminAccessGate: React.FC = () => {
     void refreshSession()
       .then((nextStaff) => {
         if (cancelled) return;
-        if (nextStaff.current_aal !== 'aal2') {
+        if (nextStaff.current_aal !== 'mfa') {
           void navigate({ to: '/admin/mfa', replace: true });
         }
       })

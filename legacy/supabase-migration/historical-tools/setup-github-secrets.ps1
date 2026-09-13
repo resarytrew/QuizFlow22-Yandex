@@ -113,31 +113,6 @@ $cdnId = Read-Host "  YC_CDN_RESOURCE_ID (ID CDN ресурса)"
 if ($cdnId) { Set-GitHubSecret -Name "YC_CDN_RESOURCE_ID" -Value $cdnId }
 
 # ─────────────────────────────────────────────────────────────
-# Frontend build secrets
-# ─────────────────────────────────────────────────────────────
-Write-Host "`n[Frontend Build]" -ForegroundColor Cyan
-
-$supabaseUrl = Read-Host "  VITE_SUPABASE_URL (https://xxx.supabase.co)"
-if ($supabaseUrl) { Set-GitHubSecret -Name "VITE_SUPABASE_URL" -Value $supabaseUrl }
-
-$supabaseKey = Read-Host "  VITE_SUPABASE_ANON_KEY (supabase anon key)"
-if ($supabaseKey) { Set-GitHubSecret -Name "VITE_SUPABASE_ANON_KEY" -Value $supabaseKey }
-
-$apiUrl = Read-Host "  VITE_API_URL (Yandex API Gateway URL, https://xxx.apigw.yandexcloud.net/api)"
-if ($apiUrl) { Set-GitHubSecret -Name "VITE_API_URL" -Value $apiUrl }
-
-# ─────────────────────────────────────────────────────────────
-# Supabase DB (для миграции данных)
-# ─────────────────────────────────────────────────────────────
-Write-Host "`n[Supabase DB (для миграции)]" -ForegroundColor Cyan
-
-$supabaseDbHost = Read-Host "  SUPABASE_DB_HOST (db.xxx.supabase.co)"
-if ($supabaseDbHost) { Set-GitHubSecret -Name "SUPABASE_DB_HOST" -Value $supabaseDbHost }
-
-$supabaseDbPass = Read-Host "  SUPABASE_DB_PASSWORD"
-if ($supabaseDbPass) { Set-GitHubSecret -Name "SUPABASE_DB_PASSWORD" -Value $supabaseDbPass }
-
-# ─────────────────────────────────────────────────────────────
 # Yandex Cloud DB (для Cloud Functions)
 # ─────────────────────────────────────────────────────────────
 Write-Host "`n[Yandex Cloud DB]" -ForegroundColor Cyan

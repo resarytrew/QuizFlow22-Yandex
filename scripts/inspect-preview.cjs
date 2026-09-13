@@ -5,8 +5,7 @@ let code = fs.readFileSync(path.resolve(__dirname, ".gen.cjs"), "utf8");
 code = code.replace(
   "var import_meta = {};",
   `var import_meta = { env: {
-    VITE_SUPABASE_URL: "https://test.supabase.co",
-    VITE_SUPABASE_ANON_KEY: "anon-test-key",
+    VITE_API_URL: "/api",
   } };`
 );
 code = code.replace(
