@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import {api} from '../services/apiClient';
+import {useAuthStore} from './useAuthStore';
+import type {PublicQuiz} from '../types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Quiz } from '../types';
 import { useQuizDataStore } from './useQuizDataStore';
 
@@ -58,4 +61,17 @@ describe('useQuizDataStore quiz settings compatibility', () => {
     useQuizDataStore.getState().loadQuiz(quiz);
     expect(useQuizDataStore.getState().templateId).toBe('default');
   });
+});
+
+it('fetches the full source before copying a gallery summary',async()=>{
+ const state=useAuthStore.getState();
+ const auth=vi.spyOn(useAuthStore,'getState').mockReturnValue({...state,session:{user:{id:'test-user'}}} as ReturnType<typeof useAuthStore.getState>);
+ const full={id:'source',name:'Source',visibility:'public',is_favorite:false,created_at:'',updated_at:'',quiz_data:{nodes:[],edges:[],templateId:'default',description:'Full content'}};
+ const get=vi.spyOn(api,'getQuiz').mockResolvedValue(full as Awaited<ReturnType<typeof api.getQuiz>>);
+ const create=vi.spyOn(api,'createQuiz').mockResolvedValue({...full,id:'copy'} as Awaited<ReturnType<typeof api.createQuiz>>);
+ try{
+  await useQuizDataStore.getState().cloneAndEditPublicQuiz({id:'source',name:'Source',is_summary:true,quiz_data:{nodes:[],edges:[]}} as unknown as PublicQuiz);
+  expect(get).toHaveBeenCalledWith('source');
+  expect(create).toHaveBeenCalledWith(expect.objectContaining({quiz_data:full.quiz_data}));
+ }finally{auth.mockRestore();get.mockRestore();create.mockRestore();}
 });

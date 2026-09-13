@@ -318,3 +318,6 @@ jobs:
           else
             yc serverless api-gateway create --name potok-api --spec /tmp/gateway-spec.yaml --description "QuizFlow22 API Gateway"
           fi
+
+      - name: Verify public gallery API
+        run: node scripts/check-public-gallery.mjs

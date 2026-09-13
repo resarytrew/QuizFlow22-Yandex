@@ -133,7 +133,7 @@ export const api = {
   deleteQuiz: (id: string) => apiRequest<void>(`/quizzes/${id}`, {
     method: 'DELETE',
   }),
-  listPublicQuizzes: () => apiRequest<PublicQuiz[]>('/quizzes?public=true'),
+  listPublicQuizzes: () => apiRequest<PublicQuiz[]>('/quizzes?public=true&summary=true'),
 
   // ─── Results ────────────────────────────────────────────────
   saveResult: (data: ResultMutationPayload) => apiRequest<{ id: string; score: number }>('/results', {

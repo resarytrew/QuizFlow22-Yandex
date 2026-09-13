@@ -815,3 +815,14 @@ it("retries failed webhooks and grants only after capture", async () => {
     vi.unstubAllGlobals();
   }
 });
+
+it('serves compact gallery cards while preserving complete quiz detail',async()=>{
+ const huge={nodes:[{id:'q',type:'questionNode',data:{question:'Q',payload:'x'.repeat(1200000)}}],edges:[],description:'Gallery test',templateId:'classic',keywords:['test']};
+ const quiz=await queryOne("INSERT INTO public.quizzes(user_id,name,visibility,quiz_data,moderation_status) VALUES($1,'Large gallery test','public',$2,'approved') RETURNING id",[users.user,JSON.stringify(huge)]);
+ const listing=await quizHandler(event('user','GET','',undefined,{public:'true',summary:'true'}));
+ expect(listing.statusCode).toBe(200);expect(Buffer.byteLength(listing.body)).toBeLessThan(100000);
+ const card=JSON.parse(listing.body).find((q:{id:string})=>q.id===quiz!.id);
+ expect(card.is_summary).toBe(true);expect(card.question_count).toBe(1);expect(card.quiz_data.nodes).toEqual([]);expect(card.quiz_data.description).toBe('Gallery test');
+ const detail=await quizHandler({...event('user','GET',''),pathParameters:{id:quiz!.id}});
+ expect(JSON.parse(detail.body).quiz_data).toEqual(huge);
+});

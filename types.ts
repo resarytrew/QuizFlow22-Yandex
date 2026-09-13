@@ -716,6 +716,8 @@ export interface Quiz {
 export type QuizVisibility = 'private' | 'unlisted' | 'public';
 
 export interface PublicQuiz {
+  is_summary?: boolean;
+  question_count?: number;
   id: string;
   name: string;
   quiz_data: QuizData;
