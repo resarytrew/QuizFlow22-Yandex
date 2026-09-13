@@ -8,7 +8,7 @@ import { NodeData } from '../types.ts';
 const Breadcrumbs: React.FC = React.memo(() => {
     const currentGroup = useUIStore(s => s.currentGroup);
     const setCurrentGroup = useUIStore(s => s.setCurrentGroup);
-    const setSelectedNode = useCanvasStore(s => s.setSelectedNode);
+    const selectSingleNode = useCanvasStore(s => s.selectSingleNode);
     const toggleSettingsPanel = useUIStore(s => s.toggleSettingsPanel);
     const { getNodes } = useReactFlow();
     
@@ -31,15 +31,19 @@ const Breadcrumbs: React.FC = React.memo(() => {
     }, [currentGroup, getNodes]);
     
     const handleEditGroup = (node: Node<NodeData>) => {
-        setSelectedNode(node);
+        selectSingleNode(node.id);
         toggleSettingsPanel(); // Open settings for this group
+    };
+
+    const navigateToGroup = (groupId: string | null) => {
+        setCurrentGroup(groupId);
     };
 
     return (
         <div className="flex items-center gap-2 animate-fade-in bg-white/80 backdrop-blur-md p-1.5 rounded-2xl shadow-sm border border-slate-200/60">
             {/* Home Icon */}
             <button
-                onClick={() => setCurrentGroup(null)}
+                onClick={() => navigateToGroup(null)}
                 className={`
                     p-2.5 rounded-xl border transition-all duration-200 flex items-center justify-center
                     ${!currentGroup 
@@ -62,7 +66,7 @@ const Breadcrumbs: React.FC = React.memo(() => {
                     <React.Fragment key={item.id}>
                         <div className="flex items-center gap-1">
                             <button
-                                onClick={() => setCurrentGroup(item.id)}
+                                onClick={() => navigateToGroup(item.id)}
                                 disabled={isLast}
                                 className={`
                                     px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2

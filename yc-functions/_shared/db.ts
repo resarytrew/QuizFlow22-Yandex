@@ -1,4 +1,8 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
+import { AsyncLocalStorage } from 'node:async_hooks';
+
+// Request-scoped transaction: domain helpers and audit always use the same connection.
+const transaction = new AsyncLocalStorage<PoolClient>();
 
 let pool: Pool | null = null;
 
@@ -39,8 +43,7 @@ export function getPool(): Pool {
 }
 
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
-  const pool = getPool();
-  const result = await pool.query(sql, params);
+  const result = await (transaction.getStore() ?? getPool()).query(sql, params);
   return result.rows;
 }
 
@@ -50,9 +53,27 @@ export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T 
 }
 
 export async function execute(sql: string, params?: any[]): Promise<number> {
-  const pool = getPool();
-  const result = await pool.query(sql, params);
+  const result = await (transaction.getStore() ?? getPool()).query(sql, params);
   return result.rowCount ?? 0;
+}
+
+export async function withTransaction<T>(
+  work: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const existing = transaction.getStore();
+  if (existing) return work(existing);
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const value = await transaction.run(client, () => work(client));
+    await client.query('COMMIT');
+    return value;
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function queryAsUser<T = any>(

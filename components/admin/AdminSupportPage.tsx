@@ -10,6 +10,7 @@ const labels: Record<AdminSupportStatus, string> = {
 };
 
 const AdminSupportPage: React.FC = () => {
+  const canManage = useAdminStore(s=>s.staff?.permissions.includes('support.manage') ?? false);
   const data = useAdminStore((s) => s.support);
   const loading = useAdminStore((s) => s.isSupportLoading);
   const load = useAdminStore((s) => s.loadSupport);
@@ -92,9 +93,9 @@ const AdminSupportPage: React.FC = () => {
               </div>
               <div className="flex shrink-0 flex-wrap content-start gap-2 lg:max-w-56">
                 <button disabled={loading || ticket.status === 'closed'} onClick={() => reply(ticket.id)} className="rounded-full bg-white px-3 py-2 text-xs font-bold text-black disabled:opacity-35">Ответить</button>
-                <button disabled={loading} onClick={() => changeStatus(ticket.id, 'in_progress')} className="rounded-full bg-cyan-300 px-3 py-2 text-xs font-bold text-black">В работу</button>
-                <button disabled={loading} onClick={() => changeStatus(ticket.id, 'waiting_user')} className="rounded-full border border-amber-300/30 px-3 py-2 text-xs text-amber-100">Ждём ответ</button>
-                <button disabled={loading} onClick={() => changeStatus(ticket.id, 'closed')} className="rounded-full border border-white/15 px-3 py-2 text-xs">Закрыть</button>
+                <button disabled={loading || !canManage} onClick={() => changeStatus(ticket.id, 'in_progress')} className="rounded-full bg-cyan-300 px-3 py-2 text-xs font-bold text-black">В работу</button>
+                <button disabled={loading || !canManage} onClick={() => changeStatus(ticket.id, 'waiting_user')} className="rounded-full border border-amber-300/30 px-3 py-2 text-xs text-amber-100">Ждём ответ</button>
+                <button disabled={loading || !canManage} onClick={() => changeStatus(ticket.id, 'closed')} className="rounded-full border border-white/15 px-3 py-2 text-xs">Закрыть</button>
               </div>
             </div>
           </article>

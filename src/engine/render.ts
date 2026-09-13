@@ -12,6 +12,7 @@ import {
 } from './media';
 import { makeImageZoomable } from './lightbox';
 import { nodeRenderers, renderDefault } from './renderers';
+import { disposeActiveImportantTalksInteraction } from './importantTalksInteraction';
 
 export function renderError(message: string): void {
   const view = document.getElementById('quiz-view');
@@ -47,6 +48,7 @@ export interface RenderNavigation {
 }
 
 export function renderNode(node: QuizNode, navigation: RenderNavigation): void {
+  disposeActiveImportantTalksInteraction();
   cleanupAllMedia();
 
   const view = document.getElementById('quiz-view');

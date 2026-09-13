@@ -1,3 +1,4 @@
+import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
 import { query, queryOne } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
@@ -32,7 +33,7 @@ export async function handler(event: any) {
   }
 
   try {
-    const user = await verifyAuth(headers.authorization);
+    const user = await verifyAuth(event);
     if (!user) return unauthorized();
 
     await ensureUser(user.id, user.email);
@@ -57,12 +58,11 @@ export async function handler(event: any) {
     );
 
     const sub = await queryOne(
-      `SELECT id FROM public.subscriptions
-       WHERE user_id = $1 AND status = 'active' AND current_period_end > now()`,
+      `SELECT public.get_effective_entitlement($1)->>'plan' AS plan`,
       [user.id],
     );
 
-    const limit = sub ? 200 : 5;
+    const limit = sub?.plan === 'pro' ? 200 : 5;
     const used = parseInt(usage?.count || '0', 10);
     if (used >= limit) {
       return {
@@ -126,6 +126,7 @@ export async function handler(event: any) {
       model,
     });
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('AI proxy error:', error);
     return {
       statusCode: 500,

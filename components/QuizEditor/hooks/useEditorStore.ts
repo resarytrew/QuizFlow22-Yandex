@@ -17,7 +17,14 @@ export function useEditorActions() {
       addNode: c.addNode,
       deleteNode: c.deleteNode,
       deleteEdge: c.deleteEdge,
-      setSelectedNode: c.setSelectedNode,
+      selectSingleNode: c.selectSingleNode,
+      toggleNodeSelection: c.toggleNodeSelection,
+      selectNodes: c.selectNodes,
+      selectSingleEdge: c.selectSingleEdge,
+      clearSelection: c.clearSelection,
+      selectAllVisibleNodes: c.selectAllVisibleNodes,
+      removeMissingItemsFromSelection: c.removeMissingItemsFromSelection,
+      syncSelectionFromReactFlow: c.syncSelectionFromReactFlow,
       setPreviewMode: u.setPreviewMode,
       setNodes: c.setNodes,
       setEdges: c.setEdges,
@@ -26,6 +33,7 @@ export function useEditorActions() {
       undo: c.undo,
       redo: c.redo,
       toggleCanvasLock: c.toggleCanvasLock,
+      takeSnapshot: c.takeSnapshot,
     } as const;
   }, []);
 }
@@ -37,7 +45,7 @@ export function useEditorData() {
       edges: s.edges,
       boardSettings: s.boardSettings,
       isCanvasLocked: s.isCanvasLocked,
-      selectedNode: s.selectedNode,
+      selection: s.selection,
       isCanvasLoading: s.isCanvasLoading,
     })),
   );

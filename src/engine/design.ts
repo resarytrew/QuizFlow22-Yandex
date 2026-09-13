@@ -34,6 +34,27 @@ function safeCss(value: unknown, fallback = ""): string {
   return value.replace(/[<>{}]/g, "").slice(0, 180);
 }
 
+function splitTalksBrandName(value: string): readonly [string, string] {
+  const normalized = value.replace(/\s+/g, " ").trim().slice(0, 80);
+  if (!normalized) return ["РАЗГОВОРЫ", "О ВАЖНОМ"];
+
+  const importantSuffix = normalized.toLocaleLowerCase("ru-RU").lastIndexOf(" о важном");
+  if (importantSuffix > 0) {
+    return [
+      normalized.slice(0, importantSuffix).toLocaleUpperCase("ru-RU"),
+      normalized.slice(importantSuffix + 1).toLocaleUpperCase("ru-RU"),
+    ];
+  }
+
+  const words = normalized.split(" ");
+  if (words.length === 1) return [normalized.toLocaleUpperCase("ru-RU"), ""];
+  const splitAt = Math.ceil(words.length / 2);
+  return [
+    words.slice(0, splitAt).join(" ").toLocaleUpperCase("ru-RU"),
+    words.slice(splitAt).join(" ").toLocaleUpperCase("ru-RU"),
+  ];
+}
+
 export function applyDesign(ds: DesignSettings | undefined): void {
   if (!ds) return;
   const root = document.documentElement;
@@ -806,18 +827,53 @@ export function applyDesign(ds: DesignSettings | undefined): void {
   setVar(root, "--result-text", ds.result?.textColor);
   setVar(root, "--result-accent", ds.result?.accentColor);
 
-  const logo = document.getElementById("header-logo") as HTMLElement | null;
-  if (logo) {
+  const logo = document.getElementById("header-logo");
+  if (logo instanceof HTMLElement) {
     const logoUrl = ds.brand?.logoUrl;
     if (logoUrl) {
       logo.textContent = "";
       logo.style.backgroundImage = `url("${safeCss(logoUrl)}")`;
       logo.style.backgroundSize = "cover";
       logo.style.backgroundPosition = "center";
+    } else if (logo.dataset.logoMark === "talks") {
+      logo.textContent = "";
+      logo.style.backgroundImage = "";
     } else if (ds.brand?.brandName) {
       logo.textContent = ds.brand.brandName.trim().slice(0, 2).toUpperCase();
       logo.style.backgroundImage = "";
     }
+  }
+
+  const talksBrandPrimary = document.getElementById("talks-brand-primary");
+  const talksBrandSecondary = document.getElementById("talks-brand-secondary");
+  if (
+    talksBrandPrimary instanceof HTMLElement
+    && talksBrandSecondary instanceof HTMLElement
+    && ds.brand?.brandName
+  ) {
+    const [primary, secondary] = splitTalksBrandName(ds.brand.brandName);
+    talksBrandPrimary.textContent = primary;
+    talksBrandSecondary.textContent = secondary;
+  }
+
+  const avatarImage = document.getElementById("hud-avatar-image");
+  const avatarFallback = document.getElementById("hud-avatar-fallback");
+  const avatarUrl = safeCssUrl(ds.brand?.avatarUrl ?? "");
+  if (avatarImage instanceof HTMLImageElement) {
+    if (avatarUrl) {
+      avatarImage.src = avatarUrl;
+      avatarImage.classList.remove("hidden");
+      avatarFallback?.classList.add("hidden");
+    } else {
+      avatarImage.removeAttribute("src");
+      avatarImage.classList.add("hidden");
+      avatarFallback?.classList.remove("hidden");
+    }
+  }
+
+  const scoreLabel = document.getElementById("hud-score-label");
+  if (scoreLabel && ds.brand?.scoreLabel) {
+    scoreLabel.textContent = ds.brand.scoreLabel.trim().slice(0, 48);
   }
 
   let customStyle = document.getElementById("quiz-custom-design-css") as HTMLStyleElement | null;

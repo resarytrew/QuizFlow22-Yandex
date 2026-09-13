@@ -26,7 +26,13 @@ import { storeEvents } from './storeEvents';
 // NOTE: updateNodeDataTimer is intentionally stored in closure,
 // not in store state, to avoid triggering re-renders.
 
-interface CanvasStoreState {
+export type EditorSelection = {
+  primarySelectedNodeId: string | null;
+  selectedNodeIds: string[];
+  selectedEdgeIds: string[];
+};
+
+export interface CanvasStoreState {
   nodes: Node<NodeData>[];
   edges: Edge[];
   onNodesChange: (changes: NodeChange[]) => void;
@@ -43,8 +49,18 @@ interface CanvasStoreState {
   collapseVariableChainToEffects: (edgeId: string) => void;
 
   // Selection
-  selectedNode: Node<NodeData> | null;
-  setSelectedNode: (node: Node<NodeData> | null) => void;
+  selection: EditorSelection;
+  selectSingleNode: (nodeId: string) => void;
+  toggleNodeSelection: (nodeId: string) => void;
+  selectNodes: (nodeIds: readonly string[], primaryId?: string) => void;
+  selectSingleEdge: (edgeId: string) => void;
+  clearSelection: () => void;
+  selectAllVisibleNodes: () => void;
+  removeMissingItemsFromSelection: () => void;
+  syncSelectionFromReactFlow: (
+    nodeIds: readonly string[],
+    edgeIds: readonly string[],
+  ) => void;
 
   // Canvas settings
   boardSettings: BoardSettings;
@@ -74,6 +90,86 @@ function toEffectValue(value: unknown, fallback: string | number): string | numb
   return typeof value === 'string' || typeof value === 'number' ? value : fallback;
 }
 
+const EMPTY_SELECTION: EditorSelection = {
+  primarySelectedNodeId: null,
+  selectedNodeIds: [],
+  selectedEdgeIds: [],
+};
+
+function sameIds(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+function sameSelection(left: EditorSelection, right: EditorSelection): boolean {
+  return left.primarySelectedNodeId === right.primarySelectedNodeId
+    && sameIds(left.selectedNodeIds, right.selectedNodeIds)
+    && sameIds(left.selectedEdgeIds, right.selectedEdgeIds);
+}
+
+function projectSelection(
+  nodes: Node<NodeData>[],
+  edges: Edge[],
+  requested: EditorSelection,
+): { nodes: Node<NodeData>[]; edges: Edge[]; selection: EditorSelection } {
+  const requestedNodeIds = new Set(requested.selectedNodeIds);
+  const requestedEdgeIds = new Set(requested.selectedEdgeIds);
+  const selectedNodeIds = nodes
+    .filter((node) => requestedNodeIds.has(node.id))
+    .map((node) => node.id);
+  const selectedEdgeIds = edges
+    .filter((edge) => requestedEdgeIds.has(edge.id))
+    .map((edge) => edge.id);
+  const selectedNodeIdSet = new Set(selectedNodeIds);
+  const selectedEdgeIdSet = new Set(selectedEdgeIds);
+  const primarySelectedNodeId = requested.primarySelectedNodeId
+    && selectedNodeIdSet.has(requested.primarySelectedNodeId)
+    ? requested.primarySelectedNodeId
+    : selectedNodeIds[0] ?? null;
+
+  let nodeFlagsChanged = false;
+  const projectedNodes = nodes.map((node) => {
+    const selected = selectedNodeIdSet.has(node.id);
+    if (Boolean(node.selected) === selected) return node;
+    nodeFlagsChanged = true;
+    return { ...node, selected };
+  });
+  let edgeFlagsChanged = false;
+  const projectedEdges = edges.map((edge) => {
+    const selected = selectedEdgeIdSet.has(edge.id);
+    if (Boolean(edge.selected) === selected) return edge;
+    edgeFlagsChanged = true;
+    return { ...edge, selected };
+  });
+
+  return {
+    nodes: nodeFlagsChanged ? projectedNodes : nodes,
+    edges: edgeFlagsChanged ? projectedEdges : edges,
+    selection: { primarySelectedNodeId, selectedNodeIds, selectedEdgeIds },
+  };
+}
+
+function selectionUpdate(
+  state: CanvasStoreState,
+  requested: EditorSelection,
+  nodes = state.nodes,
+  edges = state.edges,
+): CanvasStoreState | Partial<CanvasStoreState> {
+  const projected = projectSelection(nodes, edges, requested);
+  const nodesChanged = projected.nodes.some((node, index) => node !== state.nodes[index])
+    || projected.nodes.length !== state.nodes.length;
+  const edgesChanged = projected.edges.some((edge, index) => edge !== state.edges[index])
+    || projected.edges.length !== state.edges.length;
+  const selectionChanged = !sameSelection(projected.selection, state.selection);
+
+  if (!nodesChanged && !edgesChanged && !selectionChanged) {
+    return state;
+  }
+  return {
+    ...projected,
+    selection: selectionChanged ? projected.selection : state.selection,
+  };
+}
+
 const createInitialState = () => ({
   nodes: [
     {
@@ -84,7 +180,7 @@ const createInitialState = () => ({
     },
   ] as Node<NodeData>[],
   edges: [] as Edge[],
-  selectedNode: null as Node<NodeData> | null,
+  selection: { ...EMPTY_SELECTION } as EditorSelection,
   boardSettings: {
     backgroundColor: '#f8fafc',
     pattern: 'small',
@@ -109,17 +205,20 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
     onNodesChange: (changes) => {
       set((state) => {
-        const nodes = applyNodeChanges(changes, state.nodes);
-        const selId = state.selectedNode?.id;
-        const selectedNode = selId ? nodes.find((n) => n.id === selId) ?? null : null;
-        return { nodes, selectedNode };
+        const graphChanges = changes.filter((change) => change.type !== 'select');
+        if (graphChanges.length === 0) return state;
+        const nodes = applyNodeChanges(graphChanges, state.nodes);
+        return selectionUpdate(state, state.selection, nodes, state.edges);
       });
     },
 
     onEdgesChange: (changes) => {
-      set((state) => ({
-        edges: applyEdgeChanges(changes, state.edges),
-      }));
+      set((state) => {
+        const graphChanges = changes.filter((change) => change.type !== 'select');
+        if (graphChanges.length === 0) return state;
+        const edges = applyEdgeChanges(graphChanges, state.edges);
+        return selectionUpdate(state, state.selection, state.nodes, edges);
+      });
     },
 
     onConnect: (connection) => {
@@ -136,9 +235,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         markerEnd: { type: MarkerType.ArrowClosed },
       };
       get().takeSnapshot();
-      set((state) => ({
-        edges: addEdge(edge, state.edges) as Edge[],
-      }));
+      set((state) => {
+        const edges = addEdge(edge, state.edges) as Edge[];
+        return selectionUpdate(state, state.selection, state.nodes, edges);
+      });
     },
 
     addNode: (node) => {
@@ -147,57 +247,60 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         ? { ...node, data: { ...node.data, parentId: currentGroup } }
         : node;
       get().takeSnapshot();
-      set((state) => ({ nodes: [...state.nodes, nodeWithParent] }));
+      set((state) => selectionUpdate(
+        state,
+        state.selection,
+        [...state.nodes, nodeWithParent],
+        state.edges,
+      ));
     },
 
     setNodes: (nodesOrFn) => {
       set((state) => {
         const nodes =
           typeof nodesOrFn === 'function' ? nodesOrFn(state.nodes) : nodesOrFn;
-        const selId = state.selectedNode?.id;
-        const selectedNode = selId
-          ? nodes.find((n) => n.id === selId) ?? null
-          : null;
-        return { nodes, selectedNode };
+        return selectionUpdate(state, state.selection, nodes, state.edges);
       });
     },
 
     setEdges: (edgesOrFn) => {
-      set((state) => ({
-        edges:
-          typeof edgesOrFn === 'function' ? edgesOrFn(state.edges) : edgesOrFn,
-      }));
+      set((state) => {
+        const edges = typeof edgesOrFn === 'function'
+          ? edgesOrFn(state.edges)
+          : edgesOrFn;
+        return selectionUpdate(state, state.selection, state.nodes, edges);
+      });
     },
 
     deleteNode: (id) => {
       get().takeSnapshot();
-      set((state) => ({
-        nodes: state.nodes.filter((n) => n.id !== id),
-        edges: state.edges.filter((e) => e.source !== id && e.target !== id),
-        selectedNode:
-          state.selectedNode?.id === id ? null : state.selectedNode,
-      }));
+      set((state) => selectionUpdate(
+        state,
+        state.selection,
+        state.nodes.filter((node) => node.id !== id),
+        state.edges.filter((edge) => edge.source !== id && edge.target !== id),
+      ));
     },
 
     deleteEdge: (id) => {
       get().takeSnapshot();
-      set((state) => ({
-        edges: state.edges.filter((e) => e.id !== id),
-      }));
+      set((state) => selectionUpdate(
+        state,
+        state.selection,
+        state.nodes,
+        state.edges.filter((edge) => edge.id !== id),
+      ));
     },
 
     updateNodeData: (id, data) => {
-      set((state) => ({
-        nodes: state.nodes.map((node) =>
+      set((state) => {
+        const nodes = state.nodes.map((node) =>
           node.id === id
             ? { ...node, data: { ...node.data, ...data } }
             : node
-        ),
-        selectedNode:
-          state.selectedNode?.id === id
-            ? { ...state.selectedNode!, data: { ...state.selectedNode!.data, ...data } }
-            : state.selectedNode,
-      }));
+        );
+        return selectionUpdate(state, state.selection, nodes, state.edges);
+      });
 
       if (updateNodeDataTimer) clearTimeout(updateNodeDataTimer);
       updateNodeDataTimer = setTimeout(() => {
@@ -207,13 +310,14 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     updateEdgeData: (id, patch) => {
-      set((state) => ({
-        edges: state.edges.map((edge) =>
+      set((state) => {
+        const edges = state.edges.map((edge) =>
           edge.id === id
             ? { ...edge, data: { ...(edge.data || {}), ...(patch || {}) } }
             : edge
-        ),
-      }));
+        );
+        return selectionUpdate(state, state.selection, state.nodes, edges);
+      });
       get().takeSnapshot();
     },
 
@@ -223,7 +327,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         nodes: init.nodes,
         edges: init.edges,
         history: { past: [], future: [] },
-        selectedNode: null,
+        selection: { ...EMPTY_SELECTION },
       });
       useUIStore.getState().setCurrentGroup(null);
     },
@@ -312,11 +416,89 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
       const nextNodes = nodes.filter((n) => !nodesToDelete.includes(n.id));
 
-      set({ nodes: nextNodes, edges: nextEdges });
+      set((state) => selectionUpdate(
+        state,
+        state.selection,
+        nextNodes,
+        nextEdges,
+      ));
       get().takeSnapshot();
     },
 
-    setSelectedNode: (node) => set({ selectedNode: node }),
+    selectSingleNode: (nodeId) =>
+      set((state) => selectionUpdate(state, {
+        primarySelectedNodeId: nodeId,
+        selectedNodeIds: [nodeId],
+        selectedEdgeIds: [],
+      })),
+
+    toggleNodeSelection: (nodeId) =>
+      set((state) => {
+        const selectedIds = new Set(state.selection.selectedNodeIds);
+        if (selectedIds.has(nodeId)) selectedIds.delete(nodeId);
+        else selectedIds.add(nodeId);
+        const selectedNodeIds = state.nodes
+          .filter((node) => selectedIds.has(node.id))
+          .map((node) => node.id);
+        const primarySelectedNodeId = selectedIds.has(nodeId)
+          ? nodeId
+          : selectedNodeIds[0] ?? null;
+        return selectionUpdate(state, {
+          primarySelectedNodeId,
+          selectedNodeIds,
+          selectedEdgeIds: [],
+        });
+      }),
+
+    selectNodes: (nodeIds, primaryId) =>
+      set((state) => selectionUpdate(state, {
+        primarySelectedNodeId: primaryId ?? nodeIds[0] ?? null,
+        selectedNodeIds: [...nodeIds],
+        selectedEdgeIds: [],
+      })),
+
+    selectSingleEdge: (edgeId) =>
+      set((state) => selectionUpdate(state, {
+        primarySelectedNodeId: null,
+        selectedNodeIds: [],
+        selectedEdgeIds: [edgeId],
+      })),
+
+    clearSelection: () =>
+      set((state) => selectionUpdate(state, EMPTY_SELECTION)),
+
+    selectAllVisibleNodes: () =>
+      set((state) => {
+        const currentGroup = useUIStore.getState().currentGroup;
+        const selectedNodeIds = state.nodes
+          .filter((node) => {
+            const parentId = node.data.parentId;
+            return currentGroup ? parentId === currentGroup : !parentId;
+          })
+          .map((node) => node.id);
+        return selectionUpdate(state, {
+          primarySelectedNodeId: selectedNodeIds[0] ?? null,
+          selectedNodeIds,
+          selectedEdgeIds: [],
+        });
+      }),
+
+    removeMissingItemsFromSelection: () =>
+      set((state) => selectionUpdate(state, state.selection)),
+
+    syncSelectionFromReactFlow: (nodeIds, edgeIds) =>
+      set((state) => {
+        const nodeIdSet = new Set(nodeIds);
+        const primarySelectedNodeId = state.selection.primarySelectedNodeId
+          && nodeIdSet.has(state.selection.primarySelectedNodeId)
+          ? state.selection.primarySelectedNodeId
+          : nodeIds[0] ?? null;
+        return selectionUpdate(state, {
+          primarySelectedNodeId,
+          selectedNodeIds: [...nodeIds],
+          selectedEdgeIds: [...edgeIds],
+        });
+      }),
 
     updateBoardSettings: (settings) =>
       set((state) => ({ boardSettings: { ...state.boardSettings, ...settings } })),
@@ -340,10 +522,15 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       const { history, nodes, edges } = get();
       if (history.past.length === 0) return;
       const previous = history.past[history.past.length - 1];
+      const restored = projectSelection(
+        structuredClone(previous.nodes),
+        structuredClone(previous.edges),
+        EMPTY_SELECTION,
+      );
       set({
-        nodes: structuredClone(previous.nodes),
-        edges: structuredClone(previous.edges),
-        selectedNode: null,
+        nodes: restored.nodes,
+        edges: restored.edges,
+        selection: restored.selection,
         history: {
           past: history.past.slice(0, -1),
           future: [structuredClone({ nodes, edges }), ...history.future],
@@ -356,10 +543,15 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       if (history.future.length === 0) return;
       const next = history.future[0];
       const newFuture = history.future.slice(1);
+      const restored = projectSelection(
+        structuredClone(next.nodes),
+        structuredClone(next.edges),
+        EMPTY_SELECTION,
+      );
       set({
-        nodes: structuredClone(next.nodes),
-        edges: structuredClone(next.edges),
-        selectedNode: null,
+        nodes: restored.nodes,
+        edges: restored.edges,
+        selection: restored.selection,
         history: {
           past: [...history.past, structuredClone({ nodes, edges })],
           future: newFuture,
@@ -387,14 +579,55 @@ const unsubscribers = [
   storeEvents.on('QUIZ_LOADED', ({ nodes, edges }) => {
     useCanvasStore.getState().setNodes(nodes);
     useCanvasStore.getState().setEdges(edges);
-    useCanvasStore.setState({ history: { past: [], future: [] }, selectedNode: null });
+    useCanvasStore.getState().clearSelection();
+    useCanvasStore.setState({ history: { past: [], future: [] } });
   }),
 
   storeEvents.on('AUTOSAVE_RESTORE', ({ nodes, edges }) => {
     useCanvasStore.getState().setNodes(nodes);
     useCanvasStore.getState().setEdges(edges);
+    useCanvasStore.getState().removeMissingItemsFromSelection();
+  }),
+
+  storeEvents.on('GROUP_CHANGED', () => {
+    useCanvasStore.getState().clearSelection();
   }),
 ];
+
+let cachedNodes: Node<NodeData>[] | null = null;
+let cachedNodesById = new Map<string, Node<NodeData>>();
+
+export function selectNodesById(state: CanvasStoreState): ReadonlyMap<string, Node<NodeData>> {
+  if (cachedNodes !== state.nodes) {
+    cachedNodes = state.nodes;
+    cachedNodesById = new Map(state.nodes.map((node) => [node.id, node]));
+  }
+  return cachedNodesById;
+}
+
+export function selectPrimarySelectedNode(state: CanvasStoreState): Node<NodeData> | null {
+  const primaryId = state.selection.primarySelectedNodeId;
+  return primaryId ? selectNodesById(state).get(primaryId) ?? null : null;
+}
+
+export const selectPrimarySelectedNodeId = (state: CanvasStoreState): string | null =>
+  state.selection.primarySelectedNodeId;
+
+export const selectSelectedNodeIds = (state: CanvasStoreState): string[] =>
+  state.selection.selectedNodeIds;
+
+export const selectSelectedEdgeIds = (state: CanvasStoreState): string[] =>
+  state.selection.selectedEdgeIds;
+
+export function createIsNodeSelectedSelector(nodeId: string) {
+  return (state: CanvasStoreState): boolean =>
+    state.selection.selectedNodeIds.includes(nodeId);
+}
+
+export function createNodeByIdSelector(nodeId: string) {
+  return (state: CanvasStoreState): Node<NodeData> | null =>
+    selectNodesById(state).get(nodeId) ?? null;
+}
 
 export function unsubscribeCanvasEvents() {
   unsubscribers.forEach((unsub) => unsub());

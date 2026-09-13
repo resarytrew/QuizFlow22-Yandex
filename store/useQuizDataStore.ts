@@ -48,6 +48,7 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'history',
   'newyear',
   'screenQuiz',
+  'importantTalks',
 ]);
 
 function normalizeTemplateId(value: unknown): QuizTemplateId {
@@ -116,7 +117,7 @@ const createInitialState = () => ({
     onTimeoutNodeId: null,
   } as GlobalTimer,
   designSettings: {
-    brand: { logoUrl: '', brandName: '', primaryColor: '#2f5d50', accentColor: '#b9852b', neutralColor: '#1d1a16', experiencePreset: 'conversational' },
+    brand: { logoUrl: '', avatarUrl: '', brandName: '', scoreLabel: 'Очки', primaryColor: '#2f5d50', accentColor: '#b9852b', neutralColor: '#1d1a16', experiencePreset: 'conversational' },
     background: { color: '#f6f3ee', imageUrl: '', overlayColor: '#f6f3ee', overlayOpacity: 0, mode: 'solid', gradientFrom: '#f6f3ee', gradientTo: '#ebe5db', imageFit: 'cover', texture: 'grain' },
     typography: { fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", displayFontFamily: "'Newsreader', Georgia, serif", headingColor: '#1d1a16', bodyTextColor: '#615d54', headingWeight: 650, bodyWeight: 450, headingScale: 1, bodyScale: 1, lineHeight: 1.55, letterSpacing: 0, headingLineHeight: 1.04, paragraphWidth: 680 },
     layout: { preset: 'classic', interfacePreset: 'studio', contentWidth: 920, cardRadius: 28, cardPadding: 32, cardOpacity: 0.94, mediaPosition: 'top', surfaceStyle: 'paper', questionAlign: 'left', verticalAlign: 'center', density: 'balanced', chrome: 'full', blocks: { topbar: true, brand: true, logo: true, title: true, progress: true, timer: true, description: true, media: true, achievements: true, variables: true, stats: true, resultStats: true, backgroundDecor: true } },

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { storeEvents } from './storeEvents';
 
 interface UIStoreState {
   // Sidebar
@@ -9,6 +10,7 @@ interface UIStoreState {
   // Settings Panel
   isSettingsPanelVisible: boolean;
   toggleSettingsPanel: () => void;
+  openSettingsPanel: () => void;
   closeSettingsPanel: () => void;
 
   // AI Assistant Panel
@@ -63,12 +65,13 @@ const initialState = {
   currentGroup: null as string | null,
 };
 
-export const useUIStore = create<UIStoreState>((set) => ({
+export const useUIStore = create<UIStoreState>((set, get) => ({
   ...initialState,
 
   toggleSidebar: () => set((state) => ({ isSidebarVisible: !state.isSidebarVisible })),
   closeSidebar: () => set({ isSidebarVisible: false }),
   toggleSettingsPanel: () => set((state) => ({ isSettingsPanelVisible: !state.isSettingsPanelVisible })),
+  openSettingsPanel: () => set({ isSettingsPanelVisible: true }),
   closeSettingsPanel: () => set({ isSettingsPanelVisible: false }),
   toggleAIAssistantPanel: () => set((state) => ({ isAIAssistantPanelVisible: !state.isAIAssistantPanelVisible })),
   closeAIAssistantPanel: () => set({ isAIAssistantPanelVisible: false }),
@@ -80,7 +83,15 @@ export const useUIStore = create<UIStoreState>((set) => ({
   setWizardOpen: (isOpen) => set({ isWizardOpen: isOpen }),
   resetWizard: () => set({ isWizardOpen: false }),
   setPreviewMode: (active, startNodeId) => set({ isPreviewModeActive: active, previewStartNodeId: startNodeId || null }),
-  setCurrentGroup: (groupId) => set({ currentGroup: groupId }),
+  setCurrentGroup: (groupId) => {
+    if (get().currentGroup === groupId) return;
+    set({ currentGroup: groupId });
+    storeEvents.emit('GROUP_CHANGED', { groupId });
+  },
 
-  reset: () => set(initialState),
+  reset: () => {
+    const groupChanged = get().currentGroup !== null;
+    set(initialState);
+    if (groupChanged) storeEvents.emit('GROUP_CHANGED', { groupId: null });
+  },
 }));

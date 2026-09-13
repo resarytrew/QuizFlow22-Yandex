@@ -41,10 +41,13 @@ coverage
 !.env.example
 !.env.production.example
 yc-functions/.env*
-supabase/.temp*
 
 # Temporary scratch files
 Untitled-*.txt
 [{]
 scripts/.gen*.cjs
 scripts/.preview.html
+
+.cache/
+playwright-report/
+test-results/

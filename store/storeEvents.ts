@@ -6,6 +6,7 @@ import type { NodeData, AutosavePayload } from '../types';
 export type StoreEvent =
   | { type: 'CANVAS_CLEAR' }
   | { type: 'CANVAS_RESET' }
+  | { type: 'GROUP_CHANGED'; payload: { groupId: string | null } }
   | { type: 'QUIZ_LOADED'; payload: { nodes: Node<NodeData>[]; edges: Edge[] } }
   | { type: 'AUTOSAVE_RESTORE'; payload: AutosavePayload };
 

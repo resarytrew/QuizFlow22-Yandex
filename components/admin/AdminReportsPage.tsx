@@ -26,6 +26,7 @@ const reasons: Record<string, string> = {
 };
 
 const AdminReportsPage: React.FC = () => {
+  const canManage = useAdminStore(s=>s.staff?.permissions.includes('reports.manage') ?? false);
   const data = useAdminStore((s) => s.reports);
   const loading = useAdminStore((s) => s.isReportsLoading);
   const load = useAdminStore((s) => s.loadReports);
@@ -95,9 +96,9 @@ const AdminReportsPage: React.FC = () => {
                   <td className="p-4"><span className="rounded-full border border-white/10 px-3 py-1 text-xs">{statuses[report.status]}</span></td>
                   <td className="p-4">
                     <div className="flex flex-wrap gap-2">
-                      <button disabled={loading} onClick={() => decide(report.id, 'reviewing')} className="rounded-full border border-amber-300/30 px-3 py-1.5 text-xs text-amber-100">В проверку</button>
-                      <button disabled={loading} onClick={() => decide(report.id, 'approved')} className="rounded-full bg-rose-300 px-3 py-1.5 text-xs font-bold text-black">Подтвердить</button>
-                      <button disabled={loading} onClick={() => decide(report.id, 'rejected')} className="rounded-full border border-white/15 px-3 py-1.5 text-xs">Отклонить</button>
+                      <button disabled={loading || !canManage} onClick={() => decide(report.id, 'reviewing')} className="rounded-full border border-amber-300/30 px-3 py-1.5 text-xs text-amber-100">В проверку</button>
+                      <button disabled={loading || !canManage} onClick={() => decide(report.id, 'approved')} className="rounded-full bg-rose-300 px-3 py-1.5 text-xs font-bold text-black">Подтвердить</button>
+                      <button disabled={loading || !canManage} onClick={() => decide(report.id, 'rejected')} className="rounded-full border border-white/15 px-3 py-1.5 text-xs">Отклонить</button>
                     </div>
                   </td>
                 </tr>

@@ -1,5 +1,6 @@
+import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
-import { query, queryOne } from '../_shared/db';
+import { query, queryOne, withTransaction } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 
 export async function handler(event: any) {
@@ -12,7 +13,7 @@ export async function handler(event: any) {
   }
 
   try {
-    const user = await verifyAuth(headers.authorization);
+    const user = await verifyAuth(event);
     if (!user) return unauthorized();
     await ensureUser(user.id, user.email);
 
@@ -24,8 +25,10 @@ export async function handler(event: any) {
       return badRequest('invalid code format');
     }
 
+    return await withTransaction(async()=>{
+    await query('SELECT id FROM public.users WHERE id=$1 FOR UPDATE',[user.id]);
     const promo = await queryOne(
-      `SELECT * FROM public.promo_codes WHERE code = $1`,
+      `SELECT * FROM public.promo_codes WHERE code = $1 FOR UPDATE`,
       [normalizedCode],
     );
     if (!promo) return badRequest('promocode_not_found');
@@ -49,38 +52,11 @@ export async function handler(event: any) {
     if (existingRedemption) return badRequest('promocode_already_used');
 
     const planDays = promo.plan_id === 'pro_yearly' ? 365 : 30;
-    const validUntil = new Date(now.getTime() + planDays * 24 * 60 * 60 * 1000).toISOString();
-    const nowISO = now.toISOString();
-
-    const planRow = await queryOne(
-      `SELECT id, features FROM public.plans WHERE id = $1`,
-      [promo.plan_id],
-    );
-    if (!planRow) return badRequest('plan_not_found');
-
-    // Upsert entitlement
-    await query(
-      `INSERT INTO public.entitlements (user_id, plan, features, source, valid_until)
-       VALUES ($1, 'pro', $2, 'promo', $3)
-       ON CONFLICT (user_id) DO UPDATE SET
-         plan = 'pro', features = $2, source = 'promo', valid_until = $3`,
-      [user.id, JSON.stringify(planRow.features || {}), validUntil],
-    );
-
-    // Upsert subscription
-    await query(
-      `INSERT INTO public.subscriptions (user_id, plan_id, status, current_period_start, current_period_end, cancel_at_period_end)
-       VALUES ($1, $2, 'active', $3, $4, false)
-       ON CONFLICT (user_id) DO UPDATE SET
-         plan_id = $2, status = 'active', current_period_start = $3, current_period_end = $4, cancel_at_period_end = false`,
-      [user.id, promo.plan_id, nowISO, validUntil],
-    );
-
-    // Record redemption
-    await query(
-      `INSERT INTO public.promo_redemptions (code, user_id) VALUES ($1, $2)`,
-      [normalizedCode, user.id],
-    );
+    const redemption = await queryOne(`INSERT INTO public.promo_redemptions(code,user_id,valid_until)
+      VALUES($1,$2,GREATEST(now(),(public.get_effective_entitlement($2)->>'valid_until')::timestamptz)+($3::integer * interval '1 day')) RETURNING valid_until`,
+      [normalizedCode,user.id,planDays]);
+    const validUntil = new Date(redemption!.valid_until).toISOString();
+    await query('SELECT public.refresh_effective_entitlement($1)',[user.id]);
 
     // Increment usage count
     await query(
@@ -95,7 +71,9 @@ export async function handler(event: any) {
         valid_until: validUntil,
       },
     });
+    });
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('Redeem promo error:', error);
     return {
       statusCode: 500,

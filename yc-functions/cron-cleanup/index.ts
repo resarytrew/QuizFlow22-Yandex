@@ -23,15 +23,7 @@ export async function handler() {
 
   // 3. Downgrade entitlements for canceled/expired subscriptions
   const downgraded = await execute(
-    `UPDATE public.entitlements
-     SET plan = 'free', features = '{"max_quizzes":3,"ai_tier":"basic","hide_branding":false,"premium_templates":false,"unlimited_logic":false}'::jsonb,
-         valid_until = NULL, source = 'system'
-     WHERE user_id IN (
-       SELECT user_id FROM public.subscriptions
-       WHERE status IN ('canceled', 'expired')
-         AND current_period_end < now()
-     )
-     AND plan != 'free'`
+    `SELECT public.refresh_effective_entitlement(user_id) FROM public.entitlements`
   );
   results.push(`entitlements_downgraded: ${downgraded}`);
 
@@ -74,6 +66,29 @@ export async function handler() {
     `DELETE FROM public.csp_reports WHERE created_at < now() - interval '30 days'`
   );
   results.push(`old_csp_reports: ${oldCsp}`);
+
+  const expiredAuthSessions = await execute(
+    `DELETE FROM public.auth_sessions
+     WHERE expires_at < now() - interval '30 days'
+        OR revoked_at < now() - interval '30 days'`
+  );
+  results.push(`auth_sessions_cleaned: ${expiredAuthSessions}`);
+
+  const expiredAuthArtifacts = await execute(
+    `WITH deleted_codes AS (
+       DELETE FROM public.auth_codes WHERE expires_at < now() - interval '1 day' RETURNING 1
+     ), deleted_resets AS (
+       DELETE FROM public.auth_reset_tokens WHERE expires_at < now() - interval '1 day' RETURNING 1
+     ), deleted_states AS (
+       DELETE FROM public.auth_oauth_states WHERE expires_at < now() - interval '1 day' RETURNING 1
+     ) SELECT count(*) FROM deleted_codes, deleted_resets, deleted_states`
+  ).catch(() => 0);
+  results.push(`auth_artifacts_cleaned: ${expiredAuthArtifacts}`);
+
+  const oldAuthLimits = await execute(
+    `DELETE FROM public.auth_rate_limits WHERE updated_at < now() - interval '1 day'`
+  ).catch(() => 0);
+  results.push(`auth_rate_limits_cleaned: ${oldAuthLimits}`);
 
   console.log('[cron] cleanup results:', results.join(', '));
 

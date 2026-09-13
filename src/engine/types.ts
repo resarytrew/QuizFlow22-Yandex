@@ -106,7 +106,9 @@ export interface EdgeEffect {
 export interface DesignSettings {
   brand?: {
     logoUrl?: string;
+    avatarUrl?: string;
     brandName?: string;
+    scoreLabel?: string;
     primaryColor?: string;
     accentColor?: string;
     neutralColor?: string;

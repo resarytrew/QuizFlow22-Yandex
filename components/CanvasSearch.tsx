@@ -5,7 +5,7 @@ import { useReactFlow } from 'reactflow';
 
 const CanvasSearch: React.FC = () => {
     const nodes = useCanvasStore(s => s.nodes);
-    const setSelectedNode = useCanvasStore(s => s.setSelectedNode);
+    const selectSingleNode = useCanvasStore(s => s.selectSingleNode);
     const { setCenter } = useReactFlow();
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +25,7 @@ const CanvasSearch: React.FC = () => {
     const handleSelectNode = (nodeId: string) => {
         const node = nodes.find(n => n.id === nodeId);
         if (node) {
-            setSelectedNode(node);
+            selectSingleNode(node.id);
             setCenter(node.position.x + (node.width || 0) / 2, node.position.y + (node.height || 0) / 2, {
                 zoom: 1.5,
                 duration: 600,

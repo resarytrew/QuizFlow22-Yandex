@@ -1,65 +1,26 @@
 # Production domains
 
-Поток uses one build and one Yandex Object Storage origin for both domains:
+- Основной и canonical: `https://mykviz.ru`.
+- Дополнительный: `https://mykviz.online`.
 
-- Primary and canonical: `https://mykviz.ru`
-- Additional: `https://mykviz.online`
-- Origin: `https://mykviz.ru`
+Оба домена отдают одну сборку через Yandex CDN. Для cookie-auth каждый домен должен проксировать свой `/api` к одному API Gateway через правило `same-origin-api`; ответы API не кешируются.
 
-Both domains must open the same application. Do not redirect
-`mykviz.online` to `mykviz.ru`. The canonical tag still points to
-`mykviz.ru` so search engines do not index duplicate pages.
-
-## Yandex Cloud CDN
-
-1. Create one CDN resource with origin
-   `potok-prod.website.yandexcloud.net`.
-2. Add both source domains to that CDN resource:
-   `mykviz.ru` and `mykviz.online`.
-3. Issue or attach a TLS certificate covering both names.
-4. Copy the CDN resource ID to `YC_CDN_RESOURCE_ID`.
-5. Replace the current REG.RU `A` records only after Yandex shows the
-   exact CDN CNAME target.
-6. Point both apex domains to that target using the record type supported
-   by the DNS provider. Do not point them directly to an Object Storage IP.
-7. Redirect `www.mykviz.ru` to `https://mykviz.ru` and
-   `www.mykviz.online` to `https://mykviz.online`, or attach those names
-   and certificates to the CDN as well.
-
-## Supabase Auth
-
-In Authentication -> URL Configuration:
-
-- Site URL: `https://mykviz.ru`
-- Redirect URLs:
-  - `https://mykviz.ru/**`
-  - `https://mykviz.online/**`
-  - `http://127.0.0.1:3000/**`
-  - `http://localhost:3000/**`
-
-The frontend keeps password reset and signup confirmation on the domain
-where the user started the operation.
-
-## Supabase Edge Function secrets
-
-Set the following production values:
+В `ALLOWED_ORIGINS` Lockbox укажите:
 
 ```text
-AI_PROXY_ALLOWED_ORIGINS=https://mykviz.ru,https://mykviz.online
-BILLING_ALLOWED_ORIGINS=https://mykviz.ru,https://mykviz.online
-BILLING_RETURN_URL=https://mykviz.ru
+https://mykviz.ru,https://mykviz.online
 ```
 
-The checkout function may return a user to either configured domain.
-Automatic renewal always uses the primary domain.
+Redirect URI приложения Yandex ID:
 
-## Verification
+```text
+https://mykviz.ru/api/auth/yandex/callback
+```
 
-Check both domains after DNS propagation:
+Основной frontend URL в Lockbox:
 
-1. HTTPS certificate is valid.
-2. `/` and hash routes such as `/#/dashboard` load the same build.
-3. Sign up, sign in, password reset, and email confirmation work.
-4. AI requests have no CORS errors.
-5. YooKassa checkout returns to the application.
-6. `index.html` is not cached permanently; hashed assets are immutable.
+```text
+FRONTEND_URL=https://mykviz.ru
+```
+
+После настройки проверьте HTTPS, `/api/auth/me`, регистрацию, восстановление пароля, прямой вход через Яндекс, MFA администратора, возврат ЮKassa и отсутствие кеширования API.

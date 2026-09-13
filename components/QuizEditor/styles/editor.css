@@ -35,10 +35,6 @@
   animation: fade-in-down 0.4s ease-out forwards;
 }
 
-.react-flow__node {
-  transition: box-shadow 0.2s ease, transform 0.15s ease !important;
-}
-
 .react-flow__node:hover {
   z-index: 10 !important;
 }
@@ -145,8 +141,7 @@
   animation: none !important;
 }
 
-.pref-no-anim .node-card:hover,
-.pref-no-anim .node-card.scale-105 {
+.pref-no-anim .node-card:hover {
   transform: none !important;
 }
 

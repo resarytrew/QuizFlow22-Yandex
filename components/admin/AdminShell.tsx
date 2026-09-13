@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
+import { ADMIN_PAGES } from '../../yc-functions/_shared/admin-policy';
+import React, { useEffect, useState } from 'react';
+import { Link, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import toast from 'react-hot-toast';
 import { useAdminStore } from '../../store/useAdminStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -51,7 +52,7 @@ const AdminAccessGate: React.FC = () => {
     void refreshSession()
       .then((nextStaff) => {
         if (cancelled) return;
-        if (nextStaff.current_aal !== 'aal2') {
+        if (nextStaff.current_aal !== 'mfa') {
           void navigate({ to: '/admin/mfa', replace: true });
         }
       })
@@ -95,6 +96,10 @@ const AdminAccessGate: React.FC = () => {
 const AdminShellFrame: React.FC<{ staff: AdminStaffSession }> = ({ staff }) => {
   const signOut = useAuthStore((s) => s.signOut);
   useAdminIdleLogout(staff.idle_timeout_minutes);
+  const [menuOpen,setMenuOpen]=useState(false);
+  const pathname=useRouterState({ select: state => state.location.pathname });
+  const error=useAdminStore(state=>state.error);
+  const canRead=staff.permissions.includes(ADMIN_PAGES[pathname.replace(/\/$/,'')] || 'admin.access');
 
   const navItems = [
     { label: 'Обзор', to: '/admin', status: 'ready' },
@@ -124,7 +129,7 @@ const AdminShellFrame: React.FC<{ staff: AdminStaffSession }> = ({ staff }) => {
           </div>
 
           <nav className="space-y-2">
-            {navItems.map((item) => (
+            {navItems.filter(item=>staff.permissions.includes(ADMIN_PAGES[item.to])).map((item) => (
               <Link
                 key={item.label}
                 to={item.to}
@@ -150,21 +155,28 @@ const AdminShellFrame: React.FC<{ staff: AdminStaffSession }> = ({ staff }) => {
                 <div className="text-xs uppercase tracking-[0.22em] text-amber-300/70">
                   ID сотрудника #{staff.account_code}
                 </div>
-                <div className="mt-1 text-sm text-white/55">
+                <div className="mt-1 break-all text-sm text-white/55">
                   {roleLabels[staff.role]} · {staff.email ?? 'без email'}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => signOut()}
-                className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
+                className="shrink-0 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
               >
                 Выйти
               </button>
             </div>
           </header>
 
-          <Outlet />
+          <div className="px-5 py-3 lg:hidden">
+            <button type="button" aria-expanded={menuOpen} aria-controls="admin-mobile-nav" onClick={()=>setMenuOpen(!menuOpen)}>Разделы</button>
+            {menuOpen && <nav id="admin-mobile-nav" aria-label="Разделы администрации" className="mt-3 flex flex-wrap gap-3">
+              {navItems.filter(item=>staff.permissions.includes(ADMIN_PAGES[item.to])).map(item=><Link key={item.to} to={item.to} onClick={()=>setMenuOpen(false)} className="rounded-lg border border-white/20 px-3 py-2">{item.label}</Link>)}
+            </nav>}
+          </div>
+          {error && <div role="alert" className="mx-5 rounded-xl border border-red-300/30 p-4 text-red-200">{error}</div>}
+          {canRead ? <Outlet /> : <main className="p-8"><h1>Доступ закрыт</h1><p>У вашей роли нет разрешения на этот раздел.</p></main>}
         </div>
       </div>
     </div>

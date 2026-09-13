@@ -39,7 +39,7 @@ const AdminFinancesPage: React.FC = () => {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-amber-300/70">Биллинг</p>
           <h1 className="mt-3 font-lora text-4xl font-bold md:text-6xl">Финансы</h1>
-          <p className="mt-3 text-sm text-white/50">Платежи ЮKassa, возвраты и активные подписки.</p>
+          <p className="mt-3 text-sm text-white/50">Платежи ЮKassa, зарегистрированные полные возвраты и активные подписки. Частичные возвраты пока не учитываются.</p>
         </div>
         <form onSubmit={submit} className="flex w-full max-w-2xl gap-2 rounded-full border border-white/10 bg-white/[0.06] p-2">
           <input name="components-admin-adminfinancespage-45-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID платежа или описание" className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none" />

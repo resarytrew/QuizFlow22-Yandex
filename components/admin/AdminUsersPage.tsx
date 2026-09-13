@@ -1,3 +1,4 @@
+import { AdminDialog } from './AdminDialog';
 import React, { FormEvent, useEffect, useState } from 'react';
 import { useAdminStore } from '../../store/useAdminStore';
 import type { AdminProPlan, AdminUserListItem } from '../../types';
@@ -43,7 +44,7 @@ const GrantProModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <AdminDialog label="Выдача PRO" onClose={onClose} busy={isGranting}>
       <div
         className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#121015] p-6 shadow-2xl shadow-black/40 backdrop-blur-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -126,7 +127,7 @@ const GrantProModal: React.FC<{
           </button>
         </div>
       </div>
-    </div>
+    </AdminDialog>
   );
 };
 
@@ -142,6 +143,7 @@ const AdminUsersPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [grantTarget, setGrantTarget] = useState<AdminUserListItem | null>(null);
 
+  const canManage=staff?.permissions.includes('users.manage') ?? false;
   const canGrantPro = staff?.permissions?.includes('billing.grant') ?? false;
 
   useEffect(() => {
@@ -306,7 +308,7 @@ const AdminUsersPage: React.FC = () => {
                       {user.status !== 'active' ? (
                         <button
                           type="button"
-                          disabled={isLoading}
+                          disabled={isLoading || !canManage}
                           onClick={() => unblockUser(user)}
                           className="rounded-full bg-emerald-300 px-3 py-1.5 text-xs font-bold text-emerald-950 disabled:opacity-50"
                         >
@@ -316,7 +318,7 @@ const AdminUsersPage: React.FC = () => {
                         <>
                           <button
                             type="button"
-                            disabled={isLoading}
+                            disabled={isLoading || !canManage}
                             onClick={() => blockUser(user, 'temporarily_blocked')}
                             className="rounded-full border border-amber-300/30 px-3 py-1.5 text-xs font-bold text-amber-100 disabled:opacity-50"
                           >
@@ -324,7 +326,7 @@ const AdminUsersPage: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            disabled={isLoading}
+                            disabled={isLoading || !canManage}
                             onClick={() => blockUser(user, 'blocked')}
                             className="rounded-full border border-red-300/30 px-3 py-1.5 text-xs font-bold text-red-100 disabled:opacity-50"
                           >

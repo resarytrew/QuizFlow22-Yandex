@@ -1,7 +1,7 @@
-import React, { useCallback } from "react";
+import React, { useMemo } from "react";
 import { Handle, Position, type NodeProps } from "reactflow";
 import clsx from "clsx";
-import { useCanvasStore } from "../../store/useCanvasStore";
+import { createIsNodeSelectedSelector, useCanvasStore } from "../../store/useCanvasStore";
 import { useEntitlementStore } from "../../store/useEntitlementStore";
 import { COLOR_CLASSES, type NodeColor } from "./nodeColors";
 import { CustomNodeType, isProNode } from "../../types";
@@ -26,9 +26,11 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   hasInput = true,
   hasOutput = true,
 }) => {
-  const isSelected = useCanvasStore(
-    useCallback((s) => s.selectedNode?.id === nodeProps.id, [nodeProps.id]),
+  const isSelectedSelector = useMemo(
+    () => createIsNodeSelectedSelector(nodeProps.id),
+    [nodeProps.id],
   );
+  const isSelected = useCanvasStore(isSelectedSelector);
 
   const ent = useEntitlementStore((s) => s.entitlement);
   const nodeType = nodeProps.type as CustomNodeType;
@@ -60,9 +62,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
       <div
         className={clsx(
           "node-card relative bg-white border-2",
-          "transition-all duration-300 ease-out hover:-translate-y-0.5",
+          "transition-[border-color,box-shadow,background-color,opacity] duration-300 ease-out",
           isSelected
-            ? [c.border, c.ring, c.shadow, "shadow-xl scale-105 ring-4"]
+            ? [c.border, c.ring, c.shadow, "shadow-xl ring-4"]
             : "border-slate-200/80",
         )}
         style={{
@@ -166,7 +168,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             "!rounded-full !shadow-lg",
             "transition-all duration-300 hover:!scale-125",
             c.handle,
-            isSelected && "!scale-110",
           )}
         />
       )}
@@ -180,7 +181,6 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             "!rounded-full !shadow-lg",
             "transition-all duration-300 hover:!scale-125",
             c.handle,
-            isSelected && "!scale-110",
           )}
         />
       )}

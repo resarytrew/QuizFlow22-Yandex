@@ -153,7 +153,7 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
                     !rounded-full !shadow-lg
                     transition-all duration-300
                     group-hover/answer:!scale-125 group-hover/answer:!shadow-xl
-                    ${selected ? '!ring-2 !ring-white !ring-offset-2 !ring-offset-blue-400 !scale-110' : ''}
+                    ${selected ? '!ring-2 !ring-white !ring-offset-2 !ring-offset-blue-400' : ''}
                   `}
                 >
                   {/* Pulse effect for selected */}
@@ -253,7 +253,7 @@ const QuestionNode: React.FC<NodeProps<QuestionNodeData>> = (props) => {
                 !rounded-full !shadow-lg !shadow-red-500/50
                 transition-all duration-300
                 hover:!scale-125 hover:!shadow-xl hover:!shadow-red-500/60
-                ${selected ? '!ring-2 !ring-white !ring-offset-2 !ring-offset-red-400 !scale-110' : ''}
+                ${selected ? '!ring-2 !ring-white !ring-offset-2 !ring-offset-red-400' : ''}
               `}
             >
               {/* Pulse effect */}

@@ -1,12 +1,29 @@
 import type { NodeRenderer } from "./types";
 import { createActionButton } from "./common";
 import { getState, setVariable } from "../state";
+import {
+  setupImportantTalksInteraction,
+  type ImportantTalksInteractionController,
+} from "../importantTalksInteraction";
 
 interface TextInputData {
   placeholder?: string;
   buttonText?: string;
   acceptedAnswers?: unknown[];
   keyword?: string;
+  timer?: number;
+  importantTalks?: {
+    hint?: string;
+    insightTitle?: string;
+    maxLength?: number;
+    correctTitle?: string;
+    correctText?: string;
+    incorrectTitle?: string;
+    incorrectText?: string;
+    timeoutTitle?: string;
+    timeoutText?: string;
+    feedbackButtonText?: string;
+  };
 }
 
 interface CollectInfoField {
@@ -36,22 +53,131 @@ interface AllocatorData {
 
 export const renderTextInput: NodeRenderer = (node, controls, context) => {
   const data = node.data as TextInputData;
-  const input = document.createElement("input");
+  const isImportantTalks = document.body.classList.contains("important-talks-theme");
+  const input = isImportantTalks
+    ? document.createElement("textarea")
+    : document.createElement("input");
+  let interaction: ImportantTalksInteractionController | null = null;
   input.className = "text-field";
   input.placeholder = data.placeholder ?? "Ваш ответ...";
-  input.type = "text";
+  if (input instanceof HTMLInputElement) input.type = "text";
+  if (input instanceof HTMLTextAreaElement) {
+    input.rows = 7;
+    input.maxLength = clampTextInputLength(data.importantTalks?.maxLength);
+  }
   controls.appendChild(input);
 
-  controls.appendChild(createActionButton(data.buttonText ?? "Проверить", () => {
+  const button = createActionButton(data.buttonText ?? "Проверить", () => {
     const actual = input.value.trim().toLowerCase();
     const accepted = data.acceptedAnswers ?? [data.keyword ?? ""];
     const correct = accepted.some(
       (answer: unknown) => actual === String(answer).trim().toLowerCase(),
     );
-    context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
-    context.continueFrom(node, correct ? "correct" : "incorrect");
-  }));
+    if (interaction) {
+      interaction.complete({
+        outcome: correct ? "correct" : "incorrect",
+        handles: [correct ? "correct" : "incorrect"],
+      });
+    } else {
+      context.playSound(correct ? "correctAnswer" : "incorrectAnswer");
+      context.continueFrom(node, correct ? "correct" : "incorrect");
+    }
+  });
+  controls.appendChild(button);
+
+  if (isImportantTalks && input instanceof HTMLTextAreaElement) {
+    enhanceImportantTalksTextInputScene(controls, data, input, button);
+    interaction = setupImportantTalksInteraction(node, controls, context);
+  }
 };
+
+function clampTextInputLength(value: number | undefined): number {
+  const parsed = Number(value ?? 300);
+  if (!Number.isFinite(parsed)) return 300;
+  return Math.min(1000, Math.max(50, Math.round(parsed)));
+}
+
+function enhanceImportantTalksTextInputScene(
+  controls: HTMLElement,
+  data: TextInputData,
+  input: HTMLTextAreaElement,
+  button: HTMLButtonElement,
+): void {
+  const container = controls.parentElement;
+  if (!container) return;
+
+  container.classList.add("talks-text-scene");
+  controls.classList.add("talks-text-response");
+  button.classList.add("talks-text-cta");
+
+  const media = findDirectChild(container, "media-frame");
+  const title = findDirectChild(container, "node-title");
+  const description = findDirectChild(container, "node-desc");
+
+  const prompt = document.createElement("section");
+  prompt.className = "talks-text-prompt";
+  const visual = document.createElement("div");
+  visual.className = "talks-text-visual";
+  if (media) {
+    visual.appendChild(media);
+  } else {
+    const fallback = document.createElement("div");
+    fallback.className = "talks-text-media-fallback";
+    fallback.setAttribute("aria-hidden", "true");
+    visual.appendChild(fallback);
+  }
+
+  const copy = document.createElement("div");
+  copy.className = "talks-text-copy";
+  if (title) copy.appendChild(title);
+  if (description) copy.appendChild(description);
+  visual.appendChild(copy);
+
+  const wave = document.createElement("div");
+  wave.className = "talks-activity-wave";
+  wave.setAttribute("aria-hidden", "true");
+  visual.appendChild(wave);
+  prompt.appendChild(visual);
+
+  const entry = document.createElement("section");
+  entry.className = "talks-text-entry";
+  entry.appendChild(input);
+
+  const count = document.createElement("span");
+  count.className = "talks-text-count";
+  count.setAttribute("aria-live", "polite");
+  const updateCount = () => {
+    count.textContent = `${input.value.length} / ${input.maxLength}`;
+  };
+  input.addEventListener("input", updateCount);
+  updateCount();
+  entry.appendChild(count);
+
+  const insight = document.createElement("aside");
+  insight.className = "talks-text-insight";
+  const icon = document.createElement("span");
+  icon.className = "talks-activity-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "♥";
+  const insightCopy = document.createElement("div");
+  const insightTitle = document.createElement("h2");
+  insightTitle.textContent = data.importantTalks?.insightTitle?.trim() || "Ваше мнение важно";
+  const insightText = document.createElement("p");
+  insightText.textContent = data.importantTalks?.hint?.trim()
+    || "Ваш ответ поможет понять, что действительно имеет значение для каждого из нас.";
+  insightCopy.append(insightTitle, insightText);
+  insight.append(icon, insightCopy);
+
+  controls.insertBefore(entry, button);
+  controls.insertBefore(insight, button);
+  container.insertBefore(prompt, controls);
+}
+
+function findDirectChild(container: HTMLElement, className: string): HTMLElement | null {
+  return Array.from(container.children).find(
+    (child): child is HTMLElement => child instanceof HTMLElement && child.classList.contains(className),
+  ) ?? null;
+}
 
 export const renderCollectInfo: NodeRenderer = (node, controls, context) => {
   const data = node.data as CollectInfoData;

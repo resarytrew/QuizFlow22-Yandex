@@ -1,3 +1,4 @@
+import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
 import { query, queryOne } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
@@ -12,7 +13,7 @@ export async function handler(event: any) {
   }
 
   try {
-    const user = await verifyAuth(headers.authorization);
+    const user = await verifyAuth(event);
     if (!user) return unauthorized();
     await ensureUser(user.id, user.email);
 
@@ -31,6 +32,7 @@ export async function handler(event: any) {
         return notFound();
     }
   } catch (error) {
+    if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
     console.error('Session error:', error);
     return {
       statusCode: 500,

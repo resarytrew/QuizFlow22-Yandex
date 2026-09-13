@@ -1,38 +1,24 @@
-import { supabase } from "./supabaseClient";
 import { api } from "./apiClient";
 
 function resolveProxyUrl(): string {
-  const apiUrl = import.meta.env.VITE_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL || '/api';
   if (typeof apiUrl === "string" && apiUrl.length > 0) {
     return `${apiUrl.replace(/\/$/, "")}/ai-proxy`;
   }
-  return "";
+  return "/api";
 }
 
 const PROXY_URL = resolveProxyUrl();
-
-async function buildAuthHeaders(): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (!supabase) return headers;
-  try {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  } catch (error) {
-    console.warn("[aiProxy] Failed to read auth session:", error);
-  }
-  return headers;
-}
 
 export async function generateImage(
   prompt: string,
   type: "node" | "background" = "node",
 ): Promise<string> {
   if (!PROXY_URL) throw new Error("VITE_API_URL is not configured");
-  const headers = await buildAuthHeaders();
   const response = await fetch(`${PROXY_URL}/generate-image`, {
     method: "POST",
-    headers,
+    credentials: 'include',
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, type }),
   });
   if (!response.ok) {
@@ -59,6 +45,7 @@ export async function chatCompletion(
   if (import.meta.env.DEV) {
     const response = await fetch('/api/ai-proxy', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal,

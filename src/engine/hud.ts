@@ -4,6 +4,20 @@ import { getState } from './state';
 
 const RING_CIRCUMFERENCE = 125.66;
 const NAME_KEYS = ['playerName', 'player_name', 'userName', 'username', 'name', 'Имя', 'имя'];
+const NODE_MODE_LABELS: Readonly<Record<string, string>> = {
+  infoNode: 'Информация',
+  questionNode: 'Вопрос',
+  multipleChoiceNode: 'Множественный выбор',
+  matchingNode: 'Сопоставление',
+  timelineNode: 'Хронологическая последовательность',
+  textInputNode: 'Ввод текста',
+  collectInfoNode: 'Анкета участника',
+  allocatorNode: 'Распределение',
+  dialogueNode: 'Диалог',
+  timerNode: 'Задание на время',
+  feedbackNode: 'Комментарий',
+  resultNode: 'Итоги',
+};
 
 let lastProgress = -1;
 let lastAchievementCount = 0;
@@ -14,9 +28,47 @@ export function updateHUD(): void {
 
   updateScore(state.score);
   updateProgress();
+  updatePresentationContext();
   updateName();
   updateAchievements();
   updateVariables();
+}
+
+function updatePresentationContext(): void {
+  const renderedNodes = Object.values(nodeById)
+    .filter((node) => (RENDERED_TYPES as readonly string[]).includes(node.type));
+  const currentNodeId = getState().currentNodeId;
+  const currentIndex = renderedNodes.findIndex((node) => node.id === currentNodeId);
+  const currentStep = currentIndex >= 0 ? currentIndex + 1 : 1;
+  const totalSteps = Math.max(1, renderedNodes.length);
+  const currentNode = currentIndex >= 0 ? renderedNodes[currentIndex] : undefined;
+
+  const currentStepEl = document.getElementById('talks-step-current');
+  const totalStepsEl = document.getElementById('talks-step-total');
+  const modeTitle = document.getElementById('talks-mode-title');
+  const stepContainer = document.querySelector('.talks-step');
+  const progress = document.querySelector('.top-progress');
+  const progressTrack = document.querySelector('.top-progress-track');
+
+  if (currentStepEl) currentStepEl.textContent = String(currentStep);
+  if (totalStepsEl) totalStepsEl.textContent = String(totalSteps);
+  if (modeTitle && currentNode) {
+    const baseLabel = NODE_MODE_LABELS[currentNode.type] ?? 'Разговор о важном';
+    modeTitle.textContent = currentNode.type === 'questionNode'
+      ? `${baseLabel} ${currentStep}`
+      : baseLabel;
+  }
+  if (stepContainer instanceof HTMLElement) {
+    stepContainer.setAttribute('aria-label', `Шаг ${currentStep} из ${totalSteps}`);
+  }
+  if (progress instanceof HTMLElement) {
+    progress.setAttribute('aria-label', `Прогресс прохождения: шаг ${currentStep} из ${totalSteps}`);
+  }
+  if (progressTrack instanceof HTMLElement) {
+    const visibleSegments = Math.min(totalSteps, 8);
+    progressTrack.style.setProperty('--talks-progress-step', `${100 / visibleSegments}%`);
+  }
+  if (currentNode) document.body.dataset.quizNodeType = currentNode.type;
 }
 
 function isRenderedNode(nodeId: string): boolean {
@@ -69,14 +121,17 @@ function updateProgress(): void {
 function updateName(): void {
   const state = getState();
   const nameEl = document.getElementById('hud-name');
-  if (!nameEl) return;
+  const avatarFallback = document.getElementById('hud-avatar-fallback');
 
   const key = NAME_KEYS.find((candidate) => state.variables[candidate] !== undefined);
   const value = key ? state.variables[key] : undefined;
   const next = value === undefined || value === '' ? 'Гость' : String(value);
-  if (nameEl.textContent !== next) {
+  if (nameEl && nameEl.textContent !== next) {
     nameEl.textContent = next;
     addPulse(nameEl.closest('.stat-card') ?? nameEl);
+  }
+  if (avatarFallback) {
+    avatarFallback.textContent = next.trim().charAt(0).toUpperCase() || 'Г';
   }
 }
 

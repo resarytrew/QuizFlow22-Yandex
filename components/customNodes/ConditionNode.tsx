@@ -16,8 +16,8 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ data, selected 
     return (
         <div className={`
             w-52 rounded-xl bg-white shadow-md border
-            transition-all duration-300 ease-in-out transform
-            ${selected ? 'border-transparent ring-2 ring-blue-500 scale-102' : 'border-gray-200/75'}
+            transition-[border-color,box-shadow,background-color,opacity] duration-300 ease-in-out
+            ${selected ? 'border-transparent ring-2 ring-blue-500' : 'border-gray-200/75'}
         `}>
             <Handle type="target" position={Position.Top} className="!w-3 !h-3 !-mt-[7px] !border-4 !border-white !bg-gray-400 !rounded-full" />
 

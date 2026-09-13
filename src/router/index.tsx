@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import { routeTree } from './routeTree';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useEntitlementStore } from '../../store/useEntitlementStore';
-import { supabase, isSupabaseReady } from '../../services/supabaseClient';
+import { authClient } from '../../services/authClient';
 import type { RouterContext } from './routes/root';
 
 // ─── Router Instance ──────────────────────────────────────────────────────────
@@ -38,73 +38,55 @@ declare module '@tanstack/react-router' {
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function AppRouter() {
-  const session = useAuthStore((s) => s.session);
+  const user = useAuthStore((s) => s.user);
   const authInitialized = useAuthStore((s) => s.authInitialized);
-  const setSession = useAuthStore((s) => s.setSession);
+  const setUser = useAuthStore((s) => s.setUser);
   const setAuthInitialized = useAuthStore((s) => s.setAuthInitialized);
   const didMountRouter = useRef(false);
 
   useEffect(() => {
-    if (!isSupabaseReady) {
-      setAuthInitialized(true);
-      return;
-    }
-
     let isMounted = true;
     const failSafe = window.setTimeout(() => {
       if (isMounted) setAuthInitialized(true);
     }, 4000);
 
-    void supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
+    void authClient.me()
+      .then(({ user: nextUser }) => {
         if (!isMounted) return;
-        if (error) console.warn('Supabase session warning:', error.message);
-        setSession(data.session);
+        setUser(nextUser);
         setAuthInitialized(true);
       })
       .catch((error) => {
-        console.warn('Auth initialization fallback (guest mode):', error);
-        if (isMounted) setAuthInitialized(true);
+        if (isMounted) {
+          setUser(null);
+          setAuthInitialized(true);
+        }
+        if (import.meta.env.DEV && error?.status !== 401) console.warn('Auth initialization failed:', error);
       });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (!isMounted) return;
-
-      setSession(nextSession);
-      setAuthInitialized(true);
-
-      if (event === 'SIGNED_IN' && nextSession?.user.id) {
-        const userId = nextSession.user.id;
-        window.setTimeout(() => {
-          void useEntitlementStore.getState().refresh(userId);
-        }, 0);
-      } else if (event === 'SIGNED_OUT') {
-        useEntitlementStore.getState().reset();
-      }
-    });
 
     return () => {
       isMounted = false;
       window.clearTimeout(failSafe);
-      subscription.unsubscribe();
     };
-  }, [setAuthInitialized, setSession]);
+  }, [setAuthInitialized, setUser]);
+
+  useEffect(() => {
+    if (user?.id) void useEntitlementStore.getState().refresh(user.id);
+    else useEntitlementStore.getState().reset();
+  }, [user?.id]);
 
   const context: RouterContext = {
     auth: {
       initialized: authInitialized,
-      isAuthenticated: Boolean(session),
-      userId: session?.user?.id ?? null,
+      isAuthenticated: Boolean(user),
+      userId: user?.id ?? null,
     },
   };
 
   useEffect(() => {
     if (!authInitialized || !didMountRouter.current) return;
     void router.invalidate();
-  }, [authInitialized, session]);
+  }, [authInitialized, user]);
 
   if (!authInitialized) {
     return <RouterLoadingScreen />;
