@@ -23,8 +23,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AuthRequestError(payload.error || `HTTP ${response.status}`, response.status);
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    throw new AuthRequestError('Сервис авторизации временно недоступен.', response.ok ? 502 : response.status);
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = await response.json() as Record<string, unknown>;
+  } catch {
+    throw new AuthRequestError('Сервис авторизации вернул некорректный ответ.', response.ok ? 502 : response.status);
+  }
+
+  if (!response.ok) {
+    const message = typeof payload.error === 'string' ? payload.error : `HTTP ${response.status}`;
+    throw new AuthRequestError(message, response.status);
+  }
   return payload as T;
 }
 
