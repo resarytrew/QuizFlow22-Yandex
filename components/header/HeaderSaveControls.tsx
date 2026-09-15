@@ -26,7 +26,7 @@ interface SaveMenuActionProps {
 const visibilityLabels: Record<QuizVisibility, string> = {
   private: 'Только мне',
   unlisted: 'По ссылке',
-  public: 'В галерее',
+  public: 'Для галереи',
 };
 
 const iconClassName = 'h-4 w-4';
@@ -103,7 +103,7 @@ export function HeaderSaveControls({
   };
 
   const isVisibilityLocked = (visibility: QuizVisibility): boolean => {
-    if (visibility === 'public') return false;
+    if (visibility === 'public' || visibility === 'private') return false;
     if (canUsePrivateVisibility) return false;
     return currentVisibility !== visibility;
   };
@@ -116,7 +116,7 @@ export function HeaderSaveControls({
   }> = [
     {
       id: 'public',
-      description: 'Опубликовать в общей галерее',
+      description: 'Отправить на модерацию для галереи',
       badge: 'FREE',
       icon: (
         <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,7 +137,7 @@ export function HeaderSaveControls({
     {
       id: 'private',
       description: 'Черновик виден только вам',
-      badge: 'PRO',
+      badge: 'FREE',
       icon: (
         <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2zm6-3V7a6 6 0 10-12 0v1H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V10a2 2 0 00-2-2h-1zM8 8a4 4 0 018 0v1H8V8z" />

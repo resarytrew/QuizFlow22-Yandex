@@ -62,7 +62,7 @@ const SaveAsModal: React.FC<Props> = ({
   isNew = false,
 }) => {
   const isPro = useEntitlementStore((s) => s.isPro());
-  const [selected, setSelected] = useState<QuizVisibility>(currentVisibility ?? 'public');
+  const [selected, setSelected] = useState<QuizVisibility>(currentVisibility ?? 'private');
   const [remember, setRemember] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
@@ -95,8 +95,8 @@ const SaveAsModal: React.FC<Props> = ({
       icon: <PrivateIcon />,
       title: 'Только мне',
       description: 'Виден и доступен для редактирования только вам. Идеально для черновиков и личных наработок.',
-      proOnly: true,
-      badge: 'PRO',
+      proOnly: false,
+      badge: 'FREE',
       gradient: 'from-slate-100 to-slate-200',
       ring: 'ring-slate-300',
     },
@@ -113,8 +113,8 @@ const SaveAsModal: React.FC<Props> = ({
     {
       id: 'public',
       icon: <PublicIcon />,
-      title: 'В галерее',
-      description: 'Квиз попадёт в общую галерею на главной. Его сможет пройти любой пользователь.',
+      title: 'В галерею после проверки',
+      description: 'Квиз попадёт в галерею только после проверки и одобрения администратором.',
       proOnly: false,
       badge: 'FREE',
       gradient: 'from-emerald-100 to-teal-100',

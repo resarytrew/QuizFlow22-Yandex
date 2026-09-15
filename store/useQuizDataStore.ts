@@ -140,7 +140,7 @@ const QUIZ_DATA_BATCH_SIZE = 8;
 let quizHydrationGeneration = 0;
 
 type QuizSummaryRow = Pick<Quiz, 'id' | 'name' | 'created_at' | 'updated_at'> &
-  Partial<Pick<Quiz, 'user_id' | 'published_at' | 'is_favorite'>> & {
+  Partial<Pick<Quiz, 'user_id' | 'published_at' | 'is_favorite' | 'moderation_status'>> & {
     visibility?: QuizVisibility | string;
   };
 
@@ -151,7 +151,7 @@ function getErrorMessage(error: unknown): string {
 function normalizeQuizVisibility(value: unknown): QuizVisibility {
   return value === 'private' || value === 'unlisted' || value === 'public'
     ? value
-    : 'public';
+    : 'private';
 }
 
 export function createQuizSummary(row: QuizSummaryRow): Quiz {
@@ -162,7 +162,8 @@ export function createQuizSummary(row: QuizSummaryRow): Quiz {
     name: row.name,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    is_published: row.visibility === 'public',
+    is_published: row.visibility === 'public' && row.moderation_status === 'approved',
+    moderation_status: row.moderation_status,
     published_at: row.published_at,
     is_favorite: row.is_favorite || false,
     visibility: normalizeQuizVisibility(row.visibility),
@@ -322,7 +323,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     const resolvedVisibility: QuizVisibility =
       opts?.visibility ??
       state.currentQuizVisibility ??
-      'public';
+      'private';
 
     try {
       if (state.currentQuizId) {
@@ -359,7 +360,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
         set((s) => ({
           currentQuizId: createdQuiz.id,
           currentQuizName: createdQuiz.name,
-          currentQuizVisibility: createdQuiz.visibility ?? 'public',
+          currentQuizVisibility: createdQuiz.visibility ?? 'private',
           userQuizzes: [
             createdQuiz,
             ...s.userQuizzes.filter((quiz) => quiz.id !== createdQuiz.id),
@@ -397,7 +398,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     const resolvedVisibility: QuizVisibility =
       opts?.visibility ??
       state.currentQuizVisibility ??
-      'public';
+      'private';
 
     try {
       if (state.currentQuizId) {
@@ -439,7 +440,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       set((s) => ({
         currentQuizId: createdQuiz.id,
         currentQuizName: createdQuiz.name,
-        currentQuizVisibility: createdQuiz.visibility ?? 'public',
+        currentQuizVisibility: createdQuiz.visibility ?? 'private',
         userQuizzes: [
           createdQuiz,
           ...s.userQuizzes.filter((quiz) => quiz.id !== createdQuiz.id),
@@ -504,8 +505,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     if (!quiz || !session) return null;
 
     const newName = `${quiz.name} (Копия)`;
-    const sourceVisibility: QuizVisibility = (quiz.visibility as QuizVisibility)
-      ?? (quiz.is_published ? 'public' : 'private');
+    const sourceVisibility: QuizVisibility = 'private';
 
     try {
       const data = await api.createQuiz({
@@ -587,7 +587,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     };
 
     try {
-      await api.updateQuiz(id, {
+      const saved = await api.updateQuiz(id, {
         visibility: data.visibility,
         quiz_data: updatedQuizData,
       });
@@ -597,9 +597,10 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
           q.id === id
             ? {
                 ...q,
-                visibility: data.visibility,
-                is_published: data.visibility === 'public',
-                published_at: data.visibility === 'public' ? (q.published_at ?? new Date().toISOString()) : undefined,
+                visibility: saved.visibility as QuizVisibility,
+                moderation_status: saved.moderation_status,
+                is_published: saved.visibility === 'public' && saved.moderation_status === 'approved',
+                published_at: saved.published_at,
                 quiz_data: updatedQuizData,
               }
             : q
@@ -645,7 +646,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       const data = await api.createQuiz({
         name: newName,
         quiz_data: source.quiz_data,
-        visibility: 'public',
+        visibility: 'private',
       });
 
       toast.success('Квиз скопирован в вашу коллекцию');

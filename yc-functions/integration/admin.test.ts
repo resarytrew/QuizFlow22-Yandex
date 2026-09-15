@@ -54,6 +54,7 @@ beforeAll(async () => {
     "migrations/003_quizflow_auth.sql",
     "migrations/004_admin_stabilization.sql",
     "migrations/005_admin_workspace.sql",
+    "migrations/006_gallery_moderation.sql",
   ])
     await query(readFileSync(file, "utf8"));
   // Upgrade is rerunnable without losing rows or overwriting overrides.
@@ -819,10 +820,58 @@ it("retries failed webhooks and grants only after capture", async () => {
 it('serves compact gallery cards while preserving complete quiz detail',async()=>{
  const huge={nodes:[{id:'q',type:'questionNode',data:{question:'Q',payload:'x'.repeat(1200000)}}],edges:[],description:'Gallery test',templateId:'classic',keywords:['test']};
  const quiz=await queryOne("INSERT INTO public.quizzes(user_id,name,visibility,quiz_data,moderation_status) VALUES($1,'Large gallery test','public',$2,'approved') RETURNING id",[users.user,JSON.stringify(huge)]);
+ await call('owner','POST','quiz-moderation',{quiz_id:quiz!.id,moderation_status:'approved'});
  const listing=await quizHandler(event('user','GET','',undefined,{public:'true',summary:'true'}));
  expect(listing.statusCode).toBe(200);expect(Buffer.byteLength(listing.body)).toBeLessThan(100000);
  const card=JSON.parse(listing.body).find((q:{id:string})=>q.id===quiz!.id);
  expect(card.is_summary).toBe(true);expect(card.question_count).toBe(1);expect(card.quiz_data.nodes).toEqual([]);expect(card.quiz_data.description).toBe('Gallery test');
  const detail=await quizHandler({...event('user','GET',''),pathParameters:{id:quiz!.id}});
  expect(JSON.parse(detail.body).quiz_data).toEqual(huge);
+});
+
+it('requires admin approval before any gallery exposure, including after edits and copies', async () => {
+  const create = await quizHandler(event('user', 'POST', '', {
+    name: 'Needs moderation', visibility: 'public', moderation_status: 'approved',
+    published_at: new Date().toISOString(), is_favorite: true,
+    quiz_data: { nodes: [], edges: [], description: 'Original' },
+  }));
+  expect(create.statusCode).toBe(201);
+  const quiz = JSON.parse(create.body);
+  expect(quiz.moderation_status).toBe('unreviewed');
+  expect(quiz.published_at).toBeNull();
+  const listed = async () => {
+    for (const summary of ['true', 'false']) {
+      const response = await quizHandler(event('user', 'GET', '', undefined, { public: 'true', summary }));
+      expect(response.statusCode).toBe(200);
+      if (JSON.parse(response.body).some((q: { id: string }) => q.id === quiz.id)) return true;
+    }
+    return false;
+  };
+  expect(await listed()).toBe(false);
+  for (const status of ['reviewing', 'rejected', 'blocked', 'hidden', 'unreviewed']) {
+    expect((await call('owner', 'POST', 'quiz-moderation', { quiz_id: quiz.id, moderation_status: status })).status).toBe(200);
+    expect(await listed()).toBe(false);
+  }
+  const approve = async () => {
+    expect((await call('moderator', 'POST', 'quiz-moderation', { quiz_id: quiz.id, moderation_status: 'approved' })).status).toBe(200);
+    expect(await listed()).toBe(true);
+    const row = await queryOne('SELECT moderated_by, published_at FROM public.quizzes WHERE id=$1', [quiz.id]);
+    expect(row!.moderated_by).toBe(users.moderator);
+    expect(row!.published_at).not.toBeNull();
+  };
+  await approve();
+  const update = (payload: unknown) => quizHandler({ ...event('user', 'PUT', '', payload), pathParameters: { id: quiz.id } });
+  await update({ is_favorite: true });
+  expect(await listed()).toBe(true);
+  await update({ name: 'Edited after approval', moderation_status: 'approved' });
+  expect(await listed()).toBe(false);
+  expect((await queryOne('SELECT published_at FROM public.quizzes WHERE id=$1', [quiz.id]))!.published_at).toBeNull();
+  await approve();
+  await update({ quiz_data: { nodes: [], edges: [], description: 'Changed content' } });
+  expect(await listed()).toBe(false);
+  const draft = await quizHandler(event('user', 'POST', '', { name: 'New draft' }));
+  expect(JSON.parse(draft.body)).toMatchObject({ visibility: 'private', moderation_status: 'unreviewed', published_at: null });
+  // Missing legacy moderation values also fail closed.
+  await query('UPDATE public.quizzes SET moderation_status=NULL WHERE id=$1', [quiz.id]);
+  expect(await listed()).toBe(false);
 });
