@@ -72,6 +72,14 @@ it('fetches the full source before copying a gallery summary',async()=>{
  try{
   await useQuizDataStore.getState().cloneAndEditPublicQuiz({id:'source',name:'Source',is_summary:true,quiz_data:{nodes:[],edges:[]}} as unknown as PublicQuiz);
   expect(get).toHaveBeenCalledWith('source');
-  expect(create).toHaveBeenCalledWith(expect.objectContaining({quiz_data:full.quiz_data}));
+  expect(create).toHaveBeenCalledWith(expect.objectContaining({quiz_data:full.quiz_data,visibility:'private'}));
  }finally{auth.mockRestore();get.mockRestore();create.mockRestore();}
+});
+
+it('keeps pending public quizzes unpublished in the user list', async () => {
+  const { createQuizSummary } = await import('./useQuizDataStore');
+  const row = { id: 'pending', name: 'Pending', created_at: '', updated_at: '', visibility: 'public' };
+  expect(createQuizSummary({ ...row, moderation_status: 'unreviewed' }).is_published).toBe(false);
+  expect(createQuizSummary({ ...row, moderation_status: 'approved' }).is_published).toBe(true);
+  expect(createQuizSummary(row).is_published).toBe(false);
 });

@@ -282,9 +282,9 @@ export async function handleModerateQuiz(
     return badRequest("invalid_moderation_status");
   const updated = await queryOne(
     `UPDATE public.quizzes
-     SET moderation_status = $1, moderation_reason = $2, moderated_at = now(), updated_at = now(), deleted_at = CASE WHEN $1 = 'deleted' THEN now() ELSE NULL END
+     SET moderation_status = $1, moderation_reason = $2, moderated_by = $4, moderated_at = now(), updated_at = now(), deleted_at = CASE WHEN $1 = 'deleted' THEN now() ELSE NULL END
      WHERE id = $3 RETURNING id`,
-    [moderation_status, moderation_reason || reason || null, quiz_id],
+    [moderation_status, moderation_reason || reason || null, quiz_id, ctx.userId],
   );
 
   if (!updated) return notFound();

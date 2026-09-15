@@ -706,6 +706,7 @@ export interface Quiz {
   quiz_data_loaded?: boolean;
   created_at: string;
   updated_at: string;
+  moderation_status?: string;
   is_published?: boolean;
   published_at?: string;
   is_favorite?: boolean;
@@ -725,6 +726,7 @@ export interface PublicQuiz {
   published_at: string;
   visibility?: QuizVisibility;
   is_favorite?: boolean;
+  moderation_status?: string;
   is_published?: boolean;
 }
 

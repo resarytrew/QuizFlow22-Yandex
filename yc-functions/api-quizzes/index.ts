@@ -52,23 +52,12 @@ async function listQuizzes(event: any, params: any) {
                         FROM public.quizzes
                         WHERE visibility = 'public'
                           AND deleted_at IS NULL`;
-    let rows;
-    try {
-      rows = await query(
-        `${baseSelect}
-           AND COALESCE(moderation_status, 'approved') NOT IN ('blocked', 'hidden', 'deleted', 'rejected')
+    const rows = await query(
+      `${baseSelect}
+         AND moderation_status = 'approved'
          ORDER BY published_at DESC NULLS LAST, created_at DESC
          LIMIT 200`,
-      );
-    } catch (error: any) {
-      if (error?.code !== '42703') throw error;
-      console.warn('[api-quizzes] moderation_status column is missing, using public gallery fallback');
-      rows = await query(
-        `${baseSelect}
-         ORDER BY published_at DESC NULLS LAST, created_at DESC
-         LIMIT 200`,
-      );
-    }
+    );
 
     return ok(rows);
   }
@@ -79,7 +68,7 @@ async function listQuizzes(event: any, params: any) {
   await ensureUser(user.id, user.email);
 
   const rows = await query(
-    `SELECT id, name, visibility, is_favorite, created_at, updated_at,
+    `SELECT id, name, visibility, moderation_status, published_at, is_favorite, created_at, updated_at,
             quiz_data->>'description' as description,
             quiz_data->>'cover_image_url' as cover_image_url
      FROM public.quizzes
@@ -117,8 +106,8 @@ async function createQuiz(event: any, body: string) {
   const { name, quiz_data, visibility } = JSON.parse(body);
 
   const [quiz] = await query(
-    `INSERT INTO public.quizzes (user_id, name, quiz_data, visibility)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO public.quizzes (user_id, name, quiz_data, visibility, moderation_status)
+     VALUES ($1, $2, $3, $4, 'unreviewed')
      RETURNING *`,
     [user.id, name || 'Без названия', quiz_data || {}, visibility || 'private'],
   );

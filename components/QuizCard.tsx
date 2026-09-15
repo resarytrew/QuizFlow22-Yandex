@@ -23,17 +23,17 @@ function resolveVisibility(quiz: Quiz): QuizVisibility {
     return quiz.is_published ? 'public' : 'private';
 }
 
-const VisibilityBadge: React.FC<{ visibility: QuizVisibility; compact?: boolean }> = ({ visibility, compact }) => {
+const VisibilityBadge: React.FC<{ visibility: QuizVisibility; status?: string; compact?: boolean }> = ({ visibility, status, compact }) => {
     const sizeClass = compact ? 'px-2 py-1 text-[9px]' : 'px-2.5 py-1 text-[10px]';
 
     if (visibility === 'public') {
         return (
             <span
                 className={`inline-flex items-center gap-1.5 rounded-md border border-emerald-200/80 bg-emerald-50/80 ${sizeClass} font-bold uppercase tracking-[0.14em] text-emerald-700`}
-                title="Квиз опубликован и доступен всем"
+                title={status === "approved" ? "Квиз одобрен и опубликован" : "В галерее появится только после одобрения модератором"}
             >
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                В галерее
+                {status === "approved" ? "В галерее" : status === "rejected" ? "Отклонён" : status === "blocked" || status === "hidden" ? "Скрыт" : "На модерации"}
             </span>
         );
     }
@@ -179,7 +179,7 @@ const QuizCard: React.FC<Props> = ({ quiz, viewMode, onToggleFavorite, onDelete 
                                 {quiz.name}
                             </h3>
                             <div className="mt-auto pt-4">
-                                <VisibilityBadge visibility={resolveVisibility(quiz)} compact />
+                                <VisibilityBadge visibility={resolveVisibility(quiz)} status={quiz.moderation_status} compact />
                             </div>
                         </div>
                         <dl className="mt-5 grid grid-cols-[1fr_auto] gap-3 border-t border-stone-200 pt-4 text-sm">
@@ -207,7 +207,7 @@ const QuizCard: React.FC<Props> = ({ quiz, viewMode, onToggleFavorite, onDelete 
                     <div className="min-w-0 flex-grow">
                         <div className="flex flex-wrap items-center gap-2">
                              <h3 className="truncate font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950 transition-colors duration-300 group-hover:text-amber-800" title={quiz.name}>{quiz.name}</h3>
-                             <VisibilityBadge visibility={resolveVisibility(quiz)} compact />
+                             <VisibilityBadge visibility={resolveVisibility(quiz)} status={quiz.moderation_status} compact />
                         </div>
                          <p className="mt-2 text-sm font-medium text-stone-500">Создан: {creationDate} <span className="mx-2 text-stone-300">/</span> <span className="font-mono tabular-nums text-stone-700">{nodeCount}</span> узлов</p>
                     </div>

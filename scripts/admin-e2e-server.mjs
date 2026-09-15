@@ -28,6 +28,7 @@ for (const path of [
   "yc-functions/migrations/003_quizflow_auth.sql",
   "yc-functions/migrations/004_admin_stabilization.sql",
     "yc-functions/migrations/005_admin_workspace.sql",
+    "yc-functions/migrations/006_gallery_moderation.sql",
 ])
   await db.query(readFileSync(path, "utf8"));
 const fixtures = {};

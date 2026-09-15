@@ -100,6 +100,8 @@ export async function apiRequest<T>(
 }
 
 interface Quiz {
+  moderation_status?: string;
+  published_at?: string;
   id: string;
   name: string;
   visibility: string;
