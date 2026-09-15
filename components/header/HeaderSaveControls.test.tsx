@@ -54,7 +54,7 @@ describe('HeaderSaveControls', () => {
     expect(props.onClose).toHaveBeenCalledOnce();
   });
 
-  it('locks private visibility options for free users', () => {
+  it('allows private drafts for free users while keeping unlisted sharing restricted', () => {
     const props = renderSaveControls({
       isExistingQuiz: false,
       currentVisibility: null,
@@ -63,8 +63,11 @@ describe('HeaderSaveControls', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Только мне/ }));
 
+    expect(props.onSaveWithVisibility).toHaveBeenCalledWith('private');
+    props.onSaveWithVisibility.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /По ссылке/ }));
     expect(props.onSaveWithVisibility).not.toHaveBeenCalled();
-    expect(screen.getAllByText(/Доступно в PRO/)).toHaveLength(2);
+    expect(screen.getAllByText(/Доступно в PRO/)).toHaveLength(1);
   });
 
   it('disables the menu button while saving', () => {
