@@ -47,6 +47,7 @@ jobs:
       - run: npm run test:functions
       - run: npm --prefix yc-functions run test:integration
       - run: npx playwright install --with-deps chromium
+      - run: npm run test:landing:e2e
       - run: npm run test:admin:e2e
       - run: npm run build
         env:
