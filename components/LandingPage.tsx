@@ -1722,6 +1722,11 @@ const TemplateGallery = ({ onRequireAuthForQuiz }: TemplateGalleryProps) => {
 
     setPlayablePreviewHtml(null);
     const buildPreview = async () => {
+      if (previewQuiz.is_summary) {
+        const full = await api.getQuiz(previewQuiz.id);
+        if (!cancelled) setPreviewQuiz({...previewQuiz,quiz_data:full.quiz_data,is_summary:false});
+        return;
+      }
       const { generateQuizHtml } = await import("../services/quizGenerator");
       if (cancelled) return;
       const preview = getFeaturedPlayablePreview(previewQuiz);
@@ -1740,7 +1745,7 @@ const TemplateGallery = ({ onRequireAuthForQuiz }: TemplateGalleryProps) => {
       if (!cancelled) setPlayablePreviewHtml(html);
     };
 
-    void buildPreview();
+    void buildPreview().catch(error => { console.error("Failed to load quiz preview",error); if (!cancelled) setPlayablePreviewHtml("<p>Не удалось загрузить предпросмотр. Закройте его и попробуйте ещё раз.</p>"); });
     return () => {
       cancelled = true;
     };

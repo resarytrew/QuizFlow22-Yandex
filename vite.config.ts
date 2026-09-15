@@ -143,6 +143,13 @@ export default defineConfig(({ mode }) => {
       base: './',
       server: {
         port: 3000,
+        proxy: {
+          '/api': {
+            target: env.DEV_API_TARGET || 'https://api.mykviz.ru',
+            changeOrigin: true,
+            secure: true,
+          },
+        },
         // host intentionally omitted: do NOT bind 0.0.0.0 by default in
         // production builds. Pass --host 0.0.0.0 explicitly only when
         // running behind a trusted reverse proxy in a private network.

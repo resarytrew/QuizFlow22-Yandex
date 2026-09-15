@@ -36,7 +36,16 @@ export async function handler(event: any) {
 
 async function listQuizzes(event: any, params: any) {
   if (params?.public === 'true' || params?.public === true) {
-    const baseSelect = `SELECT id, name, quiz_data, created_at, published_at, visibility, is_favorite,
+    const summary = params?.summary === 'true';
+    const dataSelect = summary ? `jsonb_build_object(
+      'description',quiz_data->'description','cover_image_url',quiz_data->'cover_image_url',
+      'templateId',quiz_data->'templateId','keywords',quiz_data->'keywords',
+      'passport',quiz_data->'passport','globalTimer',quiz_data->'globalTimer',
+      'nodes','[]'::jsonb,'edges','[]'::jsonb
+    ) AS quiz_data, true AS is_summary,
+    (SELECT count(*)::integer FROM jsonb_array_elements(CASE WHEN jsonb_typeof(quiz_data->'nodes')='array' THEN quiz_data->'nodes' ELSE '[]'::jsonb END) n
+      WHERE n->>'type' IN ('questionNode','multipleChoiceNode','textInputNode','matchingNode','timelineNode')) AS question_count` : 'quiz_data';
+    const baseSelect = `SELECT id, name, ${dataSelect}, created_at, published_at, visibility, is_favorite,
                                (published_at IS NOT NULL) as is_published,
                                quiz_data->>'description' as description,
                                quiz_data->>'cover_image_url' as cover_image_url

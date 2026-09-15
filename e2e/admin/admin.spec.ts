@@ -214,3 +214,13 @@ for (const role of ["owner", "admin", "moderator", "support"]) {
     expect(errors).toEqual([]);
   });
 }
+
+test('gallery loads compact cards and full quiz remains playable',async({page})=>{
+ const response=page.waitForResponse(r=>r.url().includes('/api/quizzes?public=true&summary=true'));
+ await page.goto('/#/public',{waitUntil:'domcontentloaded'});
+ expect((await response).status()).toBe(200);
+ await expect(page.getByText('E2E moderation',{exact:true})).toBeVisible();
+ await expect(page.getByText('Ошибка загрузки',{exact:true})).toHaveCount(0);
+ const f=fixtures();const detail=await page.request.get('/api/quizzes/'+f.quiz.id);
+ expect(detail.status()).toBe(200);expect((await detail.json()).quiz_data).toHaveProperty('nodes');
+});

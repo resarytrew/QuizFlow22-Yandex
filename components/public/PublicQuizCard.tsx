@@ -42,6 +42,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isCopying,setIsCopying]=useState(false);
   const session = useAuthStore(s => s.session);
   const setAuthModalOpen = useUIStore(s => s.setAuthModalOpen);
   const cloneAndEditPublicQuiz = useQuizDataStore(s => s.cloneAndEditPublicQuiz);
@@ -55,14 +56,18 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
     return url.toString();
   };
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!session) {
       setAuthModalOpen(true);
       return;
     }
-    cloneAndEditPublicQuiz(quiz);
+    if(isCopying)return;
+    setIsCopying(true);
+    const id = await cloneAndEditPublicQuiz(quiz);
+    setIsCopying(false);
+    if (!id) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -72,7 +77,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
   const coverImageUrl = quiz.quiz_data?.cover_image_url || fallbackCovers[hashStr(quiz.name || 'quiz') % fallbackCovers.length];
 
   const nodes = quiz.quiz_data?.nodes || [];
-  const questionCount = nodes.filter((n) =>
+  const questionCount = quiz.question_count ?? nodes.filter((n) =>
     typeof n.type === 'string' &&
     ['questionNode', 'multipleChoiceNode', 'textInputNode', 'matchingNode', 'timelineNode'].includes(n.type)
   ).length;
@@ -200,6 +205,7 @@ const PublicQuizCard: React.FC<Props> = ({ quiz }) => {
             <div />
           )}
           <button
+            disabled={isCopying}
             onClick={handleCopy}
             className={`shrink-0 text-[10px] font-medium transition-all duration-200 ${
               copied

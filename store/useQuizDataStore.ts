@@ -641,9 +641,10 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     const newName = `${publicQuiz.name} (Копия)`;
 
     try {
+      const source = publicQuiz.is_summary ? await api.getQuiz(publicQuiz.id) : publicQuiz;
       const data = await api.createQuiz({
         name: newName,
-        quiz_data: publicQuiz.quiz_data,
+        quiz_data: source.quiz_data,
         visibility: 'public',
       });
 
