@@ -66,7 +66,7 @@ describe('useQuizDataStore quiz settings compatibility', () => {
 it('fetches the full source before copying a gallery summary',async()=>{
  const state=useAuthStore.getState();
  const auth=vi.spyOn(useAuthStore,'getState').mockReturnValue({...state,session:{user:{id:'test-user'}}} as ReturnType<typeof useAuthStore.getState>);
- const full={id:'source',name:'Source',visibility:'public',is_favorite:false,created_at:'',updated_at:'',quiz_data:{nodes:[],edges:[],templateId:'default',description:'Full content'}};
+ const full={id:'source',name:'Source',visibility:'public',is_favorite:false,created_at:'',updated_at:'',quiz_data:{nodes:[],edges:[],templateId:'default',description:'Full content',globalTimer:useQuizDataStore.getState().globalTimer,designSettings:useQuizDataStore.getState().designSettings}};
  const get=vi.spyOn(api,'getQuiz').mockResolvedValue(full as Awaited<ReturnType<typeof api.getQuiz>>);
  const create=vi.spyOn(api,'createQuiz').mockResolvedValue({...full,id:'copy'} as Awaited<ReturnType<typeof api.createQuiz>>);
  try{

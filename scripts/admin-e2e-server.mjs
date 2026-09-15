@@ -55,7 +55,7 @@ for (const role of ["owner", "admin", "moderator", "support", "user"]) {
 }
 fixtures.quiz = (
   await db.query(
-    "INSERT INTO public.quizzes(user_id,name,visibility) VALUES($1,'E2E moderation','public') RETURNING id",
+    "INSERT INTO public.quizzes(user_id,name,visibility,quiz_data) VALUES($1,'E2E moderation','public','{\"nodes\":[],\"edges\":[]}'::jsonb) RETURNING id",
     [fixtures.user.id],
   )
 ).rows[0];
