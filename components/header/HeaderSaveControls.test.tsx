@@ -64,9 +64,8 @@ describe('HeaderSaveControls', () => {
     fireEvent.click(screen.getByRole('button', { name: /Только мне/ }));
 
     expect(props.onSaveWithVisibility).toHaveBeenCalledWith('private');
-    props.onSaveWithVisibility.mockClear();
     fireEvent.click(screen.getByRole('button', { name: /По ссылке/ }));
-    expect(props.onSaveWithVisibility).not.toHaveBeenCalled();
+    expect(props.onSaveWithVisibility).toHaveBeenCalledOnce();
     expect(screen.getAllByText(/Доступно в PRO/)).toHaveLength(1);
   });
 
