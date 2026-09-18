@@ -1,3 +1,4 @@
+import { copyFragment, pasteFragment } from '../../../utils/editorFragment';
 import { useEffect, useRef } from 'react';
 import type { Edge, Node } from 'reactflow';
 import toast from 'react-hot-toast';
@@ -6,6 +7,9 @@ import { CustomNodeType, NodeData } from '../../../types';
 type FlowNode<T = NodeData> = Node<T>;
 
 interface UseKeyboardShortcutsProps {
+    allNodes?: FlowNode<NodeData>[];
+    allEdges?: Edge[];
+    applyGraph?: (nodes: FlowNode<NodeData>[], edges: Edge[]) => void;
     visibleNodes: FlowNode<NodeData>[];
     visibleEdges: Edge[];
     selectedNodeIds: readonly string[];
@@ -21,6 +25,7 @@ interface UseKeyboardShortcutsProps {
 }
 
 export function useKeyboardShortcuts({
+    allNodes, allEdges, applyGraph,
     visibleNodes,
     visibleEdges,
     selectedNodeIds,
@@ -34,7 +39,7 @@ export function useKeyboardShortcuts({
     selectNodes,
     selectAllVisibleNodes,
 }: UseKeyboardShortcutsProps) {
-    const clipboardRef = useRef<FlowNode<NodeData>[]>([]);
+    const clipboardRef = useRef<ReturnType<typeof copyFragment>>({nodes:[],edges:[]});
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,34 +65,20 @@ export function useKeyboardShortcuts({
                         (node) => selectedIds.has(node.id) && node.type !== CustomNodeType.Start,
                     );
                     if (selected.length > 0) {
-                        clipboardRef.current = selected.map((n) => ({
-                            ...n,
-                            data: JSON.parse(JSON.stringify(n.data)),
-                        }));
+                        clipboardRef.current = copyFragment(allNodes || visibleNodes, allEdges || visibleEdges, selected.map(n=>n.id));
                         toast.success(`Скопировано: ${selected.length} ${selected.length === 1 ? 'нода' : 'нод(ы)'}`);
                     }
                     return;
                 }
                 if (e.key.toLowerCase() === 'v') {
-                    if (isCanvasLocked || clipboardRef.current.length === 0) return;
+                    if (isCanvasLocked || clipboardRef.current.nodes.length === 0) return;
                     e.preventDefault();
-                    const offset = { x: 40, y: 40 };
-                    const pastedNodeIds: string[] = [];
-                    clipboardRef.current.forEach((n, i) => {
-                        const newNode: FlowNode<NodeData> = {
-                            ...n,
-                            id: `${n.type}-${Date.now()}-${i}`,
-                            position: {
-                                x: n.position.x + offset.x,
-                                y: n.position.y + offset.y + i * 30,
-                            },
-                            selected: false,
-                        };
-                        pastedNodeIds.push(newNode.id);
-                        addNode(newNode);
-                    });
+                    const fragment = pasteFragment(clipboardRef.current, visibleNodes.find(n=>selectedNodeIds.includes(n.id))?.data.parentId);
+                    const pastedNodeIds = fragment.nodes.map(n=>n.id);
+                    if(applyGraph) applyGraph([...(allNodes || visibleNodes),...fragment.nodes],[...(allEdges || visibleEdges),...fragment.edges]);
+                    else fragment.nodes.forEach(addNode);
                     selectNodes(pastedNodeIds, pastedNodeIds[0]);
-                    toast.success(`Вставлено: ${clipboardRef.current.length} ${clipboardRef.current.length === 1 ? 'нода' : 'нод(ы)'}`);
+                    toast.success(`Вставлено: ${clipboardRef.current.nodes.length} ${clipboardRef.current.nodes.length === 1 ? 'нода' : 'нод(ы)'}`);
                     return;
                 }
                 if (e.key.toLowerCase() === 'a') {
@@ -106,15 +97,16 @@ export function useKeyboardShortcuts({
                     (node) => selectedNodeIdSet.has(node.id) && node.type !== CustomNodeType.Start,
                 );
                 const deletedNodeIds = new Set(toDelete.map((n) => n.id));
-                toDelete.forEach((n) => deleteNode(n.id));
-                visibleEdges
-                    .filter((edge) => selectedEdgeIdSet.has(edge.id)
-                        && !deletedNodeIds.has(edge.source)
-                        && !deletedNodeIds.has(edge.target))
-                    .forEach((ed) => deleteEdge(ed.id));
+                const fragment = copyFragment(allNodes || visibleNodes, allEdges || visibleEdges, [...deletedNodeIds]);
+                const removal = new Set(fragment.nodes.map(n=>n.id));
+                if(applyGraph) applyGraph((allNodes || visibleNodes).filter(n=>!removal.has(n.id)), (allEdges || visibleEdges).filter(e=>!removal.has(e.source)&&!removal.has(e.target)&&!selectedEdgeIdSet.has(e.id)));
+                else {
+                  toDelete.forEach(n=>deleteNode(n.id));
+                  visibleEdges.filter(e=>selectedEdgeIdSet.has(e.id)&&!deletedNodeIds.has(e.source)&&!deletedNodeIds.has(e.target)).forEach(e=>deleteEdge(e.id));
+                }
             }
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [visibleNodes, visibleEdges, selectedNodeIds, selectedEdgeIds, deleteNode, deleteEdge, isCanvasLocked, undo, redo, addNode, selectNodes, selectAllVisibleNodes]);
+    }, [allNodes, allEdges, applyGraph, visibleNodes, visibleEdges, selectedNodeIds, selectedEdgeIds, deleteNode, deleteEdge, isCanvasLocked, undo, redo, addNode, selectNodes, selectAllVisibleNodes]);
 }

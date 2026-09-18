@@ -1,113 +1,108 @@
-import { create } from 'zustand';
-import toast from 'react-hot-toast';
-import { useCanvasStore } from './useCanvasStore';
-import { useQuizDataStore } from './useQuizDataStore';
-import type { AutosavePayload } from '../types';
-
-interface AutosaveStoreState {
-  autosavedData: AutosavePayload | null;
+import { create } from "zustand";
+import { buildCurrentQuizData, useQuizDataStore } from "./useQuizDataStore";
+import { useAuthStore } from "./useAuthStore";
+import type { AutosavePayload } from "../types";
+export type Backup = AutosavePayload & {
+  timestamp: string;
+  id: string;
+  revision?: number;
+};
+const prefix = () =>
+  `potok_backups_v2:${useAuthStore.getState().session?.user.id || "guest"}:`;
+const key = () =>
+  prefix() + (useQuizDataStore.getState().currentQuizId || "new");
+interface AutosaveState {
+  autosavedData: Backup | null;
+  versions: Backup[];
   lastAutosave: Date | null;
+  storageError: string | null;
   autosaveCurrentQuiz: () => void;
   checkForAutosave: () => void;
-  restoreAutosave: () => void;
+  restoreAutosave: (id?: string) => void;
   clearAutosave: () => void;
   reset: () => void;
 }
-
-const AUTOSAVE_KEY = 'potok_autosave';
-const AUTOSAVE_MAX_HOURS = 24;
-
-const initialState = {
-  autosavedData: null as AutosavePayload | null,
-  lastAutosave: null as Date | null,
-};
-
-export const useAutosaveStore = create<AutosaveStoreState>((set, get) => ({
-  ...initialState,
-
+function read(): Backup[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(key()) || "[]");
+    return Array.isArray(value)
+      ? value.filter(
+          (v) =>
+            Array.isArray(v.nodes) &&
+            Array.isArray(v.edges) &&
+            typeof v.timestamp === "string",
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+export const useAutosaveStore = create<AutosaveState>((set, get) => ({
+  autosavedData: null,
+  versions: [],
+  lastAutosave: null,
+  storageError: null,
   autosaveCurrentQuiz: () => {
+    const state = useQuizDataStore.getState();
+    const doc = buildCurrentQuizData();
+    const backup: Backup = {
+      ...doc,
+      templateId: state.templateId,
+      currentQuizName: state.currentQuizName,
+      currentQuizId: state.currentQuizId,
+      currentQuizVisibility: state.currentQuizVisibility,
+      quizDataBase: doc,
+      revision: state.revision,
+      timestamp: new Date().toISOString(),
+      id: crypto.randomUUID(),
+    };
     try {
-      // Read ACTUAL state at save time — no stale snapshots
-      const canvasState = useCanvasStore.getState();
-      const quizState = useQuizDataStore.getState();
-
-      const dataToSave: AutosavePayload & { timestamp: string; version: number } = {
-        currentQuizId: quizState.currentQuizId,
-        nodes: canvasState.nodes,
-        edges: canvasState.edges,
-        globalTimer: quizState.globalTimer,
-        designSettings: quizState.designSettings,
-        templateId: quizState.templateId,
-        currentQuizName: quizState.currentQuizName,
-        timestamp: new Date().toISOString(),
-        version: 1,
-      };
-
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(dataToSave));
-      set({ lastAutosave: new Date() });
-    } catch (e) {
-      // QuotaExceededError or other localStorage failure — don't block the app
-      console.warn('Autosave failed (storage full?):', e);
+      const previous = read();
+      // Keep the latest draft plus spaced checkpoints, rather than every keystroke.
+      const checkpoints =
+        previous[0] && Date.now() - Date.parse(previous[0].timestamp) < 30000
+          ? previous.slice(1)
+          : previous;
+      const versions = [backup, ...checkpoints].slice(0, 5);
+      localStorage.setItem(key(), JSON.stringify(versions));
+      set({ versions, lastAutosave: new Date(), storageError: null });
+    } catch {
+      set({
+        storageError:
+          "Резервная копия не записана: недостаточно места. Скачайте квиз в файл.",
+      });
     }
   },
-
   checkForAutosave: () => {
-    try {
-      const saved = localStorage.getItem(AUTOSAVE_KEY);
-      if (!saved) return;
-
-      const parsed = JSON.parse(saved);
-
-      // Version check — skip incompatible autosaves
-      if (parsed.version && parsed.version !== 1) {
-        localStorage.removeItem(AUTOSAVE_KEY);
-        return;
-      }
-
-      // Ignore autosaves older than 24 hours
-      const savedAt = new Date(parsed.timestamp);
-      const hoursSince = (Date.now() - savedAt.getTime()) / 1000 / 3600;
-      if (hoursSince > AUTOSAVE_MAX_HOURS) {
-        localStorage.removeItem(AUTOSAVE_KEY);
-        return;
-      }
-
-      set({ autosavedData: parsed });
-    } catch {
-      // Corrupted JSON — clean up
-      localStorage.removeItem(AUTOSAVE_KEY);
-    }
+    const versions = read();
+    const state = useQuizDataStore.getState();
+    const latest = versions[0];
+    set({
+      versions,
+      autosavedData:
+        latest &&
+        (!state.lastServerSave ||
+          Date.parse(latest.timestamp) > Date.parse(state.lastServerSave))
+          ? latest
+          : null,
+    });
   },
-
-  restoreAutosave: () => {
-    const { autosavedData } = get();
-    if (!autosavedData) return;
-
-    try {
-      // Use public API method instead of setState bypass
-      useQuizDataStore.getState().restoreFromAutosave(autosavedData);
-      set({ autosavedData: null });
-      toast.success('Автосохранение восстановлено');
-    } catch (e) {
-      console.error('Failed to restore autosave:', e);
-    }
-  },
-
-  clearAutosave: () => {
-    try {
-      localStorage.removeItem(AUTOSAVE_KEY);
-    } catch {
-      // Ignore
-    }
+  restoreAutosave: (id) => {
+    const backup = id
+      ? get().versions.find((v) => v.id === id)
+      : get().autosavedData;
+    if (!backup) return;
+    useQuizDataStore.getState().restoreFromAutosave(backup);
+    useQuizDataStore.setState({ revision: backup.revision });
     set({ autosavedData: null });
   },
-
-  reset: () => {
-    try {
-      localStorage.removeItem(AUTOSAVE_KEY);
-    } catch {
-      // Ignore
-    }
-    set(initialState);
-  },
+  // Dismissal never deletes the user's backups.
+  clearAutosave: () => set({ autosavedData: null }),
+  reset: () =>
+    set({
+      autosavedData: null,
+      versions: [],
+      lastAutosave: null,
+      storageError: null,
+    }),
 }));

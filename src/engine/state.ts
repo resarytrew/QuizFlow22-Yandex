@@ -46,6 +46,7 @@ export function updateScore(operation: string, value: number): void {
   // Guards
   state.score = Math.max(0, Math.min(state.score, 1_000_000));
   state.score = Math.round(state.score);
+  notifyPreviewState();
 
   console.debug('[Quiz] Score:', prev, '→', state.score, `(${operation} ${v})`);
 }
@@ -54,6 +55,7 @@ export function updateScore(operation: string, value: number): void {
 
 export function setVariable(name: string, value: string | number | boolean): void {
   state.variables[name] = value;
+  notifyPreviewState();
 }
 
 export function getVariable(name: string): string | number | boolean | undefined {
@@ -65,6 +67,7 @@ export function updateVariable(
   operation: string,
   value: string | number,
 ): void {
+  notifyPreviewState();
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   const current = parseFloat(String(state.variables[name] ?? 0));
 
@@ -101,6 +104,7 @@ export function markVisited(nodeId: string): void {
 
 export function setCurrentNode(nodeId: string): void {
   state.currentNodeId = nodeId;
+  notifyPreviewState();
 }
 
 export function markResultSaved(): void {
@@ -115,4 +119,15 @@ export function addAchievement(title: string): boolean {
 
 export function getTimeSince(startTime: number): number {
   return Math.floor((performance.now() - startTime) / 1000);
+}
+
+let previewQueued = false;
+export function notifyPreviewState(): void {
+ if (typeof window === 'undefined' || !window.quizData?.preview || window.parent === window || previewQueued) return;
+ previewQueued = true;
+ queueMicrotask(() => {
+  previewQueued = false;
+  window.parent.postMessage({ type: 'potok-preview-state', nodeId: state.currentNodeId, score: state.score,
+    variables: { ...state.variables }, path: state.path.map(step => step.nodeId) }, window.parent.location.origin);
+ });
 }

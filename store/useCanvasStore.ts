@@ -48,6 +48,8 @@ export interface CanvasStoreState {
   clearCanvas: () => void;
   collapseVariableChainToEffects: (edgeId: string) => void;
 
+  applyGraph: (nodes: Node<NodeData>[], edges: Edge[]) => void;
+
   // Selection
   selection: EditorSelection;
   selectSingleNode: (nodeId: string) => void;
@@ -239,6 +241,11 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         const edges = addEdge(edge, state.edges) as Edge[];
         return selectionUpdate(state, state.selection, state.nodes, edges);
       });
+    },
+
+    applyGraph: (nodes, edges) => {
+      get().takeSnapshot();
+      set(state => selectionUpdate(state, state.selection, nodes, edges));
     },
 
     addNode: (node) => {

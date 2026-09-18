@@ -40,7 +40,7 @@ describe('public quiz search pages', () => {
     expect(res.body).not.toContain('Public');
     expect(PUBLIC_ONLY).toContain("q.visibility = 'public'");
     expect(PUBLIC_ONLY).toContain('q.deleted_at IS NULL');
-    expect(PUBLIC_ONLY).toContain("= 'approved'");
+    expect(PUBLIC_ONLY).toContain("published_quiz_data IS NOT NULL");
   });
   it('uses the same eligibility filter and pagination for the entire catalog and sitemap', async () => {
     db.mockResolvedValueOnce([{ count: '1001' }]);

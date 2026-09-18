@@ -134,13 +134,11 @@ for (const role of ["owner", "admin", "moderator", "support"]) {
           r.url().endsWith("/admin/quiz-moderation") &&
           r.request().method() === "POST",
       );
-      await page
-        .getByRole("button", { name: "Одобрить", exact: true })
-        .first()
-        .click();
+      const moderationRow = page.getByRole("row").filter({ hasText: "E2E moderation" });
+      await moderationRow.getByRole("button", { name: "Одобрить", exact: true }).click();
       expect((await moderationResponse).status()).toBe(200);
       await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(page.getByText("Одобрен", { exact: true })).toBeVisible();
+      await expect(page.getByRole("row").filter({ hasText: "E2E moderation" }).getByText("Одобрен", { exact: true })).toBeVisible();
       await page.goto("/#/admin/finances", { waitUntil: "domcontentloaded" });
       await expect(
         page.getByRole("heading", { name: "Доступ закрыт" }),

@@ -55,6 +55,7 @@ beforeAll(async () => {
     "migrations/004_admin_stabilization.sql",
     "migrations/005_admin_workspace.sql",
     "migrations/006_gallery_moderation.sql",
+    "migrations/007_editor_versions.sql",
   ])
     await query(readFileSync(file, "utf8"));
   // Upgrade is rerunnable without losing rows or overwriting overrides.
@@ -864,14 +865,47 @@ it('requires admin approval before any gallery exposure, including after edits a
   await update({ is_favorite: true });
   expect(await listed()).toBe(true);
   await update({ name: 'Edited after approval', moderation_status: 'approved' });
-  expect(await listed()).toBe(false);
-  expect((await queryOne('SELECT published_at FROM public.quizzes WHERE id=$1', [quiz.id]))!.published_at).toBeNull();
+  expect(await listed()).toBe(true); // the previous reviewed snapshot stays available
+  const anonymous = async () => JSON.parse((await quizHandler({httpMethod:'GET',headers:{},pathParameters:{id:quiz.id}})).body);
+  expect((await anonymous()).name).toBe('Needs moderation');
+  const ownerDraft=JSON.parse((await quizHandler({...event('user','GET',''),pathParameters:{id:quiz.id}})).body);
+  expect(ownerDraft.name).toBe('Edited after approval');
+  expect(ownerDraft.moderation_status).toBe('unreviewed');
   await approve();
+  expect((await anonymous()).name).toBe('Edited after approval');
   await update({ quiz_data: { nodes: [], edges: [], description: 'Changed content' } });
+  expect(await listed()).toBe(true);
+  expect((await anonymous()).quiz_data.description).toBe('Original');
+  await call('moderator','POST','quiz-moderation',{quiz_id:quiz.id,moderation_status:'hidden'});
   expect(await listed()).toBe(false);
   const draft = await quizHandler(event('user', 'POST', '', { name: 'New draft' }));
   expect(JSON.parse(draft.body)).toMatchObject({ visibility: 'private', moderation_status: 'unreviewed', published_at: null });
   // Missing legacy moderation values also fail closed.
   await query('UPDATE public.quizzes SET moderation_status=NULL WHERE id=$1', [quiz.id]);
   expect(await listed()).toBe(false);
+});
+
+it('separates reviewed content, ignores canvas layout for moderation and rejects stale revisions',async()=>{
+ const response=await quizHandler(event('user','POST','',{name:'Versioned',visibility:'public',quiz_data:{nodes:[{id:'n',type:'infoNode',position:{x:0,y:0},data:{label:'Reviewed',editorNote:'Private author note'}}],edges:[],description:'Preserve',keywords:['one']}}));
+ const created=JSON.parse(response.body);
+ await call('owner','POST','quiz-moderation',{quiz_id:created.id,moderation_status:'approved'});
+ const draft=async()=>JSON.parse((await quizHandler({...event('user','GET',''),pathParameters:{id:created.id}})).body);
+ const original=await draft();
+ const moved={...original.quiz_data,nodes:original.quiz_data.nodes.map((n:any)=>({...n,position:{x:500,y:200},selected:true}))};
+ const update=async(payload:unknown)=>quizHandler({...event('user','PUT','',payload),pathParameters:{id:created.id}});
+ expect((await update({quiz_data:moved,expected_revision:original.revision})).statusCode).toBe(200);
+ expect((await draft()).moderation_status).toBe('approved');
+ expect((await update({name:'Stale overwrite',expected_revision:original.revision})).statusCode).toBe(409);
+ expect((await draft()).name).toBe('Versioned');
+ const changed={nodes:[{...moved.nodes[0],data:{label:'New draft'}}]};
+ expect((await update({quiz_data:changed,expected_revision:(await draft()).revision})).statusCode).toBe(200);
+ expect((await draft()).quiz_data.description).toBe('Preserve');
+ const guest=JSON.parse((await quizHandler({httpMethod:'GET',headers:{},pathParameters:{id:created.id}})).body);
+ expect(guest.quiz_data.nodes[0].data.label).toBe('Reviewed');
+ expect(guest.quiz_data.nodes[0].data).not.toHaveProperty('editorNote');
+ expect((await update({expected_revision:0})).statusCode).toBe(400);
+ expect(guest).not.toHaveProperty('published_quiz_data');
+ await call('owner','POST','quiz-moderation',{quiz_id:created.id,moderation_status:'approved'});
+ const republished=JSON.parse((await quizHandler({httpMethod:'GET',headers:{},pathParameters:{id:created.id}})).body);
+ expect(republished.quiz_data.nodes[0].data.label).toBe('New draft');
 });

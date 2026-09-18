@@ -1,3 +1,4 @@
+import { EditorWorkspace } from './EditorWorkspace';
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import ReactFlow, {
   Background,
@@ -26,7 +27,6 @@ import { useEditorMenus } from './hooks/useEditorMenus';
 import { useCanvasLayout } from './hooks/useCanvasLayout';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { useEditorAutosave } from './hooks/useEditorAutosave';
 import { EditorMenus } from './EditorOverlays';
 import { LockBanner } from './LockBanner';
 
@@ -56,6 +56,7 @@ const QuizEditor: React.FC = () => {
   const actions = useEditorActions();
   const menus = useEditorMenus();
 
+  const [editorView, setEditorView] = useState('graph');
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [connectingFrom, setConnectingFrom] = useState<{ nodeId: string; handleId?: string | null } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -74,7 +75,6 @@ const QuizEditor: React.FC = () => {
   const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
   const { screenToFlowPosition, getNode, fitView } = useReactFlow<NodeData>();
-  useEditorAutosave();
 
   // React Flow warns when nodeTypes/edgeTypes change identity between
   // renders. The module-level exports are stable, but Vite's Fast Refresh
@@ -121,6 +121,7 @@ const QuizEditor: React.FC = () => {
   });
 
   useKeyboardShortcuts({
+    allNodes: nodes, allEdges: edges, applyGraph: useCanvasStore.getState().applyGraph,
     visibleNodes,
     visibleEdges,
     selectedNodeIds: selection.selectedNodeIds,
@@ -312,6 +313,8 @@ const QuizEditor: React.FC = () => {
         onQuickAddSelect={handleQuickAdd}
       />
 
+      <EditorWorkspace view={editorView} onView={setEditorView} />
+      <div className="absolute inset-x-0 bottom-0 top-14" style={{display: editorView === "graph" ? "block" : "none"}}>
       <ReactFlow
         nodes={visibleNodes}
         edges={visibleEdges}
@@ -392,6 +395,7 @@ const QuizEditor: React.FC = () => {
           </Panel>
         )}
       </ReactFlow>
+      </div>
     </div>
   );
 };

@@ -7,6 +7,11 @@ import type {
 } from '../../types';
 
 export interface QuizFile {
+  description?: string;
+  cover_image_url?: string;
+  keywords?: string[];
+  passport?: import("../../types").ProjectPassport;
+  editorOrder?: string[];
   nodes: Node<NodeData>[];
   edges: Edge[];
   globalTimer?: GlobalTimer;
@@ -26,6 +31,7 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'history',
   'newyear',
   'screenQuiz',
+  'importantTalks',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -121,6 +127,11 @@ export function parseQuizFile(content: string): QuizFile {
   }
 
   return {
+    description: typeof parsed.description === "string" ? parsed.description : undefined,
+    cover_image_url: typeof parsed.cover_image_url === "string" ? parsed.cover_image_url : undefined,
+    keywords: Array.isArray(parsed.keywords) ? parsed.keywords.filter((x): x is string=>typeof x === "string") : undefined,
+    editorOrder: Array.isArray(parsed.editorOrder) ? parsed.editorOrder.filter((x): x is string=>typeof x === "string") : undefined,
+    passport: isRecord(parsed.passport) ? parsed.passport as unknown as QuizFile["passport"] : undefined,
     nodes: parsed.nodes,
     edges: parsed.edges,
     ...(readGlobalTimer(parsed.globalTimer)
@@ -147,15 +158,8 @@ export function serializeQuizFile(quiz: QuizFile): string {
       data,
       position,
     })),
-    edges: quiz.edges.map(
-      ({ id, source, sourceHandle, target, targetHandle }) => ({
-        id,
-        source,
-        sourceHandle,
-        target,
-        targetHandle,
-      }),
-    ),
+    description: quiz.description, cover_image_url: quiz.cover_image_url, keywords: quiz.keywords, passport: quiz.passport, editorOrder: quiz.editorOrder,
+    edges: quiz.edges.map(e => { const copy = { ...e }; delete copy.selected; return copy; }),
     ...(quiz.globalTimer ? { globalTimer: quiz.globalTimer } : {}),
     ...(quiz.designSettings ? { designSettings: quiz.designSettings } : {}),
     ...(quiz.templateId ? { templateId: quiz.templateId } : {}),

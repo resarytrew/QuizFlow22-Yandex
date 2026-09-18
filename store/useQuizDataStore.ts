@@ -9,6 +9,7 @@ import {
   QuizTemplate,
   AutosavePayload,
   QuizVisibility,
+  QuizData,
 } from '../types';
 import { api } from '../services/apiClient';
 import toast from 'react-hot-toast';
@@ -58,6 +59,12 @@ function normalizeTemplateId(value: unknown): QuizTemplateId {
 }
 
 interface QuizDataStoreState {
+  editorKey: string;
+  quizDataBase: Partial<QuizData>;
+  revision?: number;
+  saveStatus: "idle" | "dirty" | "saving" | "saved" | "local" | "error" | "conflict";
+  saveError: string | null;
+  lastServerSave: string | null;
   currentQuizId: string | null;
   setCurrentQuizId: (id: string | null) => void;
   currentQuizName: string;
@@ -107,6 +114,12 @@ interface QuizDataStoreState {
 }
 
 const createInitialState = () => ({
+  editorKey: crypto.randomUUID(),
+  quizDataBase: {} as Partial<QuizData>,
+  revision: undefined as number | undefined,
+  saveStatus: "idle" as QuizDataStoreState["saveStatus"],
+  saveError: null as string | null,
+  lastServerSave: null as string | null,
   currentQuizId: null as string | null,
   currentQuizName: '',
   currentQuizVisibility: null as QuizVisibility | null,
@@ -140,7 +153,7 @@ const QUIZ_DATA_BATCH_SIZE = 8;
 let quizHydrationGeneration = 0;
 
 type QuizSummaryRow = Pick<Quiz, 'id' | 'name' | 'created_at' | 'updated_at'> &
-  Partial<Pick<Quiz, 'user_id' | 'published_at' | 'is_favorite' | 'moderation_status'>> & {
+  Partial<Pick<Quiz, 'user_id' | 'published_at' | 'is_favorite' | 'moderation_status' | 'revision' | 'has_published_version'>> & {
     visibility?: QuizVisibility | string;
   };
 
@@ -162,8 +175,10 @@ export function createQuizSummary(row: QuizSummaryRow): Quiz {
     name: row.name,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    is_published: row.visibility === 'public' && row.moderation_status === 'approved',
+    is_published: row.visibility === 'public' && (row.has_published_version === true || row.moderation_status === 'approved'),
     moderation_status: row.moderation_status,
+    revision: row.revision,
+    has_published_version: row.has_published_version,
     published_at: row.published_at,
     is_favorite: row.is_favorite || false,
     visibility: normalizeQuizVisibility(row.visibility),
@@ -297,162 +312,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     }
   },
 
-  saveQuiz: async (opts): Promise<string | null> => {
-    const state = get();
-    const session = useAuthStore.getState().session;
-    if (!session) {
-      toast.error('Войдите, чтобы сохранить квиз');
-      return null;
-    }
-
-    const { nodes, edges, isCanvasLoading, setCanvasLoading } = useCanvasStore.getState();
-    if (isCanvasLoading) return null;
-
-    setCanvasLoading(true);
-    const toastId = toast.loading('Сохранение...');
-
-    const quizData = {
-      nodes,
-      edges,
-      globalTimer: state.globalTimer,
-      designSettings: state.designSettings,
-      templateId: state.templateId,
-      currentQuizName: state.currentQuizName,
-    };
-
-    const resolvedVisibility: QuizVisibility =
-      opts?.visibility ??
-      state.currentQuizVisibility ??
-      'private';
-
-    try {
-      if (state.currentQuizId) {
-        await api.updateQuiz(state.currentQuizId, {
-          name: state.currentQuizName.trim() || 'Без названия',
-          quiz_data: quizData,
-        });
-
-        set((s) => ({
-          userQuizzes: s.userQuizzes.map((q) =>
-            q.id === s.currentQuizId
-              ? { ...q, name: state.currentQuizName.trim() || 'Без названия', quiz_data: quizData }
-              : q
-          ),
-        }));
-        toast.success('Квиз сохранён', { id: toastId });
-        return state.currentQuizId;
-      } else {
-        const quizName = state.currentQuizName.trim() || 'Без названия';
-        const data = await api.createQuiz({
-          name: quizName,
-          quiz_data: quizData,
-          visibility: resolvedVisibility,
-        });
-
-        const createdQuiz: Quiz = {
-          ...(data as Quiz),
-          name: quizName,
-          quiz_data: quizData,
-          quiz_data_loaded: true,
-          visibility: ((data as Quiz).visibility as QuizVisibility) ?? resolvedVisibility,
-        };
-
-        set((s) => ({
-          currentQuizId: createdQuiz.id,
-          currentQuizName: createdQuiz.name,
-          currentQuizVisibility: createdQuiz.visibility ?? 'private',
-          userQuizzes: [
-            createdQuiz,
-            ...s.userQuizzes.filter((quiz) => quiz.id !== createdQuiz.id),
-          ],
-        }));
-        toast.success('Квиз создан', { id: toastId });
-        return createdQuiz.id;
-      }
-    } catch (e: unknown) {
-      toast.error('Ошибка сохранения: ' + getErrorMessage(e), { id: toastId });
-      return null;
-    } finally {
-      setCanvasLoading(false);
-    }
-  },
-
-  autosaveQuiz: async (opts): Promise<string | null> => {
-    const state = get();
-    const session = useAuthStore.getState().session;
-    if (!session) return null;
-
-    const { nodes, edges, isCanvasLoading } = useCanvasStore.getState();
-    if (isCanvasLoading) return null;
-
-    const quizData = {
-      nodes,
-      edges,
-      globalTimer: state.globalTimer,
-      designSettings: state.designSettings,
-      templateId: state.templateId,
-      currentQuizName: state.currentQuizName,
-    };
-
-    const quizName = state.currentQuizName.trim() || 'Без названия';
-    const resolvedVisibility: QuizVisibility =
-      opts?.visibility ??
-      state.currentQuizVisibility ??
-      'private';
-
-    try {
-      if (state.currentQuizId) {
-        const updated = await api.updateQuiz(state.currentQuizId, {
-          name: quizName,
-          quiz_data: quizData,
-        });
-
-        set((s) => ({
-          userQuizzes: s.userQuizzes.map((q) =>
-            q.id === s.currentQuizId
-              ? {
-                  ...q,
-                  ...(updated as Partial<Quiz>),
-                  name: quizName,
-                  quiz_data: quizData,
-                  quiz_data_loaded: true,
-                }
-              : q
-          ),
-        }));
-        return state.currentQuizId;
-      }
-
-      const created = await api.createQuiz({
-        name: quizName,
-        quiz_data: quizData,
-        visibility: resolvedVisibility,
-      });
-
-      const createdQuiz: Quiz = {
-        ...(created as Quiz),
-        name: quizName,
-        quiz_data: quizData,
-        quiz_data_loaded: true,
-        visibility: ((created as Quiz).visibility as QuizVisibility) ?? resolvedVisibility,
-      };
-
-      set((s) => ({
-        currentQuizId: createdQuiz.id,
-        currentQuizName: createdQuiz.name,
-        currentQuizVisibility: createdQuiz.visibility ?? 'private',
-        userQuizzes: [
-          createdQuiz,
-          ...s.userQuizzes.filter((quiz) => quiz.id !== createdQuiz.id),
-        ],
-      }));
-
-      return createdQuiz.id;
-    } catch (error) {
-      console.warn('Autosave failed:', error);
-      return null;
-    }
-  },
+  saveQuiz: (opts) => persistEditor(opts, true),
+  autosaveQuiz: (opts) => persistEditor(opts, false),
 
   loadQuiz: (quiz) => {
     const defaults = createInitialState();
@@ -462,6 +323,12 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     });
 
     set({
+      editorKey: crypto.randomUUID(),
+      quizDataBase: quiz.quiz_data,
+      revision: quiz.revision,
+      saveStatus: "saved",
+      saveError: null,
+      lastServerSave: quiz.updated_at,
       currentQuizId: quiz.id,
       currentQuizName: quiz.name,
       currentQuizVisibility: (quiz.visibility as QuizVisibility) ?? (quiz.is_published ? 'public' : 'private'),
@@ -552,7 +419,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     });
 
     try {
-      await api.updateQuiz(id, { is_favorite: newVal });
+      const saved=await api.updateQuiz(id, { is_favorite: newVal });
+      set(s=>({revision:s.currentQuizId===id?saved.revision:s.revision,userQuizzes:s.userQuizzes.map(q=>q.id===id?{...q,revision:saved.revision}:q)}));
     } catch {
       set({
         userQuizzes: get().userQuizzes.map((q) =>
@@ -589,6 +457,7 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     try {
       const saved = await api.updateQuiz(id, {
         visibility: data.visibility,
+        expected_revision: quiz.revision,
         quiz_data: updatedQuizData,
       });
 
@@ -597,14 +466,18 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
           q.id === id
             ? {
                 ...q,
+                revision: saved.revision,
+                has_published_version: saved.has_published_version,
                 visibility: saved.visibility as QuizVisibility,
                 moderation_status: saved.moderation_status,
-                is_published: saved.visibility === 'public' && saved.moderation_status === 'approved',
+                is_published: saved.visibility === 'public' && (saved.has_published_version === true || saved.moderation_status === 'approved'),
                 published_at: saved.published_at,
                 quiz_data: updatedQuizData,
               }
             : q
         ),
+        quizDataBase: s.currentQuizId === id ? saved.quiz_data : s.quizDataBase,
+        revision: s.currentQuizId === id ? saved.revision : s.revision,
         currentQuizVisibility: s.currentQuizId === id ? data.visibility : s.currentQuizVisibility,
       }));
       toast.success('Настройки доступа обновлены');
@@ -627,7 +500,8 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     };
 
     try {
-      await api.updateQuiz(id, { quiz_data: updatedQuizData });
+      const saved = await api.updateQuiz(id, { quiz_data: updatedQuizData, expected_revision: quiz.revision });
+      if (get().currentQuizId === id) set({ quizDataBase: saved.quiz_data, revision: saved.revision });
       toast.success('Паспорт квиза сохранен');
       get().fetchUserQuizzes(true);
     } catch {
@@ -665,6 +539,11 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
     const defaults = createInitialState();
     storeEvents.emit('AUTOSAVE_RESTORE', data);
     set({
+      editorKey: crypto.randomUUID(),
+      quizDataBase: data.quizDataBase || {},
+      currentQuizVisibility: data.currentQuizVisibility ?? "private",
+      saveStatus: "dirty",
+      saveError: null,
       currentQuizId: data.currentQuizId ?? null,
       globalTimer: {
         ...defaults.globalTimer,
@@ -678,3 +557,67 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
 
   reset: () => set(createInitialState()),
 }));
+
+
+/** Preserve document extensions; transient selection/drag state is never content. */
+export function buildCurrentQuizData(): QuizData {
+  const state = useQuizDataStore.getState();
+  const canvas = useCanvasStore.getState();
+  return {
+    ...state.quizDataBase,
+    nodes: canvas.nodes.map(n => {
+      const copy = { ...n }; delete copy.selected; delete copy.dragging; delete copy.width; delete copy.height; delete copy.positionAbsolute; return copy;
+    }),
+    edges: canvas.edges.map(e => { const copy = { ...e }; delete copy.selected; return copy; }),
+    globalTimer: state.globalTimer, designSettings: state.designSettings,
+    templateId: state.templateId, currentQuizName: state.currentQuizName,
+  };
+}
+
+let saveQueue: Promise<unknown> = Promise.resolve();
+function persistEditor(opts: { visibility?: QuizVisibility } | undefined, manual: boolean): Promise<string | null> {
+  const captured = useQuizDataStore.getState();
+  const account = useAuthStore.getState().session?.user.id;
+  if (!account) {
+    useQuizDataStore.setState({ saveStatus: 'local' });
+    if (manual) toast.error('Войдите, чтобы сохранить квиз на сервере');
+    return Promise.resolve(null);
+  }
+  const payload = { name: captured.currentQuizName.trim() || 'Без названия', quiz_data: buildCurrentQuizData() };
+  const task = async () => {
+    const current = useQuizDataStore.getState();
+    if (useAuthStore.getState().session?.user.id !== account) return null;
+    // A delayed save must never capture another document after navigation.
+    if (current.editorKey !== captured.editorKey && !captured.currentQuizId) return null;
+    const sameEditor = current.editorKey === captured.editorKey;
+    const id = captured.currentQuizId || (sameEditor ? current.currentQuizId : null);
+    if (sameEditor && current.saveStatus === 'conflict') return null;
+    if (sameEditor) useQuizDataStore.setState({ saveStatus: 'saving', saveError: null });
+    try {
+      const saved = id
+        ? await api.updateQuiz(id, { ...payload, ...(opts?.visibility ? { visibility: opts.visibility } : {}), expected_revision: sameEditor ? current.revision : captured.revision })
+        : await api.createQuiz({ ...payload, visibility: opts?.visibility || captured.currentQuizVisibility || 'private' });
+      if (useAuthStore.getState().session?.user.id !== account) return null;
+      useQuizDataStore.setState(s => ({
+        userQuizzes: [{ ...saved, quiz_data_loaded: true } as Quiz, ...s.userQuizzes.filter(q => q.id !== saved.id)],
+        ...(s.editorKey === captured.editorKey ? {
+          currentQuizId: saved.id, revision: saved.revision,
+          currentQuizVisibility: saved.visibility as QuizVisibility,
+          lastServerSave: saved.updated_at, saveStatus: JSON.stringify(buildCurrentQuizData()) === JSON.stringify(payload.quiz_data) ? 'saved' as const : 'dirty' as const, saveError: null,
+        } : {}),
+      }));
+      if (manual) toast.success('Сохранено на сервере');
+      return saved.id;
+    } catch (error) {
+      const conflict = /revision_conflict/.test(getErrorMessage(error));
+      const message = conflict ? 'Квиз изменён в другой вкладке. Сохраните копию в файл и загрузите актуальную версию.' : 'Не удалось сохранить на сервере. Изменения остаются на устройстве.';
+      if (useQuizDataStore.getState().editorKey === captured.editorKey)
+        useQuizDataStore.setState({ saveStatus: conflict ? 'conflict' : 'error', saveError: message });
+      if (manual) toast.error(message);
+      return null;
+    }
+  };
+  const result = saveQueue.then(task, task);
+  saveQueue = result;
+  return result;
+}

@@ -3,7 +3,7 @@ import { useCanvasStore } from "../store/useCanvasStore";
 import { useUIStore } from "../store/useUIStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { useQuizDataStore } from "../store/useQuizDataStore";
-import { useAutosaveStore } from "../store/useAutosaveStore";
+import { EditorSaveStatus } from "./header/EditorSaveStatus";
 import { useAppNavigation } from "@/src/router/useAppNavigation";
 import PlanBadge from "./PlanBadge.tsx";
 import { useEntitlementStore } from "../store/useEntitlementStore";
@@ -39,7 +39,6 @@ const Header: React.FC = () => {
   const ent = useEntitlementStore((s) => s.entitlement);
   const isPro = useEntitlementStore((s) => s.isPro());
   const importLocked = !hasFeature(ent.plan, ent.features, "unlimited_logic");
-  const lastAutosave = useAutosaveStore((s) => s.lastAutosave);
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false);
   const [isSaveMenuOpen, setIsSaveMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -47,7 +46,6 @@ const Header: React.FC = () => {
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const saveMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const [autosaveMessage, setAutosaveMessage] = useState("");
   const controller = useHeaderController({
     currentQuizId,
     currentQuizName,
@@ -57,16 +55,6 @@ const Header: React.FC = () => {
     setNodes,
     setEdges,
   });
-
-  useEffect(() => {
-    if (lastAutosave) {
-      const timeString = lastAutosave.toLocaleTimeString("ru-RU", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      setAutosaveMessage(`${timeString}`);
-    }
-  }, [lastAutosave]);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -113,9 +101,9 @@ const Header: React.FC = () => {
         className="hidden"
       />
 
-      <header className="h-[70px] bg-white/95 backdrop-blur-xl grid grid-cols-[auto_minmax(320px,900px)_auto] items-center gap-4 px-6 shrink-0 shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
+      <header className="editor-header h-[70px] bg-white/95 backdrop-blur-xl grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-6 shrink-0 shadow-sm border-b border-slate-200/60 sticky top-0 z-50">
         {/* Left Section */}
-        <div className="flex min-w-0 items-center gap-2 justify-self-start">
+        <div className="editor-header-brand flex min-w-0 items-center gap-2 justify-self-start">
           <button
             onClick={toggleSidebar}
             className="group p-2.5 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all duration-200"
@@ -198,7 +186,7 @@ const Header: React.FC = () => {
         </div>
 
         {/* Center Section */}
-        <div className="flex min-w-0 items-center gap-3 justify-self-stretch">
+        <div className="editor-header-document flex min-w-0 items-center gap-3 justify-self-stretch">
           <div className="flex w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200/60 bg-slate-50 px-4 py-2">
             <svg
               className="w-4 h-4 text-slate-400"
@@ -220,30 +208,15 @@ const Header: React.FC = () => {
               value={currentQuizName}
               onChange={(e) => setCurrentQuizName(e.target.value)}
               placeholder="Без названия"
-              className="flex-1 text-sm font-semibold text-slate-900 bg-transparent outline-none placeholder:text-slate-400"
+              className="min-w-0 flex-1 text-sm font-semibold text-slate-900 bg-transparent outline-none placeholder:text-slate-400"
               title={currentQuizName}
             />
-            {lastAutosave && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                <svg
-                  className="w-3 h-3"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="font-medium">{autosaveMessage}</span>
-              </div>
-            )}
+            <EditorSaveStatus />
           </div>
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-3 justify-self-end">
+        <div className="editor-header-actions flex items-center gap-3 justify-self-end">
           {session ? (
             <>
               <HeaderFileMenu

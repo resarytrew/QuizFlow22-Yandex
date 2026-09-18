@@ -11,7 +11,7 @@ type Binding = {
   key: string;
 };
 async function main() {
-  const migration = process.argv.includes("--gallery") ? "006_gallery_moderation" : process.argv.includes("--workspace")
+  const migration = process.argv.includes("--editor") ? "007_editor_versions" : process.argv.includes("--gallery") ? "006_gallery_moderation" : process.argv.includes("--workspace")
     ? "005_admin_workspace"
     : "004_admin_stabilization";
   const env = { ...process.env };
