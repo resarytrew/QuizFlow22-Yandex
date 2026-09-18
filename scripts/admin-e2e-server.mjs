@@ -29,6 +29,7 @@ for (const path of [
   "yc-functions/migrations/004_admin_stabilization.sql",
     "yc-functions/migrations/005_admin_workspace.sql",
     "yc-functions/migrations/006_gallery_moderation.sql",
+    "yc-functions/migrations/007_editor_versions.sql",
 ])
   await db.query(readFileSync(path, "utf8"));
 const fixtures = {};

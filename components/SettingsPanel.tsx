@@ -1,3 +1,4 @@
+import { NodeInspector } from './QuizEditor/NodeInspector';
 
 import React, { useMemo } from 'react';
 import type { Node } from 'reactflow';
@@ -2341,7 +2342,7 @@ const SettingsPanel: React.FC = () => {
     }, [selectedNode, updateNodeData]);
 
     return (
-        <aside className="w-96 h-full bg-white border-l border-gray-200/75 shadow-sm overflow-hidden">
+        <aside className="w-full h-full bg-white border-l border-gray-200/75 shadow-sm overflow-hidden">
             <div className="w-full h-full p-6 overflow-y-auto relative">
                 {!selectedNode && (
                     <button
@@ -2391,7 +2392,7 @@ const SettingsPanel: React.FC = () => {
                         </div>
 
                         <div className="space-y-8">
-                            {settingsContent}
+                            <NodeInspector key={selectedNode.id} node={selectedNode}>{settingsContent}</NodeInspector>
                         </div>
                     </>
                 )}

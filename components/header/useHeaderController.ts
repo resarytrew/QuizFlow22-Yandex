@@ -13,7 +13,7 @@ import {
   exportScreenQuizToMp4,
 } from '../../services/screenQuizVideoExport';
 import { useCanvasStore } from '../../store/useCanvasStore';
-import { useQuizDataStore } from '../../store/useQuizDataStore';
+import { buildCurrentQuizData, useQuizDataStore } from '../../store/useQuizDataStore';
 import type { QuizVisibility } from '../../types';
 import {
   downloadQuizFile,
@@ -97,17 +97,8 @@ export function useHeaderController({
   };
 
   const handleExportJson = () => {
-    const canvas = useCanvasStore.getState();
-    const quiz = useQuizDataStore.getState();
     downloadQuizFile(
-      serializeQuizFile({
-        nodes: canvas.nodes,
-        edges: canvas.edges,
-        globalTimer: quiz.globalTimer,
-        designSettings: quiz.designSettings,
-        templateId: quiz.templateId,
-        currentQuizName: quiz.currentQuizName,
-      }),
+      serializeQuizFile(buildCurrentQuizData()),
       currentQuizName,
     );
   };
@@ -164,6 +155,7 @@ export function useHeaderController({
           setNodes(quizFile.nodes);
           setEdges(quizFile.edges);
           const quizStore = useQuizDataStore.getState();
+          useQuizDataStore.setState({quizDataBase:{description:quizFile.description,cover_image_url:quizFile.cover_image_url,keywords:quizFile.keywords,passport:quizFile.passport,editorOrder:quizFile.editorOrder}});
           if (quizFile.globalTimer) {
             quizStore.setGlobalTimer(quizFile.globalTimer);
           }
@@ -211,7 +203,7 @@ export function useHeaderController({
       if (savedQuizId && !currentQuizId) {
         await nav.goToEditor(savedQuizId);
       }
-      setIsSaveAsModalOpen(false);
+      if (savedQuizId) setIsSaveAsModalOpen(false);
     } finally {
       setIsSaving(false);
     }

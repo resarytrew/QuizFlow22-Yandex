@@ -2712,6 +2712,7 @@ const screenQuizTemplate = `
         bgVolumeBeforeDuck: null
       };
       var state = {
+        previewPath: [],
         currentId: resolveStartNodeId(),
         index: 0,
         locked: false,
@@ -2805,6 +2806,10 @@ const screenQuizTemplate = `
           return;
         }
         state.currentId = node.id;
+        if (quizData.preview && window.parent !== window) {
+          state.previewPath.push(node.id);
+          window.parent.postMessage({type:"potok-preview-state",nodeId:node.id,score:null,variables:{},path:state.previewPath.slice(-100)},window.parent.location.origin);
+        }
         state.index = getVisibleIndex(node);
         var data = node.data || {};
         var answers = normalizeAnswers(data);

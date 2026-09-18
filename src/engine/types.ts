@@ -2,6 +2,7 @@
 // Единственный источник истины для структуры данных движка
 
 export interface QuizData {
+  preview?: boolean;
   nodes: QuizNode[];
   edges: QuizEdge[];
   startNodeId?: string;

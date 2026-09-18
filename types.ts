@@ -51,6 +51,7 @@ export interface EdgeData {
 }
 
 export interface BaseNodeData {
+  editorNote?: string;
   label?: string;
   title?: string;
   description?: string;
@@ -686,6 +687,7 @@ export interface PathEventDetails {
 }
 
 export interface QuizData {
+  editorOrder?: string[];
   nodes: Node<NodeData>[];
   edges: Edge[];
   globalTimer: GlobalTimer;
@@ -699,6 +701,8 @@ export interface QuizData {
 }
 
 export interface Quiz {
+  revision?: number;
+  has_published_version?: boolean;
   id: string;
   user_id: string;
   name: string;
@@ -790,6 +794,8 @@ export interface QuizTemplate {
 // --- Autosave ---
 
 export interface AutosavePayload {
+  quizDataBase?: Partial<QuizData>;
+  currentQuizVisibility?: QuizVisibility | null;
   currentQuizId: string | null;
   nodes: Node<NodeData>[];
   edges: Edge[];

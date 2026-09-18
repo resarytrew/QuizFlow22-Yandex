@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { JSDOM } from 'jsdom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { generateQuizHtmlProgrammatically } from '../quizGenerator';
 import importantTalksTemplate from './importantTalks';
 
@@ -133,7 +133,9 @@ describe('Important Talks template', () => {
       pretendToBeVisual: true,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 40));
+    await vi.waitFor(() => {
+      expect(dom.window.document.querySelector('#talks-mode-title')?.textContent).toBe('Информация');
+    });
 
     expect(dom.window.document.body.classList.contains('important-talks-theme')).toBe(true);
     expect(dom.window.document.querySelector('#hud-score-label')?.textContent).toBe('Светлые поступки');

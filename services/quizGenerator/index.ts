@@ -119,7 +119,7 @@ function generateUnsafe(
   const templateHtml = resolveTemplate(templateId);
 
   // 3. Собираем payload
-  const payload = buildPayload(input);
+  const payload = { ...buildPayload(input), preview: !!options.preview };
 
   // 4. Сериализуем данные
   const quizDataJson = serializeForHtmlScript(payload);

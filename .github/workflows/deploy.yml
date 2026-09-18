@@ -204,6 +204,7 @@ jobs:
           node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply
           node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply --workspace
           node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply --gallery
+          node yc-functions/dist/admin-migration/index.cjs --from-yandex --apply --editor
 
       - name: Deploy unified API function
         working-directory: yc-functions

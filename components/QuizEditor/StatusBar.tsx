@@ -1,3 +1,4 @@
+import { validateEditorGraph } from '../../utils/editorValidation';
 import React, { useState, useMemo } from 'react';
 import { useViewport } from 'reactflow';
 import { Icons } from './Icons';
@@ -14,8 +15,10 @@ interface StatusBarProps {
     hasResult: boolean;
 }
 
-export const StatusBar: React.FC<StatusBarProps> = React.memo(({ nodeCount, edgeCount, hasStart, hasResult }) => {
+export const StatusBar: React.FC<StatusBarProps> = React.memo(({ nodeCount, edgeCount }) => {
     const { zoom } = useViewport();
+    const nodes=useCanvasStore(s=>s.nodes), edges=useCanvasStore(s=>s.edges);
+    const problems=useMemo(()=>validateEditorGraph(nodes,edges),[nodes,edges]);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const selectedNodeIds = useCanvasStore(selectSelectedNodeIds);
     const selectedEdgeIds = useCanvasStore(selectSelectedEdgeIds);
@@ -25,10 +28,10 @@ export const StatusBar: React.FC<StatusBarProps> = React.memo(({ nodeCount, edge
             nodeCount,
             edgeCount,
             selectedCount: selectedNodeIds.length + selectedEdgeIds.length,
-            isValid: hasStart && hasResult,
-            issues: !hasResult ? 'Добавьте узел "Результат"' : null,
+            isValid: !problems.some(p=>p.severity==='error'),
+            issues: `${problems.filter(p=>p.severity==='error').length} ошибок`,
         };
-    }, [nodeCount, edgeCount, hasStart, hasResult, selectedNodeIds.length, selectedEdgeIds.length]);
+    }, [nodeCount, edgeCount, problems, selectedNodeIds.length, selectedEdgeIds.length]);
 
     if (isCollapsed) {
         return (
@@ -79,7 +82,7 @@ export const StatusBar: React.FC<StatusBarProps> = React.memo(({ nodeCount, edge
                 }`}
             >
                 {stats.isValid ? <Icons.Check /> : <Icons.Warning />}
-                <span>{stats.isValid ? 'Готов' : stats.issues}</span>
+                <span>{stats.isValid ? 'Нет ошибок схемы' : stats.issues}</span>
             </div>
             <button
                 onClick={() => setIsCollapsed(true)}

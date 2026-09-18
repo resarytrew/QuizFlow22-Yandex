@@ -6,9 +6,9 @@ const SITEMAP_SIZE = 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Older databases lack moderation_status. Unknown/pending values fail closed.
 export const PUBLIC_ONLY = `q.visibility = 'public' AND q.deleted_at IS NULL
-  AND COALESCE(to_jsonb(q)->>'moderation_status', 'unreviewed') = 'approved'`;
-const SUMMARY = `q.id, q.name, q.updated_at,
-  q.quiz_data->>'description' AS description, q.quiz_data->'keywords' AS keywords`;
+  AND q.published_quiz_data IS NOT NULL AND q.moderation_status NOT IN ('blocked','hidden','deleted')`;
+const SUMMARY = `q.id, q.published_name AS name, q.published_at AS updated_at,
+  q.published_quiz_data->>'description' AS description, q.published_quiz_data->'keywords' AS keywords`;
 type Summary = { id: string; name?: string; description?: string; keywords?: unknown; updated_at?: string | Date };
 type Event = { httpMethod?: string; path?: string; rawPath?: string; pathParameters?: Record<string, string>; params?: { path?: Record<string, string> } };
 const escape = (value: string) => value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

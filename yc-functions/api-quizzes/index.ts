@@ -38,23 +38,23 @@ async function listQuizzes(event: any, params: any) {
   if (params?.public === 'true' || params?.public === true) {
     const summary = params?.summary === 'true';
     const dataSelect = summary ? `jsonb_build_object(
-      'description',quiz_data->'description','cover_image_url',quiz_data->'cover_image_url',
-      'templateId',quiz_data->'templateId','keywords',quiz_data->'keywords',
-      'passport',quiz_data->'passport','globalTimer',quiz_data->'globalTimer',
+      'description',published_quiz_data->'description','cover_image_url',published_quiz_data->'cover_image_url',
+      'templateId',published_quiz_data->'templateId','keywords',published_quiz_data->'keywords',
+      'passport',published_quiz_data->'passport','globalTimer',published_quiz_data->'globalTimer',
       'nodes','[]'::jsonb,'edges','[]'::jsonb
     ) AS quiz_data, true AS is_summary,
-    (SELECT count(*)::integer FROM jsonb_array_elements(CASE WHEN jsonb_typeof(quiz_data->'nodes')='array' THEN quiz_data->'nodes' ELSE '[]'::jsonb END) n
-      WHERE n->>'type' IN ('questionNode','multipleChoiceNode','textInputNode','matchingNode','timelineNode')) AS question_count` : 'quiz_data';
-    const baseSelect = `SELECT id, name, ${dataSelect}, created_at, published_at, visibility, is_favorite,
+    (SELECT count(*)::integer FROM jsonb_array_elements(CASE WHEN jsonb_typeof(published_quiz_data->'nodes')='array' THEN published_quiz_data->'nodes' ELSE '[]'::jsonb END) n
+      WHERE n->>'type' IN ('questionNode','multipleChoiceNode','textInputNode','matchingNode','timelineNode')) AS question_count` : 'published_quiz_data AS quiz_data';
+    const baseSelect = `SELECT id, published_name AS name, ${dataSelect}, created_at, published_at, visibility, is_favorite,
                                (published_at IS NOT NULL) as is_published,
-                               quiz_data->>'description' as description,
-                               quiz_data->>'cover_image_url' as cover_image_url
+                               published_quiz_data->>'description' as description,
+                               published_quiz_data->>'cover_image_url' as cover_image_url
                         FROM public.quizzes
                         WHERE visibility = 'public'
                           AND deleted_at IS NULL`;
     const rows = await query(
       `${baseSelect}
-         AND moderation_status = 'approved'
+         AND published_quiz_data IS NOT NULL AND moderation_status NOT IN ('blocked','hidden','deleted')
          ORDER BY published_at DESC NULLS LAST, created_at DESC
          LIMIT 200`,
     );
@@ -68,7 +68,7 @@ async function listQuizzes(event: any, params: any) {
   await ensureUser(user.id, user.email);
 
   const rows = await query(
-    `SELECT id, name, visibility, moderation_status, published_at, is_favorite, created_at, updated_at,
+    `SELECT id, name, visibility, revision, (published_quiz_data IS NOT NULL) AS has_published_version, moderation_status, published_at, is_favorite, created_at, updated_at,
             quiz_data->>'description' as description,
             quiz_data->>'cover_image_url' as cover_image_url
      FROM public.quizzes
@@ -89,12 +89,18 @@ async function getQuiz(event: any, quizId: string) {
 
   if (!quiz) return notFound();
 
-  if (quiz.visibility === 'public' || quiz.visibility === 'unlisted') return ok(quiz);
-
-  const user = await verifyAuth(event);
-  if (!user || user.id !== quiz.user_id) return unauthorized();
-
-  return ok(quiz);
+  const user = await verifyAuth(event, { allowBlocked: true });
+  if (user?.id === quiz.user_id) return ok({ ...quiz, has_published_version: !!quiz.published_quiz_data });
+  if (quiz.visibility === 'unlisted') {
+    const publicData = await queryOne('SELECT public.quiz_public_content(quiz_data) AS quiz_data FROM public.quizzes WHERE id=$1', [quizId]);
+    return ok({ id: quiz.id, name: quiz.name, quiz_data: publicData?.quiz_data,
+      visibility: quiz.visibility, created_at: quiz.created_at, updated_at: quiz.updated_at });
+  }
+  if (quiz.visibility === 'public' && quiz.published_quiz_data && !['blocked','hidden','deleted'].includes(quiz.moderation_status))
+    return ok({ id: quiz.id, name: quiz.published_name, quiz_data: quiz.published_quiz_data,
+      visibility: quiz.visibility, moderation_status: 'approved', created_at: quiz.created_at,
+      updated_at: quiz.published_at, published_at: quiz.published_at, is_published: true });
+  return notFound();
 }
 
 async function createQuiz(event: any, body: string) {
@@ -120,25 +126,32 @@ async function updateQuiz(event: any, quizId: string, body: string) {
   if (!user) return unauthorized();
 
   const updates = JSON.parse(body);
+  if (updates.expected_revision !== undefined && (!Number.isInteger(updates.expected_revision) || updates.expected_revision < 1)) {
+    return ok({ error: 'invalid_revision' }, 400);
+  }
 
   const [quiz] = await query(
     `UPDATE public.quizzes
      SET name = COALESCE($3, name),
-         quiz_data = COALESCE($4, quiz_data),
+         quiz_data = CASE WHEN $4::jsonb IS NULL THEN quiz_data ELSE quiz_data || $4::jsonb END,
          visibility = COALESCE($5, visibility),
          is_favorite = COALESCE($6, is_favorite),
          updated_at = now()
      WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+       AND ($7::integer IS NULL OR revision = $7)
      RETURNING *`,
     [
       quizId, user.id,
       updates.name, updates.quiz_data,
-      updates.visibility, updates.is_favorite,
+      updates.visibility, updates.is_favorite, updates.expected_revision,
     ],
   );
 
-  if (!quiz) return notFound();
-  return ok(quiz);
+  if (!quiz) {
+    const existing = await queryOne('SELECT id FROM public.quizzes WHERE id=$1 AND user_id=$2 AND deleted_at IS NULL', [quizId,user.id]);
+    return existing ? ok({error:'revision_conflict'},409) : notFound();
+  }
+  return ok({ ...quiz, has_published_version: !!quiz.published_quiz_data });
 }
 
 async function deleteQuiz(event: any, quizId: string) {

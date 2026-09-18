@@ -56,6 +56,7 @@ export const Route = createRoute({
     }
   },
   loader: async ({ params }) => {
+    if(useQuizDataStore.getState().currentQuizId === params.quizId) return {quizId:params.quizId};
     const quiz = await loadQuizForEditor(params.quizId);
     useQuizDataStore.getState().loadQuiz(quiz as Quiz);
     return { quizId: params.quizId };
