@@ -177,7 +177,12 @@ function showImportantTalksFeedback(
   const defaults = getFeedbackDefaults(outcome);
   const feedback = document.createElement("section");
   feedback.className = `talks-inline-feedback is-${outcome}`;
-  feedback.setAttribute("role", outcome === "timeout" ? "alert" : "status");
+  feedback.setAttribute("role", "dialog");
+  feedback.setAttribute("aria-modal", "true");
+  feedback.setAttribute(
+    "aria-label",
+    `${defaults.kicker}: ${feedbackValue(content, outcome, "Title") || defaults.title}`,
+  );
   feedback.setAttribute("aria-live", "assertive");
 
   const mark = document.createElement("span");
@@ -201,6 +206,27 @@ function showImportantTalksFeedback(
   button.className = "talks-inline-feedback-button";
   button.textContent = content?.feedbackButtonText?.trim() || "Продолжить";
   button.addEventListener("click", onContinue, { once: true });
+
+  const continueFlow = () => {
+    if (feedback.isConnected) button.click();
+  };
+
+  feedback.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      continueFlow();
+      return;
+    }
+    if (event.key === "Tab") {
+      // Ловушка фокуса: в окне единственный интерактивный элемент.
+      event.preventDefault();
+      button.focus();
+    }
+  });
+
+  container.addEventListener("click", (event) => {
+    if (event.target === container) continueFlow();
+  });
 
   feedback.append(mark, body, button);
   container.classList.add("talks-feedback-open");
