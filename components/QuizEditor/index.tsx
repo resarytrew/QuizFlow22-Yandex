@@ -25,6 +25,7 @@ import CanvasSearch from '../CanvasSearch';
 import { useEditorActions, useEditorData } from './hooks/useEditorStore';
 import { useEditorMenus } from './hooks/useEditorMenus';
 import { useCanvasLayout } from './hooks/useCanvasLayout';
+import { useEditorViewport } from './hooks/useEditorViewport';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { EditorMenus } from './EditorOverlays';
@@ -42,7 +43,6 @@ import toast from 'react-hot-toast';
 import { CustomNodeType, type NodeData } from '../../types';
 
 const DEFAULT_EDGE_OPTIONS = { type: 'default' as const };
-const DEFAULT_VIEWPORT = { x: 0, y: 0, zoom: ZOOM.DEFAULT };
 const SNAP_GRID: [number, number] = [16, 16];
 const CONNECTION_LINE_STYLE = { strokeWidth: 2, stroke: DS.colors.edgeActive };
 const isNodeSelected = (nodeId: string): boolean =>
@@ -75,6 +75,7 @@ const QuizEditor: React.FC = () => {
   const isAIAssistantLocked = !hasFeature(entitlement.plan, entitlement.features, 'ai_assistant_advanced');
 
   const { screenToFlowPosition, getNode, fitView } = useReactFlow<NodeData>();
+  const { defaultViewport, onMoveEnd } = useEditorViewport();
 
   // React Flow warns when nodeTypes/edgeTypes change identity between
   // renders. The module-level exports are stable, but Vite's Fast Refresh
@@ -345,7 +346,8 @@ const QuizEditor: React.FC = () => {
         elementsSelectable={!isCanvasLocked}
         selectionOnDrag={false}
         multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
-        defaultViewport={DEFAULT_VIEWPORT}
+        defaultViewport={defaultViewport}
+        onMoveEnd={onMoveEnd}
         minZoom={ZOOM.MIN}
         maxZoom={ZOOM.MAX}
         style={flowStyle}
