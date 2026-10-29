@@ -36,7 +36,8 @@
     "upload-asset/**/*.ts",
     "cron-cleanup/**/*.ts",
     "migrate-auth-schema/**/*.ts",
-    "deploy/admin-migration.ts"
+    "deploy/admin-migration.ts",
+    "deploy/billing-recovery.ts"
   ],
   "exclude": [
     "node_modules",

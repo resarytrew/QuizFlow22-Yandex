@@ -1,4 +1,5 @@
 import { applyConfirmedPayment } from '../_shared/payment-application';
+import { reconcileUserPayments } from '../_shared/payment-reconciliation';
 import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
 import { query, queryOne, withTransaction } from '../_shared/db';
@@ -52,6 +53,7 @@ export async function handler(event: any) {
 }
 
 async function getEntitlement(user: any) {
+  await reconcileUserPayments(user.id);
   const [row] = await query(
     `SELECT public.get_effective_entitlement($1::uuid) as entitlement`,
     [user.id],
@@ -108,7 +110,7 @@ async function createCheckout(body: string, user: any) {
   const paymentBody = {
     amount: { value: amount, currency: 'RUB' },
     capture: true,
-    confirmation: { type: 'redirect', return_url: `${FRONTEND_URL}/billing?success=true` },
+    confirmation: { type: 'redirect', return_url: `${FRONTEND_URL}/billing/return` },
     description,
     metadata: { user_id: user.id, plan_id: `pro_${plan}` },
   };
@@ -196,7 +198,9 @@ async function handleWebhook(event: any, body: string) {
 
   // Layer 1: Shared secret verification
   if (BILLING_WEBHOOK_SECRET) {
-    const url = new URL(event.url || `https://placeholder/?key=${event.queryStringParameters?.key || ''}`);
+    // API Gateway supplies a relative URL; URL(input) alone throws before
+    // validation and turns every notification into a gateway 502.
+    const url = new URL(event.url || '/', 'https://billing.internal');
     const gotKey = event.queryStringParameters?.key || url.searchParams.get('key') || '';
     if (!timingSafeEqual(gotKey, BILLING_WEBHOOK_SECRET)) {
       console.warn('[webhook] secret mismatch from', clientIp);

@@ -56,7 +56,7 @@ export async function applyConfirmedPayment(
       payment.plan_id,
     ]);
     if (!plan) throw new AdminAuthError(409, "plan_not_found");
-    const days = plan.period === "year" ? 365 : 30;
+    const days = plan.period === "yearly" || plan.period === "year" ? 365 : 30;
     const current = await queryOne(
       "SELECT * FROM public.subscriptions WHERE user_id=$1 AND status IN ('active','past_due') FOR UPDATE",
       [payment.user_id],

@@ -55,11 +55,7 @@ export const useEntitlementStore = create<EntitlementState>((set, get) => ({
     }),
 
   refresh: async (userId: string) => {
-    if (get().networkUnreachable) {
-      return;
-    }
-
-    set({ loading: true, lastError: null });
+    set({ loading: true, lastError: null, networkUnreachable: false });
     try {
       const sessionUserId = useAuthStore.getState().user?.id;
       if (!sessionUserId || sessionUserId !== userId) {

@@ -1,4 +1,5 @@
 import { applyConfirmedPayment } from "../_shared/payment-application";
+import { reconcileUserPayments } from "../_shared/payment-reconciliation";
 import { handler as serviceGrantHandler } from "../billing-admin-grant-pro";
 import { handler as redeemHandler } from "../billing-redeem-promo";
 import { beforeAll, afterAll, describe, expect, it, vi } from "vitest";
@@ -746,6 +747,58 @@ describe("payment recovery and support compensation", () => {
       ).status,
     ).toBe(200);
   });
+});
+
+it("recovers a paid account without a webhook, including a full yearly period, exactly once", async () => {
+  const id = randomUUID(), paymentId = randomUUID(), providerId = randomUUID();
+  await query("INSERT INTO public.users(id,email) VALUES($1,$2)", [id, id + '@test.invalid']);
+  await query("INSERT INTO public.payments(id,user_id,plan_id,amount_kopecks,provider_payment_id) VALUES($1,$2,'pro_yearly',349000,$3)", [paymentId,id,providerId]);
+  const cookie = 'qf_session=' + await createSession(id, {});
+  const provider = {id:providerId,status:'succeeded',paid:true,amount:{value:'3490.00',currency:'RUB'},metadata:{user_id:id,plan_id:'pro_yearly'}};
+  const fetchMock = vi.fn().mockResolvedValue({ok:true,json:async()=>provider});
+  vi.stubGlobal('fetch',fetchMock);
+  try {
+    const request = {httpMethod:'POST',headers:{cookie},pathParameters:{action:'get-entitlement'},body:'{}'};
+    const responses = await Promise.all([billingHandler(request),billingHandler(request)]);
+    expect(responses.every(r => r.statusCode === 200)).toBe(true);
+    const response = await billingHandler(request);
+    expect(JSON.parse(response.body)).toMatchObject({tier:'pro',plan_id:'pro_yearly'});
+    const sub = await queryOne("SELECT extract(epoch FROM current_period_end-current_period_start)/86400 AS days,cancel_at_period_end FROM public.subscriptions WHERE user_id=$1",[id]);
+    expect(Number(sub!.days)).toBe(365);
+    expect(sub!.cancel_at_period_end).toBe(true);
+    expect((await queryOne("SELECT count(*)::int AS n FROM public.payment_applications WHERE payment_id=$1",[paymentId]))!.n).toBe(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  } finally { vi.unstubAllGlobals(); }
+});
+
+it("leaves unconfirmed or mismatched payments on Free and retries provider outages", async () => {
+  const id = randomUUID(), paymentId = randomUUID(), providerId = randomUUID();
+  await query("INSERT INTO public.users(id,email) VALUES($1,$2)",[id,id+'@test.invalid']);
+  await query("INSERT INTO public.payments(id,user_id,plan_id,amount_kopecks,provider_payment_id) VALUES($1,$2,'pro_monthly',39900,$3)",[paymentId,id,providerId]);
+  const provider = {id:providerId,status:'pending',paid:false,amount:{value:'399.00',currency:'RUB'},metadata:{user_id:id,plan_id:'pro_monthly'}};
+  const fetchMock = vi.fn().mockRejectedValueOnce(new Error('offline')).mockImplementation(async()=>({ok:true,json:async()=>provider}));
+  vi.stubGlobal('fetch',fetchMock);
+  const retry = async () => {
+    await query("UPDATE public.payments SET provider_checked_at=NULL WHERE id=$1",[paymentId]);
+    await reconcileUserPayments(id);
+  };
+  try {
+    await reconcileUserPayments(id);
+    await reconcileUserPayments(id);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // cooldown across concurrent reads
+    await retry(); // pending
+    provider.status='waiting_for_capture'; provider.paid=true;
+    await retry();
+    provider.status='succeeded'; provider.amount.value='1.00';
+    await retry();
+    provider.amount.value='399.00'; provider.metadata.user_id=randomUUID();
+    await retry();
+    expect(await queryOne('SELECT id FROM public.subscriptions WHERE user_id=$1',[id])).toBeNull();
+    expect((await queryOne('SELECT status FROM public.payments WHERE id=$1',[paymentId]))!.status).toBe('pending');
+    provider.metadata.user_id=id;
+    await retry();
+    expect((await queryOne('SELECT status FROM public.payments WHERE id=$1',[paymentId]))!.status).toBe('succeeded');
+  } finally { vi.unstubAllGlobals(); }
 });
 
 it("retries failed webhooks and grants only after capture", async () => {
