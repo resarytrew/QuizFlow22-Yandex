@@ -14,25 +14,27 @@ const BillingReturnPage: React.FC = () => {
 
   useEffect(() => {
     if (!session) return;
-    let attempts = 0;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const deadline = Date.now() + 60_000;
     const tick = async () => {
       await refresh(session.user.id);
-      attempts++;
-      if (ent.plan === 'pro' || attempts >= 6) {
-        setStatus(ent.plan === 'pro' ? 'success' : 'timeout');
+      if (stopped) return;
+      const state = useEntitlementStore.getState();
+      if (!state.lastError && state.entitlement.plan === 'pro') {
+        setStatus('success');
+      } else if (Date.now() >= deadline) {
+        setStatus('timeout');
+      } else {
+        timer = setTimeout(tick, 2000);
       }
     };
-    tick();
-    const interval = setInterval(tick, 1500);
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      setStatus((prev) => (prev === 'pending' ? 'timeout' : prev));
-    }, 10_000);
+    void tick();
     return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
+      stopped = true;
+      clearTimeout(timer);
     };
-  }, [session, refresh, ent.plan]);
+  }, [session, refresh]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -87,10 +89,10 @@ const BillingReturnPage: React.FC = () => {
                 />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-slate-900 mb-2">Подождите пару секунд</h1>
+            <h1 className="text-xl font-bold text-slate-900 mb-2">Оплата пока не подтверждена</h1>
             <p className="text-sm text-slate-600 mb-6">
-              Если платёж прошёл, статус обновится автоматически в течение минуты. Можно вернуться и
-              проверить позже.
+              Подтверждение пока не получено. Откройте раздел оплаты, чтобы проверить статус ещё раз.
+              Если деньги списаны, а PRO не появился, обратитесь в поддержку. Повторно платить не нужно.
             </p>
             <div className="flex gap-2 justify-center">
               <Link

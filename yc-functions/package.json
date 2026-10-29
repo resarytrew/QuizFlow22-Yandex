@@ -14,6 +14,7 @@
     "build:quizzes": "esbuild api-quizzes/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-quizzes/index.js",
     "build:results": "esbuild api-results/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-results/index.js",
     "build:billing": "esbuild api-billing/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-billing/index.js",
+    "build:billing-recovery": "esbuild deploy/billing-recovery.ts --bundle --platform=node --target=node22 --outfile=dist/billing-recovery/index.cjs",
     "build:admin": "esbuild api-admin/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-admin/index.js",
     "build:support": "esbuild api-support/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-support/index.js",
     "build:ai-proxy": "esbuild api-ai-proxy/index.ts --bundle --minify --platform=node --target=node18 --outfile=dist/api-ai-proxy/index.js",
