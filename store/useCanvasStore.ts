@@ -5,6 +5,7 @@ import type {
   NodeChange,
   EdgeChange,
   Connection,
+  Viewport,
 } from 'reactflow';
 import {
   addEdge,
@@ -73,6 +74,8 @@ export interface CanvasStoreState {
   setNeedsLayout: (needs: boolean) => void;
   isCanvasLoading: boolean;
   setCanvasLoading: (loading: boolean) => void;
+  viewport: Viewport | null;
+  rememberViewport: (viewport: Viewport) => void;
 
   // History
   history: { past: { nodes: Node<NodeData>[]; edges: Edge[] }[]; future: { nodes: Node<NodeData>[]; edges: Edge[] }[] };
@@ -192,6 +195,7 @@ const createInitialState = () => ({
   isCanvasLocked: false,
   needsLayout: false,
   isCanvasLoading: false,
+  viewport: null as Viewport | null,
   history: { past: [], future: [] } as {
     past: { nodes: Node<NodeData>[]; edges: Edge[] }[];
     future: { nodes: Node<NodeData>[]; edges: Edge[] }[];
@@ -335,6 +339,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         edges: init.edges,
         history: { past: [], future: [] },
         selection: { ...EMPTY_SELECTION },
+        viewport: null,
       });
       useUIStore.getState().setCurrentGroup(null);
     },
@@ -513,6 +518,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       set((state) => ({ isCanvasLocked: !state.isCanvasLocked })),
     setNeedsLayout: (needs) => set({ needsLayout: needs }),
     setCanvasLoading: (loading) => set({ isCanvasLoading: loading }),
+    rememberViewport: (viewport) => set({ viewport }),
 
     // History — debounce already protects from excessive snapshots
     takeSnapshot: () => {
@@ -587,10 +593,11 @@ const unsubscribers = [
     useCanvasStore.getState().setNodes(nodes);
     useCanvasStore.getState().setEdges(edges);
     useCanvasStore.getState().clearSelection();
-    useCanvasStore.setState({ history: { past: [], future: [] } });
+    useCanvasStore.setState({ history: { past: [], future: [] }, viewport: null });
   }),
 
   storeEvents.on('AUTOSAVE_RESTORE', ({ nodes, edges }) => {
+    useCanvasStore.setState({ viewport: null });
     useCanvasStore.getState().setNodes(nodes);
     useCanvasStore.getState().setEdges(edges);
     useCanvasStore.getState().removeMissingItemsFromSelection();
