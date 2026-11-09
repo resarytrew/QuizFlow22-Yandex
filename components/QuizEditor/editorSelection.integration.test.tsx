@@ -48,7 +48,6 @@ function renderIntegratedInteraction() {
       openNodeSettings: vi.fn(),
       onSelectionIntent: vi.fn(),
       addNode: actions.addNode,
-      onEditEdgeLabel: vi.fn(),
       onConnect: actions.onConnect,
       screenToFlowPosition: (position) => position,
       getNode: (nodeId) =>
@@ -78,7 +77,7 @@ describe('editor selection integration', () => {
 
     act(() => {
       result.current.onEdgeClick(
-        { shiftKey: false },
+        { clientX: 0, clientY: 0 } as React.MouseEvent,
         { ...edge, selected: true },
       );
     });

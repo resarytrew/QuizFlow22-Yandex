@@ -28,7 +28,6 @@ interface UseCanvasInteractionProps {
     openNodeSettings: () => void;
     onSelectionIntent: (additive: boolean) => void;
     addNode: (node: FlowNode<NodeData>) => void;
-    onEditEdgeLabel: (edgeId: string, currentLabel: string) => void;
     onConnect: (connection: Connection) => void;
     screenToFlowPosition: (pos: { x: number; y: number }) => { x: number; y: number };
     getNode: (id: string) => FlowNode<NodeData> | undefined;
@@ -54,7 +53,6 @@ export function useCanvasInteraction({
     openNodeSettings,
     onSelectionIntent,
     addNode,
-    onEditEdgeLabel,
     onConnect,
     screenToFlowPosition,
     getNode,
@@ -118,14 +116,6 @@ export function useCanvasInteraction({
             setEdgeMenu({ id: edge.id, top: local.y, left: local.x });
         },
         [isCanvasLocked, selectSingleEdge, toLocal, setEdgeMenu]
-    );
-
-    const onEdgeDoubleClick = useCallback(
-        (_: React.MouseEvent, edge: Edge) => {
-            if (isCanvasLocked) return;
-            onEditEdgeLabel(edge.id, (edge.label as string) || '');
-        },
-        [onEditEdgeLabel, isCanvasLocked]
     );
 
     const isValidConnection = useCallback(
@@ -200,12 +190,16 @@ export function useCanvasInteraction({
         setConnectingFrom(null);
     }, [clearSelection, onSelectionIntent, setMenu, setEdgeMenu, setQuickAddMenu, setConnectingFrom]);
 
-    const onEdgeClick = useCallback((_: unknown, edge: Edge) => {
+    const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
         onSelectionIntent(false);
         selectSingleEdge(edge.id);
         setMenu(null);
         setQuickAddMenu(null);
-    }, [onSelectionIntent, selectSingleEdge, setMenu, setQuickAddMenu]);
+        if (!isCanvasLocked) {
+            const local = toLocal(event);
+            setEdgeMenu({ id: edge.id, top: local.y, left: local.x });
+        }
+    }, [onSelectionIntent, selectSingleEdge, setMenu, setQuickAddMenu, setEdgeMenu, toLocal, isCanvasLocked]);
 
     const handleConnectStart = useCallback(
         (_: React.MouseEvent | React.TouchEvent, params: OnConnectStartParams) => {
@@ -265,7 +259,6 @@ export function useCanvasInteraction({
         onPaneContextMenu,
         onNodeContextMenu,
         onEdgeContextMenu,
-        onEdgeDoubleClick,
         handleQuickAdd,
         onNodeClick,
         onEdgeClick,

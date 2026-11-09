@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import SettingsPanel from './SettingsPanel';
 import { createNewNode } from './QuizEditor/createNewNode';
@@ -26,4 +26,16 @@ describe('contextual settings panel', () => {
     expect(container.childElementCount).toBe(0);
     expect(useUIStore.getState().isDesignModeActive).toBe(false);
   });
+  it('shows node content directly, with one sound section and an editable author note', () => {
+    const node = createNewNode(CustomNodeType.Question, { x: 0, y: 0 });
+    useCanvasStore.getState().setNodes([node]);
+    useCanvasStore.getState().selectSingleNode(node.id);
+    render(<SettingsPanel />);
+    expect(screen.queryByRole('tablist', { name: 'Настройки блока' })).toBeNull();
+    expect(screen.queryByLabelText('Найти настройку')).toBeNull();
+    expect(screen.getAllByText('Звуковые эффекты')).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText('Заметка автора'), { target: { value: 'Подсказка для автора' } });
+    expect(useCanvasStore.getState().nodes[0].data.editorNote).toBe('Подсказка для автора');
+  });
+
 });

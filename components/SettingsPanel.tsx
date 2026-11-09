@@ -1,11 +1,8 @@
-import { NodeInspector } from './QuizEditor/NodeInspector';
-
 import React, { useMemo } from 'react';
 import type { Node } from 'reactflow';
 import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
 import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode, ImportantTalksInteractionContent } from '../types.ts';
-import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
 
@@ -1024,7 +1021,6 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 updateContent={updateImportantTalks}
                 includeTimer={false}
             />
-            <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
@@ -1414,7 +1410,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                 updateTimer={nextTimer => update(id, { timer: nextTimer })}
                 updateContent={updateImportantTalks}
             />
-            <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
@@ -1453,7 +1448,6 @@ const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData
                     placeholder="Искры добра"
                 />
             </SettingsSection>
-            <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
@@ -1570,8 +1564,7 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                     placeholder="Наследовать"
                 />
             </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -1837,8 +1830,7 @@ const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNode
                     placeholder="Наследовать"
                 />
             </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -1925,8 +1917,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
                 updateTimer={nextTimer => update(id, { timer: nextTimer })}
                 updateContent={updateImportantTalks}
             />
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2073,8 +2064,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
                 updateTimer={nextTimer => update(id, { timer: nextTimer })}
                 updateContent={updateImportantTalks}
             />
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2128,8 +2118,7 @@ const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNo
                 updateTimer={nextTimer => update(id, { timer: nextTimer })}
                 updateContent={updateImportantTalks}
             />
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2181,8 +2170,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="Подтвердить" />
             </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2276,8 +2264,7 @@ const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: UpdateN
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="Далее" />
             </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2355,32 +2342,23 @@ const SettingsPanel: React.FC = () => {
                             </button>
                         </div>
                         
-                        {/* Node ID Display */}
-                        <div className="mb-6 relative group">
-                            <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2">
-                                <div className="flex flex-col min-w-0">
-                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">ID</span>
-                                     <code className="text-xs font-mono text-gray-600 truncate select-all" title={selectedNode.id}>
-                                        {selectedNode.id}
-                                     </code>
-                                </div>
-                                <button 
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(selectedNode.id);
-                                        toast.success('ID скопирован');
-                                    }}
-                                    className="ml-2 p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-md transition-all shadow-sm"
-                                    title="Копировать ID"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                                </button>
-                            </div>
-                        </div>
-
                         <div className="space-y-8">
-                            <NodeInspector key={selectedNode.id} node={selectedNode}>{settingsContent}</NodeInspector>
+                            {settingsContent}
+                            <NodeSoundSettingsSection node={selectedNode} update={updateNodeData} />
+                            <details className="text-sm text-slate-700">
+                                <summary className="cursor-pointer font-medium">Заметка и дополнительные данные</summary>
+                                <label className="mt-3 block">Заметка автора
+                                    <textarea className="editor-input" value={selectedNode.data.editorNote || ''}
+                                      onChange={event => updateNodeData(selectedNode.id, { editorNote: event.target.value })} />
+                                </label>
+                                <p className="mt-1 text-xs text-slate-500">Заметка не показывается участникам.</p>
+                                {![CustomNodeType.Question, CustomNodeType.MultipleChoice, CustomNodeType.Result, CustomNodeType.Info, CustomNodeType.Feedback, CustomNodeType.Timeline, CustomNodeType.TextInput].includes(selectedNode.type as CustomNodeType) &&
+                                  <label className="mt-3 block">Изображение блока
+                                    <input className="editor-input" type="url" value={selectedNode.data.imageUrl || ''}
+                                      onChange={event => updateNodeData(selectedNode.id, { imageUrl: event.target.value })} />
+                                  </label>}
+                            </details>
                         </div>
-
             </div>
         </aside>
     );

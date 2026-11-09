@@ -25,7 +25,7 @@ function renderInteraction(
   selectionOverrides: Partial<Pick<
     Parameters<typeof useCanvasInteraction>[0],
     'selectSingleNode' | 'toggleNodeSelection' | 'isNodeSelected' |
-    'selectSingleEdge' | 'clearSelection' | 'openNodeSettings'
+    'selectSingleEdge' | 'clearSelection' | 'openNodeSettings' | 'setEdgeMenu'
   >> = {},
 ) {
   return renderHook(() =>
@@ -49,7 +49,6 @@ function renderInteraction(
       ...selectionOverrides,
       onSelectionIntent: vi.fn(),
       addNode,
-      onEditEdgeLabel: vi.fn(),
       onConnect: vi.fn(),
       screenToFlowPosition: vi.fn(() => ({ x: 200, y: 160 })),
       getNode: vi.fn(),
@@ -152,14 +151,16 @@ describe('useCanvasInteraction selection', () => {
 
   it('selects one edge and clears the primary node through the edge command', () => {
     const selectSingleEdge = vi.fn();
-    const { result } = renderInteraction(vi.fn(), false, { selectSingleEdge });
+    const setEdgeMenu = vi.fn();
+    const { result } = renderInteraction(vi.fn(), false, { selectSingleEdge, setEdgeMenu });
     const edge = { id: 'edge-1', source: 'question-1', target: 'question-2' };
 
     result.current.onEdgeClick(
-      { shiftKey: false },
+      { clientX: 0, clientY: 0 } as React.MouseEvent,
       edge,
     );
 
     expect(selectSingleEdge).toHaveBeenCalledWith(edge.id);
+    expect(setEdgeMenu).toHaveBeenCalledWith({ id: edge.id, top: 0, left: 0 });
   });
 });

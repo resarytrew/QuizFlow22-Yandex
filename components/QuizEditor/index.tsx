@@ -137,17 +137,12 @@ const QuizEditor: React.FC = () => {
     selectAllVisibleNodes: actions.selectAllVisibleNodes,
   });
 
-  const onEditEdgeLabel = useCallback((edgeId: string, currentLabel: string) => {
-    menus.setEditingEdge({ id: edgeId, label: currentLabel });
-  }, [menus.setEditingEdge]);
-
   const {
     onDrop,
     onDragOver,
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu,
-    onEdgeDoubleClick,
     handleQuickAdd,
     onNodeClick,
     onEdgeClick,
@@ -179,7 +174,6 @@ const QuizEditor: React.FC = () => {
       explicitMultiSelectionRef.current = additive;
     },
     addNode: actions.addNode,
-    onEditEdgeLabel,
     onConnect: actions.onConnect,
     screenToFlowPosition,
     getNode,
@@ -271,15 +265,6 @@ const QuizEditor: React.FC = () => {
     menus.setQuickAdd(null);
     setConnectingFrom(null);
   }, [menus.setQuickAdd]);
-  const handleEdgeEditClose = useCallback(() => menus.setEditingEdge(null), [menus.setEditingEdge]);
-  const handleEdgeEditSubmit = useCallback(
-    (value: string) => {
-      if (!menus.editingEdge) return;
-      actions.updateEdgeData(menus.editingEdge.id, { label: value });
-      menus.setEditingEdge(null);
-    },
-    [menus.editingEdge, menus.setEditingEdge, actions.updateEdgeData],
-  );
 
   return (
     <div
@@ -300,12 +285,9 @@ const QuizEditor: React.FC = () => {
         nodeMenu={menus.nodeMenu}
         edgeMenu={menus.edgeMenu}
         quickAddMenu={menus.quickAdd}
-        editingEdge={menus.editingEdge}
         onNodeMenuClose={handleNodeMenuClose}
         onEdgeMenuClose={handleEdgeMenuClose}
         onQuickAddClose={handleQuickAddClose}
-        onEdgeEditClose={handleEdgeEditClose}
-        onEdgeEditSubmit={handleEdgeEditSubmit}
         onDeleteNode={actions.deleteNode}
         onDeleteEdge={actions.deleteEdge}
         onEditFromMenu={handleEditFromMenu}
@@ -337,7 +319,6 @@ const QuizEditor: React.FC = () => {
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
-        onEdgeDoubleClick={onEdgeDoubleClick}
         onConnectStart={handleConnectStart}
         onConnectEnd={handleConnectEnd}
         onNodeDragStart={handleNodeDragStart}

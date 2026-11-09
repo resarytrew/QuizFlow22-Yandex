@@ -41,3 +41,12 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 - The node panel starts closed and is rendered only for a selected node. Loading another project closes transient design, preview and node panels. The group breadcrumb explicitly opens its inspector instead of toggling it.
 - The header now opens a separate design workspace. It keeps the canvas and selection mounted, uses the existing `LivePreview` generator for an embedded real preview, and prevents canvas shortcuts from editing the hidden graph. Closing returns to the prior selection. On narrow screens the workspace stacks controls and preview.
 - This is an intermediate migration: the old `DesignPanel` and tabbed `NodeInspector` remain and must be redesigned; the screen quiz separation, mobile focus/Escape behavior and browser-based responsive verification are still outstanding. Unit tests cover panel ownership, project reset and hidden-canvas shortcut protection; `npm run lint` and `npm run build` passed with pre-existing warnings.
+
+## P0 progress: contextual node and edge editing
+
+- Removed the four inspector tabs, search, duplicate global color controls and always-visible node ID. The selected node's fields are displayed directly; the author note and node image remain available, and a single shared sound section replaces per-type duplicates. Node IDs can be copied from the node context menu.
+- Selecting a connection opens its editor. Retargeting preserves the source handle, metadata, effects and other parallel connections; an old target handle is cleared when changing destinations. Inserting a question preserves the original edge metadata and destination handle, in one undoable graph operation. Drafts are protected from an outside click.
+- Targeted tests exercise retargeting, parallel edges, effects containing numeric strings, undo/redo, insertion, draft protection, direct node content and keyboard selection. The existing canvas handles remain the way to create an unconnected transition.
+- Still pending: screenQuiz fields remain duplicated in ordinary node editors; the connection menu requires responsive, keyboard and browser verification; full E2E, publication and compatibility work remain incomplete.
+
+Validation at this checkpoint: `npm run verify` completed (712 frontend tests, 22 Cloud Function unit tests, builds and SEO check). The function test command explicitly excludes `integration/**`; this does not prove database concurrency, live publication, browser behavior or deployment. Existing lint and CSS build warnings remain.
