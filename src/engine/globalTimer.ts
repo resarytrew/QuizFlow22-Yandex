@@ -1,9 +1,17 @@
 import type { QuizData } from "./types";
 
+let activeCleanup: (() => void) | null = null;
+
+export function stopGlobalTimer(): void {
+  activeCleanup?.();
+}
+
 export function setupGlobalTimer(
   config: QuizData["globalTimer"],
   navigateTo: (nodeId: string) => void,
+  isValidTarget: (nodeId: string) => boolean = () => true,
 ): () => void {
+  stopGlobalTimer();
   if (!config?.enabled || !config.duration || config.duration <= 0) {
     return () => {};
   }
@@ -34,8 +42,8 @@ export function setupGlobalTimer(
     remaining = Math.max(0, remaining - 1);
     render();
     if (remaining > 0) return;
-    window.clearInterval(interval);
-    if (config.onTimeoutNodeId) {
+    cleanup();
+    if (config.onTimeoutNodeId && isValidTarget(config.onTimeoutNodeId)) {
       navigateTo(config.onTimeoutNodeId);
       return;
     }
@@ -43,5 +51,10 @@ export function setupGlobalTimer(
     if (view) view.textContent = "Время вышло.";
   }, 1000);
 
-  return () => window.clearInterval(interval);
+  const cleanup = () => {
+    window.clearInterval(interval);
+    if (activeCleanup === cleanup) activeCleanup = null;
+  };
+  activeCleanup = cleanup;
+  return cleanup;
 }

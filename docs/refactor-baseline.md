@@ -23,3 +23,9 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 3. Versioned compatibility for importantTalks, then remove specialized runtime only after migration tests.
 4. Screen quiz editor and design surface, using the existing real renderer and preserving serialization.
 5. Graph tools, end-to-end checks, screenshots and migration/release notes. Keep risky changes reviewable in sequential commits or PRs.
+
+## P0 progress: global timer
+
+- Fixed: entering a result stops the global interval; resetting a session or creating another timer disposes the previous one. The per-instance cleanup cannot cancel a newer timer. Page teardown clears its timer. A timeout target is checked against the runtime node index; a missing target shows the timeout message instead of navigating to a nonexistent node.
+- Regression evidence: `src/engine/__tests__/globalTimerLifecycle.test.ts` reproduced all three failures before the fix. `services/__tests__/globalTimerHtml.test.ts` runs generated standalone HTML through the real bundled engine and verifies the result remains visible after the deadline.
+- Scope: this addresses the global timer only; node-specific timers and other templates still need separate lifecycle checks. Production publication and cloud-backed end-to-end tests remain unverified.

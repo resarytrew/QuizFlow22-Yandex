@@ -1,5 +1,5 @@
 import type { QuizData } from './types';
-import { buildIndexes } from './indexing';
+import { buildIndexes, nodeById } from './indexing';
 import { applyDesign } from './design';
 import { setupGlobalTimer } from './globalTimer';
 import { setupBackgroundMusic } from './media';
@@ -60,7 +60,6 @@ function init(): void {
     applyDesign(quizData.designSettings);
   }
   setupBackgroundMusic(quizData.designSettings);
-  const stopGlobalTimer = setupGlobalTimer(quizData.globalTimer, processNode);
 
   let startId = quizData.startNodeId;
   if (!startId) {
@@ -73,7 +72,10 @@ function init(): void {
     return;
   }
 
+  const stopGlobalTimer = setupGlobalTimer(quizData.globalTimer, processNode, (id) => Boolean(nodeById[id]));
   processNode(startId);
+
+  window.addEventListener('pagehide', stopGlobalTimer, { once: true });
 
   window.addEventListener('beforeunload', () => {
     stopGlobalTimer();
