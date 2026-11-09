@@ -1,6 +1,6 @@
 import { AccountBlockedError } from '../_shared/auth';
 import { verifyAuth, ensureUser } from '../_shared/auth';
-import { query, queryOne } from '../_shared/db';
+import { releaseQuota, reserveQuota } from './quota';
 import { corsHeaders, handleCors } from '../_shared/cors';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTES_API_KEY || '';
@@ -32,6 +32,8 @@ export async function handler(event: any) {
     return { statusCode: 405, headers: corsHeaders(), body: 'Method not allowed' };
   }
 
+  let reservation: { id: string; userId: string } | null = null;
+  let completed = false;
   try {
     const user = await verifyAuth(event);
     if (!user) return unauthorized();
@@ -50,27 +52,15 @@ export async function handler(event: any) {
       return serverError('OPENROUTER_API_KEY is not configured');
     }
 
-    const today = new Date().toISOString().slice(0, 10);
-    const [usage] = await query(
-      `SELECT COUNT(*) as count FROM public.ai_rate_limits
-       WHERE user_id = $1 AND window_start > $2::timestamptz`,
-      [user.id, today],
-    );
-
-    const sub = await queryOne(
-      `SELECT public.get_effective_entitlement($1)->>'plan' AS plan`,
-      [user.id],
-    );
-
-    const limit = sub?.plan === 'pro' ? 200 : 5;
-    const used = parseInt(usage?.count || '0', 10);
-    if (used >= limit) {
+    const quota = await reserveQuota(user.id);
+    if (!quota.allowed) {
       return {
         statusCode: 429,
         headers: corsHeaders(),
-        body: JSON.stringify({ error: 'AI generation limit reached', used, limit }),
+        body: JSON.stringify({ error: 'AI generation limit reached', used: quota.used, limit: quota.limit }),
       };
     }
+    reservation = { id: quota.id, userId: user.id };
 
     const requestedModel = typeof requestBody.model === 'string' ? requestBody.model : '';
     const model = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_MODEL;
@@ -117,12 +107,11 @@ export async function handler(event: any) {
     const result = (await response.json()) as OpenRouterResponse;
     const content = result.choices?.[0]?.message?.content || '';
 
-    await insertUsage(user.id);
-
+    completed = true;
     return ok({
       result: content,
-      used: used + 1,
-      limit,
+      used: quota.used,
+      limit: quota.limit,
       model,
     });
   } catch (error) {
@@ -133,22 +122,12 @@ export async function handler(event: any) {
       headers: corsHeaders(),
       body: JSON.stringify({ error: 'Internal server error' }),
     };
-  }
-}
-
-async function insertUsage(userId: string) {
-  try {
-    await query(
-      `INSERT INTO public.ai_rate_limits (user_id, window_start, feature)
-       VALUES ($1, now(), $2)`,
-      [userId, 'chat'],
-    );
-  } catch {
-    await query(
-      `INSERT INTO public.ai_rate_limits (user_id, window_start)
-       VALUES ($1, now())`,
-      [userId],
-    );
+  } finally {
+    if (reservation && !completed) {
+      await releaseQuota(reservation.userId, reservation.id).catch((error) => {
+        console.error('[ai] Could not release quota reservation:', error);
+      });
+    }
   }
 }
 

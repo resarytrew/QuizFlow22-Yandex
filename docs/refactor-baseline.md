@@ -50,3 +50,9 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 - Still pending: screenQuiz fields remain duplicated in ordinary node editors; the connection menu requires responsive, keyboard and browser verification; full E2E, publication and compatibility work remain incomplete.
 
 Validation at this checkpoint: `npm run verify` completed (712 frontend tests, 22 Cloud Function unit tests, builds and SEO check). The function test command explicitly excludes `integration/**`; this does not prove database concurrency, live publication, browser behavior or deployment. Existing lint and CSS build warnings remain.
+
+## P0 progress: AI quota
+
+- Implemented per-user PostgreSQL transaction-lock reservation before the upstream call, compensation on ordinary failures, UTC-day accounting and 48-hour cleanup retention. Plan limits stay 5 and 200; the old two-hour cleanup meant the intended daily limit was not actually enforced. See `docs/ai-quota-refactor.md` for rollout and residual failure behavior.
+- `npm --prefix yc-functions run lint`, `npm --prefix yc-functions test` (27 passed), and `npm --prefix yc-functions run build:ai-proxy` passed. The unit concurrency test uses a mock database; it is not evidence of PostgreSQL lock behavior.
+- A real isolated-PostgreSQL concurrency suite was added and attempted with `PG_DATABASE=quizflow_ai_quota_test`, `PG_HOST=127.0.0.1`, `PG_PORT=5432`, `PG_DISABLE_SSL=true`, running `npx vitest run --environment node integration/ai-quota.test.ts` inside `yc-functions`. It failed before tests with `ECONNREFUSED 127.0.0.1:5432`. No local PostgreSQL service or running Docker daemon was available. This risk is implemented but remains unverified on PostgreSQL and must be tested before deployment.
