@@ -29,3 +29,9 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 - Fixed: entering a result stops the global interval; resetting a session or creating another timer disposes the previous one. The per-instance cleanup cannot cancel a newer timer. Page teardown clears its timer. A timeout target is checked against the runtime node index; a missing target shows the timeout message instead of navigating to a nonexistent node.
 - Regression evidence: `src/engine/__tests__/globalTimerLifecycle.test.ts` reproduced all three failures before the fix. `services/__tests__/globalTimerHtml.test.ts` runs generated standalone HTML through the real bundled engine and verifies the result remains visible after the deadline.
 - Scope: this addresses the global timer only; node-specific timers and other templates still need separate lifecycle checks. Production publication and cloud-backed end-to-end tests remain unverified.
+
+## P0 progress: canvas workspace
+
+- Removed `EditorWorkspace`, its view switcher, question table and obsolete styles. The canvas uses the entire workspace, while the existing toolbar retains preview, undo/redo, zoom, fit, grid, lock and layout.
+- A toolbar action opens `ValidationDialog`, using the existing graph validator and allowing an issue to select and locate its node, including in a group. The dialog supports keyboard focus containment and Escape. Unit/integration tests cover opening an issue without mutating source handles and closing the dialog.
+- Still pending: the contextual inspector, separate design mode, mobile drawer behavior and browser screenshots; no claim of complete editor UX or accessibility verification yet.

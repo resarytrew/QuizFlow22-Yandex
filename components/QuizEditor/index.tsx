@@ -1,4 +1,4 @@
-import { EditorWorkspace } from './EditorWorkspace';
+import { ValidationDialog } from './ValidationDialog';
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import ReactFlow, {
   Background,
@@ -56,7 +56,7 @@ const QuizEditor: React.FC = () => {
   const actions = useEditorActions();
   const menus = useEditorMenus();
 
-  const [editorView, setEditorView] = useState('graph');
+  const [isValidationOpen, setValidationOpen] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [connectingFrom, setConnectingFrom] = useState<{ nodeId: string; handleId?: string | null } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -314,8 +314,12 @@ const QuizEditor: React.FC = () => {
         onQuickAddSelect={handleQuickAdd}
       />
 
-      <EditorWorkspace view={editorView} onView={setEditorView} />
-      <div className="absolute inset-x-0 bottom-0 top-14" style={{display: editorView === "graph" ? "block" : "none"}}>
+      {isValidationOpen && <ValidationDialog onClose={() => setValidationOpen(false)} onLocate={(id) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          void fitView({ nodes: [{ id }], duration: reduceMotion ? 0 : 200, maxZoom: 1 });
+        }));
+      }} />}
+      <div className="absolute inset-0">
       <ReactFlow
         nodes={visibleNodes}
         edges={visibleEdges}
@@ -384,6 +388,7 @@ const QuizEditor: React.FC = () => {
           <BottomControlBar
             onLayout={handleLayout}
             onPreview={handlePreview}
+            onValidate={() => setValidationOpen(true)}
             onAIAssistant={handleAIAssistant}
             isAIAssistantOpen={isAIAssistantPanelVisible}
             isAIAssistantLocked={isAIAssistantLocked}
