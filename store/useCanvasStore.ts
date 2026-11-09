@@ -203,8 +203,8 @@ const createInitialState = () => ({
 });
 
 export const useCanvasStore = create<CanvasStoreState>((set, get) => {
-  // Closure-stored timer for debounced snapshots
-  let updateNodeDataTimer: ReturnType<typeof setTimeout> | null = null;
+  // Consecutive edits of the same field share a single pre-change snapshot.
+  let lastNodeEdit: { key: string; time: number } | null = null;
 
   return {
     ...createInitialState(),
@@ -267,6 +267,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     setNodes: (nodesOrFn) => {
+      lastNodeEdit = null;
       set((state) => {
         const nodes =
           typeof nodesOrFn === 'function' ? nodesOrFn(state.nodes) : nodesOrFn;
@@ -275,6 +276,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     setEdges: (edgesOrFn) => {
+      lastNodeEdit = null;
       set((state) => {
         const edges = typeof edgesOrFn === 'function'
           ? edgesOrFn(state.edges)
@@ -304,35 +306,35 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     updateNodeData: (id, data) => {
+      const node = get().nodes.find((item) => item.id === id);
+      if (!node || Object.entries(data).every(([key, value]) => Object.is((node.data as Record<string, unknown>)[key], value))) return;
+      const key = `${id}:${Object.keys(data).sort().join(',')}`;
+      const now = Date.now();
+      const isTextEdit = Object.keys(data).length === 1 && typeof Object.values(data)[0] === 'string';
+      if (!isTextEdit || !lastNodeEdit || lastNodeEdit.key !== key || now - lastNodeEdit.time > 500) {
+        get().takeSnapshot();
+      }
+      lastNodeEdit = isTextEdit ? { key, time: now } : null;
       set((state) => {
-        const nodes = state.nodes.map((node) =>
-          node.id === id
-            ? { ...node, data: { ...node.data, ...data } }
-            : node
-        );
+        const nodes = state.nodes.map((item) => item.id === id
+          ? { ...item, data: { ...item.data, ...data } } : item);
         return selectionUpdate(state, state.selection, nodes, state.edges);
       });
-
-      if (updateNodeDataTimer) clearTimeout(updateNodeDataTimer);
-      updateNodeDataTimer = setTimeout(() => {
-        get().takeSnapshot();
-        updateNodeDataTimer = null;
-      }, 500);
     },
 
     updateEdgeData: (id, patch) => {
+      const edge = get().edges.find((item) => item.id === id);
+      if (!edge || Object.entries(patch).every(([key, value]) => Object.is((edge.data || {})[key], value))) return;
+      get().takeSnapshot();
       set((state) => {
-        const edges = state.edges.map((edge) =>
-          edge.id === id
-            ? { ...edge, data: { ...(edge.data || {}), ...(patch || {}) } }
-            : edge
-        );
+        const edges = state.edges.map((item) => item.id === id
+          ? { ...item, data: { ...(item.data || {}), ...patch } } : item);
         return selectionUpdate(state, state.selection, state.nodes, edges);
       });
-      get().takeSnapshot();
     },
 
     clearCanvas: () => {
+      lastNodeEdit = null;
       const init = createInitialState();
       set({
         nodes: init.nodes,
@@ -428,13 +430,13 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
       const nextNodes = nodes.filter((n) => !nodesToDelete.includes(n.id));
 
+      get().takeSnapshot();
       set((state) => selectionUpdate(
         state,
         state.selection,
         nextNodes,
         nextEdges,
       ));
-      get().takeSnapshot();
     },
 
     selectSingleNode: (nodeId) =>
@@ -522,6 +524,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
     // History — debounce already protects from excessive snapshots
     takeSnapshot: () => {
+      lastNodeEdit = null;
       const { nodes, edges, history } = get();
       const snapshot = {
         nodes: structuredClone(nodes),
@@ -532,6 +535,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     undo: () => {
+      lastNodeEdit = null;
       const { history, nodes, edges } = get();
       if (history.past.length === 0) return;
       const previous = history.past[history.past.length - 1];
@@ -552,6 +556,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     redo: () => {
+      lastNodeEdit = null;
       const { history, nodes, edges } = get();
       if (history.future.length === 0) return;
       const next = history.future[0];
@@ -573,10 +578,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     reset: () => {
-      if (updateNodeDataTimer) {
-        clearTimeout(updateNodeDataTimer);
-        updateNodeDataTimer = null;
-      }
+      lastNodeEdit = null;
       set(createInitialState());
     },
   };

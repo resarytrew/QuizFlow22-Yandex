@@ -253,3 +253,53 @@ describe('useCanvasStore editor selection model', () => {
     expect(selectedNode?.data.label).toBe('Updated A');
   });
 });
+
+describe('graph history regression', () => {
+  beforeEach(() => {
+    useCanvasStore.getState().reset();
+    useCanvasStore.getState().setNodes([makeNode('node-a', 0), makeNode('node-b', 200)]);
+    useCanvasStore.getState().setEdges([{ id: 'edge-ab', source: 'node-a', sourceHandle: 'answer-1', target: 'node-b', data: { label: 'old' } }]);
+  });
+  afterEach(() => { useCanvasStore.getState().reset(); vi.useRealTimers(); });
+
+  it('undoes and redoes a node edit immediately and after the debounce interval', () => {
+    vi.useFakeTimers();
+    const actions = useCanvasStore.getState();
+    actions.updateNodeData('node-a', { label: 'changed' });
+    vi.advanceTimersByTime(600);
+    actions.undo();
+    expect(useCanvasStore.getState().nodes[0].data.label).toBe('node-a');
+    actions.redo();
+    expect(useCanvasStore.getState().nodes[0].data.label).toBe('changed');
+  });
+
+  it('coalesces typing but starts a fresh step after undo', () => {
+    const actions = useCanvasStore.getState();
+    actions.updateNodeData('node-a', { label: 'a' });
+    actions.updateNodeData('node-a', { label: 'ab' });
+    expect(useCanvasStore.getState().history.past).toHaveLength(1);
+    actions.undo();
+    actions.updateNodeData('node-a', { label: 'new' });
+    actions.undo();
+    expect(useCanvasStore.getState().nodes[0].data.label).toBe('node-a');
+  });
+
+  it('undoes edge edits without losing handles', () => {
+    const actions = useCanvasStore.getState();
+    actions.updateEdgeData('edge-ab', { label: 'new' });
+    actions.undo();
+    expect(useCanvasStore.getState().edges[0]).toMatchObject({ sourceHandle: 'answer-1', data: { label: 'old' } });
+    actions.redo();
+    expect(useCanvasStore.getState().edges[0].data.label).toBe('new');
+  });
+
+  it('keeps separate fields in separate history steps and discards redo after an edit', () => {
+    const actions = useCanvasStore.getState();
+    actions.updateNodeData('node-a', { label: 'changed' });
+    actions.updateNodeData('node-b', { label: 'other' });
+    actions.undo();
+    expect(useCanvasStore.getState().nodes.map(n => n.data.label)).toEqual(['changed', 'node-b']);
+    actions.updateNodeData('node-b', { label: 'new branch' });
+    expect(useCanvasStore.getState().history.future).toHaveLength(0);
+  });
+});
