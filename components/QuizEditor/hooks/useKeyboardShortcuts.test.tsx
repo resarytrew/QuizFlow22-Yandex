@@ -2,6 +2,7 @@ import { fireEvent, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Edge, Node } from 'reactflow';
 import { CustomNodeType, type NodeData } from '../../../types';
+import { useUIStore } from '../../../store/useUIStore';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
 vi.mock('react-hot-toast', () => ({
@@ -64,6 +65,7 @@ function renderShortcuts(options?: {
 describe('useKeyboardShortcuts selection integration', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    useUIStore.getState().reset();
   });
 
   it('copies by selection IDs and selects pasted nodes through selectNodes', () => {
@@ -106,4 +108,12 @@ describe('useKeyboardShortcuts selection integration', () => {
 
     expect(selectAllVisibleNodes).toHaveBeenCalledOnce();
   });
+  it('does not delete the selected node while the design workspace is open', () => {
+    const { deleteNode } = renderShortcuts({ selectedNodeIds: ['node-a'] });
+    useUIStore.getState().setDesignMode(true);
+    fireEvent.keyDown(document, { key: 'Delete' });
+    expect(deleteNode).not.toHaveBeenCalled();
+    useUIStore.getState().reset();
+  });
+
 });

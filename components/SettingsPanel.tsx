@@ -5,7 +5,6 @@ import type { Node } from 'reactflow';
 import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
 import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode, ImportantTalksInteractionContent } from '../types.ts';
-import DesignPanel from './DesignPanel.tsx';
 import toast from 'react-hot-toast';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
@@ -2341,24 +2340,11 @@ const SettingsPanel: React.FC = () => {
         }
     }, [selectedNode, updateNodeData]);
 
+    if (!selectedNode) return null;
+
     return (
         <aside className="w-full h-full bg-white border-l border-gray-200/75 shadow-sm overflow-hidden">
             <div className="w-full h-full p-6 overflow-y-auto relative">
-                {!selectedNode && (
-                    <button
-                        type="button"
-                        onClick={closePanel}
-                        className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                        aria-label="Закрыть панель настроек"
-                        title="Закрыть панель настроек"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                )}
-                {!selectedNode ? (
-                    <DesignPanel />
-                ) : (
-                    <>
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h2 className="text-lg font-bold font-manrope text-gray-800">Настройки узла</h2>
@@ -2394,8 +2380,7 @@ const SettingsPanel: React.FC = () => {
                         <div className="space-y-8">
                             <NodeInspector key={selectedNode.id} node={selectedNode}>{settingsContent}</NodeInspector>
                         </div>
-                    </>
-                )}
+
             </div>
         </aside>
     );

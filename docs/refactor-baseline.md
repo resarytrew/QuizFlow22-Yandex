@@ -35,3 +35,9 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 - Removed `EditorWorkspace`, its view switcher, question table and obsolete styles. The canvas uses the entire workspace, while the existing toolbar retains preview, undo/redo, zoom, fit, grid, lock and layout.
 - A toolbar action opens `ValidationDialog`, using the existing graph validator and allowing an issue to select and locate its node, including in a group. The dialog supports keyboard focus containment and Escape. Unit/integration tests cover opening an issue without mutating source handles and closing the dialog.
 - Still pending: the contextual inspector, separate design mode, mobile drawer behavior and browser screenshots; no claim of complete editor UX or accessibility verification yet.
+
+## P0 progress: panel ownership
+
+- The node panel starts closed and is rendered only for a selected node. Loading another project closes transient design, preview and node panels. The group breadcrumb explicitly opens its inspector instead of toggling it.
+- The header now opens a separate design workspace. It keeps the canvas and selection mounted, uses the existing `LivePreview` generator for an embedded real preview, and prevents canvas shortcuts from editing the hidden graph. Closing returns to the prior selection. On narrow screens the workspace stacks controls and preview.
+- This is an intermediate migration: the old `DesignPanel` and tabbed `NodeInspector` remain and must be redesigned; the screen quiz separation, mobile focus/Escape behavior and browser-based responsive verification are still outstanding. Unit tests cover panel ownership, project reset and hidden-canvas shortcut protection; `npm run lint` and `npm run build` passed with pre-existing warnings.

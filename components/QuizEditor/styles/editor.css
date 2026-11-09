@@ -219,5 +219,10 @@
  .editor-header-brand{display:none;}
  .editor-header-actions{justify-self:stretch;justify-content:space-between;gap:8px;}
  .editor-header-document>div{padding:8px;}
- .editor-header-actions>button:last-child{display:none;}
+}
+
+@media(max-width: 768px) {
+ .design-workspace { flex-direction: column; overflow-y: auto; }
+ .design-workspace-controls { width: 100%; overflow: visible; }
+ .design-workspace-preview { min-height: 36rem; flex: none; }
 }

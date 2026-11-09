@@ -13,6 +13,9 @@ interface UIStoreState {
   openSettingsPanel: () => void;
   closeSettingsPanel: () => void;
 
+  isDesignModeActive: boolean;
+  setDesignMode: (active: boolean) => void;
+
   // AI Assistant Panel
   isAIAssistantPanelVisible: boolean;
   toggleAIAssistantPanel: () => void;
@@ -52,7 +55,8 @@ interface UIStoreState {
 
 const initialState = {
   isSidebarVisible: true,
-  isSettingsPanelVisible: true,
+  isSettingsPanelVisible: false,
+  isDesignModeActive: false,
   isAIAssistantPanelVisible: false,
   isDashboardVisible: true,
   isGuideVisible: false,
@@ -73,6 +77,7 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
   toggleSettingsPanel: () => set((state) => ({ isSettingsPanelVisible: !state.isSettingsPanelVisible })),
   openSettingsPanel: () => set({ isSettingsPanelVisible: true }),
   closeSettingsPanel: () => set({ isSettingsPanelVisible: false }),
+  setDesignMode: (active) => set({ isDesignModeActive: active }),
   toggleAIAssistantPanel: () => set((state) => ({ isAIAssistantPanelVisible: !state.isAIAssistantPanelVisible })),
   closeAIAssistantPanel: () => set({ isAIAssistantPanelVisible: false }),
   setDashboardVisible: (visible) => set({ isDashboardVisible: visible }),
@@ -95,3 +100,8 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
     if (groupChanged) storeEvents.emit('GROUP_CHANGED', { groupId: null });
   },
 }));
+
+// A different project always starts on its canvas, independent of the previous editor view.
+storeEvents.on('QUIZ_LOADED', () => {
+  useUIStore.setState({ isSettingsPanelVisible: false, isDesignModeActive: false, isPreviewModeActive: false, previewStartNodeId: null });
+});

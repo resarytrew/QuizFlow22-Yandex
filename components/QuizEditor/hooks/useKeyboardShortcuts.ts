@@ -2,6 +2,7 @@ import { copyFragment, pasteFragment } from '../../../utils/editorFragment';
 import { useEffect, useRef } from 'react';
 import type { Edge, Node } from 'reactflow';
 import toast from 'react-hot-toast';
+import { useUIStore } from '../../../store/useUIStore';
 import { CustomNodeType, NodeData } from '../../../types';
 
 type FlowNode<T = NodeData> = Node<T>;
@@ -43,6 +44,7 @@ export function useKeyboardShortcuts({
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (useUIStore.getState().isDesignModeActive) return;
             const el = document.activeElement as HTMLElement | null;
             const isTyping = el && (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable);
             if ((e.ctrlKey || e.metaKey) && !isTyping) {

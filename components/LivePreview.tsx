@@ -15,7 +15,7 @@ function htmlKey(html: string): string {
   return `${html.length}-${hash}`;
 }
 
-const LivePreview: React.FC = () => {
+const LivePreview: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const nodes = useCanvasStore(s => s.nodes);
   const edges = useCanvasStore(s => s.edges);
   const globalTimer = useQuizDataStore(s => s.globalTimer);
@@ -78,8 +78,8 @@ const LivePreview: React.FC = () => {
              <p className="text-sm text-gray-500">Изменения в панели настроек отразятся здесь мгновенно.</p>
         </div>
       <div className="flex flex-wrap gap-3 text-sm mb-3 max-w-full">
-       <button className="underline" onClick={()=>useUIStore.getState().setPreviewMode(false)}>Вернуться к схеме</button>
-       {trace&&<><span>{trace.score === null ? 'Автоматический показ без подсчёта баллов' : `Баллы: ${trace.score}`}</span><button className="underline" onClick={editCurrent}>Редактировать текущий блок</button><details><summary>Маршрут и переменные</summary><ol className="max-h-32 overflow-auto">{trace.path.map((id,i)=><li key={i}>{nodes.find(n=>n.id===id)?.data.label||id}</li>)}</ol><pre className="max-h-32 overflow-auto text-xs">{JSON.stringify(trace.variables,null,2)}</pre></details></>}
+       {!embedded && <button className="underline" onClick={()=>useUIStore.getState().setPreviewMode(false)}>Вернуться к схеме</button>}
+       {trace&&<><span>{trace.score === null ? 'Автоматический показ без подсчёта баллов' : `Баллы: ${trace.score}`}</span>{!embedded && <button className="underline" onClick={editCurrent}>Редактировать текущий блок</button>}<details><summary>Маршрут и переменные</summary><ol className="max-h-32 overflow-auto">{trace.path.map((id,i)=><li key={i}>{nodes.find(n=>n.id===id)?.data.label||id}</li>)}</ol><pre className="max-h-32 overflow-auto text-xs">{JSON.stringify(trace.variables,null,2)}</pre></details></>}
       </div>
       <div className="w-full h-full min-h-0 border-8 border-gray-800 bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
         <iframe
