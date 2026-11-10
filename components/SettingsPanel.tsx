@@ -6,6 +6,7 @@ import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, Sco
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
 import { createId } from '../utils/createId';
+import { NumericInput } from './settings/ui/NumericInput';
 
 type UpdateNodeData = (id: string, data: Partial<NodeData>) => void;
 
@@ -562,15 +563,7 @@ const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeDa
             
             <SettingsSection title="Настройки результата">
                 <div className="grid grid-cols-2 gap-4">
-                    <Input 
-                        label="Округление (знаков)" 
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={data.decimalPlaces !== undefined ? data.decimalPlaces : ''} 
-                        onChange={e => update(id, { decimalPlaces: e.target.value === '' ? undefined : parseInt(e.target.value) })} 
-                        placeholder="0"
-                    />
+                    <NumericInput label="Округление (знаков)" min={0} max={10} optional value={data.decimalPlaces} onCommit={decimalPlaces => update(id, { decimalPlaces })} />
                 </div>
                  <HelperText>
                     Поддерживаются функции math.js: sin, cos, log, e, pi и другие. Используйте точку для дробей (3.14).
@@ -644,15 +637,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                         <button onClick={() => removeRule(ruleIdx)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
                         <div className="flex gap-2">
                              <div className="w-1/4">
-                                <label className="text-[10px] font-bold text-gray-500">LVL</label>
-                                <input 
-                                    id={`rank-rule-level-${id}-${ruleIdx}`}
-                                    name={`rank-rule-level-${id}-${ruleIdx}`}
-                                    type="number" 
-                                    className="w-full p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
-                                    value={rule.level} 
-                                    onChange={e => updateRule(ruleIdx, { level: parseInt(e.target.value) })} 
-                                />
+                                <NumericInput label={`Уровень ${ruleIdx + 1}`} value={rule.level} onCommit={value => { if (value !== undefined) updateRule(ruleIdx, { level: value }); }} />
                              </div>
                              <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-600">Название</label>
@@ -695,14 +680,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                                         />
                                     )}
                                     
-                                    <input 
-                                        id={`rank-rule-requirement-value-${id}-${ruleIdx}-${reqIdx}`}
-                                        name={`rank-rule-requirement-value-${id}-${ruleIdx}-${reqIdx}`}
-                                        type="number" 
-                                        className="text-xs border border-slate-200 rounded-lg p-2 w-16 bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
-                                        value={req.value} 
-                                        onChange={e => updateRequirement(ruleIdx, reqIdx, { value: parseInt(e.target.value) })} 
-                                    />
+                                    <NumericInput label={`Значение условия ${reqIdx + 1}`} value={req.value} integer={false} onCommit={value => { if (value !== undefined) updateRequirement(ruleIdx, reqIdx, { value }); }} />
 
                                     <button onClick={() => removeRequirement(ruleIdx, reqIdx)} className="text-red-400 hover:text-red-600">×</button>
                                 </div>
@@ -897,13 +875,7 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 <HelperText>Если время выйдет, произойдет переход по красной точке выхода внизу узла.</HelperText>
                 <Checkbox label="Включить таймер на ответ" checked={!!timer && timer > 0} onChange={handleTimerToggle} />
                 {timer !== undefined && timer > 0 && (
-                    <Input
-                        label="Время на ответ (сек)"
-                        type="number"
-                        value={timer || 0}
-                        onChange={e => update(id, { timer: parseInt(e.target.value) || 0 })}
-                        min="1"
-                    />
+                    <NumericInput label="Время на ответ (сек)" min={1} value={timer} onCommit={value => { if (value !== undefined) update(id, { timer: value }); }} />
                 )}
             </SettingsSection>
             <ImportantTalksInteractionSettings
@@ -1314,7 +1286,7 @@ const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>,
                 <option value="subtract">Вычесть</option>
                 <option value="set">Установить</option>
             </Select>
-            <Input label="Значение" type="number" value={data.value || 0} onChange={e => update(id, { value: parseInt(e.target.value, 10) })} />
+            <NumericInput label="Значение" value={data.value ?? 0} onCommit={value => { if (value !== undefined) update(id, { value }); }} />
         </SettingsSection>
     );
 });
@@ -1397,13 +1369,7 @@ const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>,
 
     return (
         <SettingsSection title="Настройки таймера">
-            <Input
-                label="Задержка (сек)"
-                type="number"
-                value={data.duration || 0}
-                onChange={e => update(id, { duration: parseInt(e.target.value) || 0 })}
-                min="0"
-            />
+            <NumericInput label="Задержка (сек)" min={0} value={data.duration ?? 0} onCommit={value => { if (value !== undefined) update(id, { duration: value }); }} />
             <Select
                 label="Действие после задержки"
                 value={data.action || 'goToNext'}
@@ -1815,7 +1781,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
             <SettingsSection title="Задача">
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Вопрос / Задание" value={data.question || ''} onChange={e => update(id, { question: e.target.value })} rows={3} />
-                <Input label="Макс. сумма (Лимит)" type="number" value={maxTotal} onChange={e => update(id, { maxTotal: parseInt(e.target.value) || 100 })} />
+                <NumericInput label="Макс. сумма (Лимит)" min={0} value={maxTotal} onCommit={value => { if (value !== undefined) update(id, { maxTotal: value }); }} />
             </SettingsSection>
             
             <SettingsSection title="Категории распределения">

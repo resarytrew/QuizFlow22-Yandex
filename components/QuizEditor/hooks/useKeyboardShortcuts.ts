@@ -46,7 +46,7 @@ export function useKeyboardShortcuts({
         const handleKeyDown = (e: KeyboardEvent) => {
             if (useUIStore.getState().isDesignModeActive || useUIStore.getState().isScreenQuizModeActive) return;
             const el = document.activeElement as HTMLElement | null;
-            const isTyping = el && (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable);
+            const isTyping = el && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable);
             if ((e.ctrlKey || e.metaKey) && !isTyping) {
                 if (e.repeat) return;
                 if (e.key.toLowerCase() === 'z') {
@@ -57,6 +57,11 @@ export function useKeyboardShortcuts({
                         e.preventDefault();
                         undo();
                     }
+                    return;
+                }
+                if (e.key.toLowerCase() === 'y') {
+                    e.preventDefault();
+                    redo();
                     return;
                 }
                 if (e.key.toLowerCase() === 'c') {

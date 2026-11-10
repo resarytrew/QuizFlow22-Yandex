@@ -10,12 +10,14 @@ describe('TimerSection', () => {
     useQuizDataStore.getState().reset();
   });
 
-  it('enables the timer and clamps duration to at least one second', () => {
+  it('keeps the last valid duration when an invalid value is committed', () => {
     render(<TimerSection />);
 
     fireEvent.click(screen.getByRole('checkbox'));
     const duration = screen.getByRole('spinbutton');
     fireEvent.change(duration, { target: { value: '0' } });
+    fireEvent.blur(duration);
+    expect(screen.getByRole('alert')).toBeTruthy();
 
     expect(useQuizDataStore.getState().globalTimer).toMatchObject({
       enabled: true,

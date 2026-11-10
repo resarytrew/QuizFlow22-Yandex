@@ -53,4 +53,19 @@ describe('contextual settings panel', () => {
     } finally { vi.restoreAllMocks(); }
   });
 
+  it('does not store an incomplete score and commits zero explicitly', () => {
+    const node = createNewNode(CustomNodeType.Score, { x: 0, y: 0 });
+    useCanvasStore.getState().setNodes([node]);
+    useCanvasStore.getState().selectSingleNode(node.id);
+    render(<SettingsPanel />);
+    const input = screen.getByLabelText('Значение');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.blur(input);
+    expect(useCanvasStore.getState().nodes[0].data.value).toBe(10);
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.blur(input);
+    expect(useCanvasStore.getState().nodes[0].data.value).toBe(0);
+  });
+
 });
