@@ -618,6 +618,9 @@ export function applyDesign(ds: DesignSettings | undefined): void {
       .result-score-stat .result-stat-value {
         font-size: clamp(2.4rem, 6vw, 5rem);
       }
+      @media (max-width: 900px) {
+        body[class*="design-interface-"] .quiz-layout { grid-template-columns: minmax(0, 1fr); }
+      }
     `;
     document.head.appendChild(style);
   }

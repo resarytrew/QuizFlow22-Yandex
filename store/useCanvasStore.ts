@@ -20,6 +20,7 @@ import {
   CustomNodeType,
   EffectOp,
   EdgeData,
+  DesignSettings,
 } from '../types';
 import { useUIStore } from './useUIStore';
 import { storeEvents } from './storeEvents';
@@ -32,6 +33,8 @@ export type EditorSelection = {
   selectedNodeIds: string[];
   selectedEdgeIds: string[];
 };
+
+type HistoryEntry = { nodes: Node<NodeData>[]; edges: Edge[] } | { designBefore: DesignSettings; designAfter: DesignSettings };
 
 export interface CanvasStoreState {
   nodes: Node<NodeData>[];
@@ -78,7 +81,8 @@ export interface CanvasStoreState {
   rememberViewport: (viewport: Viewport) => void;
 
   // History
-  history: { past: { nodes: Node<NodeData>[]; edges: Edge[] }[]; future: { nodes: Node<NodeData>[]; edges: Edge[] }[] };
+  history: { past: HistoryEntry[]; future: HistoryEntry[] };
+  recordDesignChange: (before: DesignSettings, after: DesignSettings) => void;
   takeSnapshot: () => void;
   undo: () => void;
   redo: () => void;
@@ -197,8 +201,8 @@ const createInitialState = () => ({
   isCanvasLoading: false,
   viewport: null as Viewport | null,
   history: { past: [], future: [] } as {
-    past: { nodes: Node<NodeData>[]; edges: Edge[] }[];
-    future: { nodes: Node<NodeData>[]; edges: Edge[] }[];
+    past: HistoryEntry[];
+    future: HistoryEntry[];
   },
 });
 
@@ -534,11 +538,23 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       set({ history: { past: newPast, future: [] } });
     },
 
+    recordDesignChange: (before, after) => {
+      lastNodeEdit = null;
+      const { history } = get();
+      const entry = structuredClone({ designBefore: before, designAfter: after });
+      set({ history: { past: [...history.past, entry].slice(-50), future: [] } });
+    },
+
     undo: () => {
       lastNodeEdit = null;
       const { history, nodes, edges } = get();
       if (history.past.length === 0) return;
       const previous = history.past[history.past.length - 1];
+      if ('designBefore' in previous) {
+        set({ history: { past: history.past.slice(0, -1), future: [previous, ...history.future] } });
+        storeEvents.emit('DESIGN_HISTORY_RESTORE', structuredClone(previous.designBefore));
+        return;
+      }
       const restored = projectSelection(
         structuredClone(previous.nodes),
         structuredClone(previous.edges),
@@ -560,6 +576,11 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       const { history, nodes, edges } = get();
       if (history.future.length === 0) return;
       const next = history.future[0];
+      if ('designBefore' in next) {
+        set({ history: { past: [...history.past, next].slice(-50), future: history.future.slice(1) } });
+        storeEvents.emit('DESIGN_HISTORY_RESTORE', structuredClone(next.designAfter));
+        return;
+      }
       const newFuture = history.future.slice(1);
       const restored = projectSelection(
         structuredClone(next.nodes),

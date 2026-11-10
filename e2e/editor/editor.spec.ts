@@ -41,6 +41,23 @@ test('canvas, node inspector and design workspace', async ({ page }, info) => {
   await page.getByRole('button', { name: 'Оформление', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Оформление квиза' })).toBeVisible();
   await expect(page.locator('iframe[title="Live Quiz Preview"]')).toBeVisible();
+  await page.getByLabel('Экран предпросмотра').selectOption('question');
+  const frame = page.locator('iframe[title="Live Quiz Preview"]').contentFrame();
+  await expect(frame.locator('#quiz-view')).toContainText('Какая планета красная?');
+  const observed = new Set<string>();
+  for (const name of ['Светлый', 'Тёмный', 'Редакционный', 'Игровой', 'Строгий']) {
+    await page.getByRole('button', { name, exact: true }).click();
+    await expect.poll(async () => frame.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--bg-color').trim())).not.toBe('');
+    await expect.poll(async () => frame.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--bg-color').trim())).not.toBe(Array.from(observed).at(-1) || '');
+    observed.add(await frame.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--bg-color').trim()));
+  }
+  expect(observed.size).toBe(5);
+  await page.getByRole('button', { name: 'Отменить', exact: true }).click();
+  await expect.poll(async () => frame.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--bg-color').trim())).toBe('#edf0ff');
+  await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+  await expect.poll(async () => frame.locator('html').evaluate(el => getComputedStyle(el).getPropertyValue('--bg-color').trim())).toBe('#eceff1');
+  await page.getByLabel('Размер предпросмотра').selectOption('mobile');
+  await expect.poll(async () => frame.locator('#quiz-view').evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(200);
   await page.screenshot({ path: info.outputPath('design.png') });
   await page.getByRole('button', { name: 'Вернуться к схеме', exact: true }).click();
   await expect(page.getByText('Настройки узла')).toBeVisible();

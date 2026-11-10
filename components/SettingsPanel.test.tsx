@@ -47,7 +47,7 @@ describe('contextual settings panel', () => {
       render(<SettingsPanel />);
       fireEvent.click(screen.getByRole('button', { name: 'Добавить ответ' }));
       fireEvent.click(screen.getByRole('button', { name: 'Добавить ответ' }));
-      const answers = (useCanvasStore.getState().nodes[0].data as QuestionNodeData).answers;
+      const answers = (useCanvasStore.getState().nodes[0].data as QuestionNodeData).answers ?? [];
       expect(answers).toHaveLength(3);
       expect(new Set(answers.map(answer => answer.id)).size).toBe(3);
     } finally { vi.restoreAllMocks(); }

@@ -527,6 +527,9 @@ export function buildDesignCss(designSettings: unknown): string {
     border-color: transparent;
     box-shadow: none;
   }
+  @media (max-width: 900px) {
+    body[class*="design-interface-"] .quiz-layout { grid-template-columns: minmax(0, 1fr); }
+  }
   body.design-density-compact #quiz-view { --card-padding: min(28px, var(--card-padding)); --answer-gap: min(10px, var(--answer-gap)); }
   body.design-density-relaxed #quiz-view { --answer-gap: max(16px, var(--answer-gap)); }
   ${chrome === "compact" ? ".quiz-topbar { max-width: min(var(--content-width), calc(100vw - 28px)) !important; border-radius: 999px !important; } .topbar-inner { padding: 9px 12px !important; }" : ""}

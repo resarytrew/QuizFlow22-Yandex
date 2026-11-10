@@ -67,3 +67,9 @@ Validation at this checkpoint: `npm run verify` completed (712 frontend tests, 2
 The screen-quiz template now has an explicit workspace for shared settings and per-screen overrides. Undefined local values inherit; zero and empty strings remain explicit values. The workspace uses the existing generated preview and video export, and suppresses autoplay in preview. Switching template leaves local screen settings intact. The old repeated screen controls were removed from node inspectors.
 
 Validation: `npm run test:editor:e2e` passed 6 scenarios at desktop, tablet and mobile sizes with a mocked API; `npm run verify` passed 723 frontend and 38 backend unit tests, both builds and SEO checks. PostgreSQL integration tests and a real publish round-trip were not run. The screenshots in `refactor-screenshots` capture this intermediate state, not the completed design redesign. Existing lint and build warnings remain.
+
+## Design workspace checkpoint
+
+Replaced the nine-tab design panel with five themes and principal controls, preserving existing serialized fields and custom CSS. The generated preview can select a start/question/info/result screen and change viewport width. Design changes join canvas undo/redo history. Fixed the existing mobile interface grid override that squeezed the question card. This is an intermediate stage: token consolidation, full per-control preview/published parity, explicit field reset, old-theme migration and real publication remain outstanding; see `design-settings-audit.md`.
+
+Validation: `npm run test:editor:e2e` passed 6 scenarios using a mocked API at three sizes, including theme undo/redo and mobile card width. `npm run verify` passed 730 frontend and 38 backend unit tests, builds and SEO. PostgreSQL integration tests and real publication remain unverified.

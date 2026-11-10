@@ -218,10 +218,13 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
   setGlobalTimer: (timer) =>
     set((state) => ({ globalTimer: { ...state.globalTimer, ...timer } })),
 
-  updateDesignSettings: (settings) =>
-    set((state) => ({
-      designSettings: deepMerge(state.designSettings, settings),
-    })),
+  updateDesignSettings: (settings) => {
+    const before = get().designSettings;
+    const after = deepMerge(before, settings);
+    if (JSON.stringify(before) === JSON.stringify(after)) return;
+    useCanvasStore.getState().recordDesignChange(before, after);
+    set({ designSettings: after });
+  },
 
   setUserQuizzes: (quizzes) => set({ userQuizzes: quizzes }),
   setAnalyticsQuizId: (id) => set({ analyticsQuizId: id }),
@@ -574,6 +577,10 @@ export function buildCurrentQuizData(): QuizData {
     templateId: state.templateId, currentQuizName: state.currentQuizName,
   };
 }
+
+storeEvents.on('DESIGN_HISTORY_RESTORE', designSettings => {
+  useQuizDataStore.setState({ designSettings });
+});
 
 let saveQueue: Promise<unknown> = Promise.resolve();
 function persistEditor(opts: { visibility?: QuizVisibility } | undefined, manual: boolean): Promise<string | null> {

@@ -1,9 +1,10 @@
 import type { Node, Edge } from 'reactflow';
-import type { NodeData, AutosavePayload } from '../types';
+import type { NodeData, AutosavePayload, DesignSettings } from '../types';
 
 // --- Event types ---
 
 export type StoreEvent =
+  | { type: 'DESIGN_HISTORY_RESTORE'; payload: DesignSettings }
   | { type: 'CANVAS_CLEAR' }
   | { type: 'CANVAS_RESET' }
   | { type: 'GROUP_CHANGED'; payload: { groupId: string | null } }
