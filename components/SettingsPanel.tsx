@@ -5,6 +5,7 @@ import { useUIStore } from '../store/useUIStore.ts';
 import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ImportantTalksInteractionContent } from '../types.ts';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
+import { createId } from '../utils/createId';
 
 type UpdateNodeData = (id: string, data: Partial<NodeData>) => void;
 
@@ -584,7 +585,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
     const { levelVar = 'rankLevel', nameVar = 'rankName' } = data;
     const rules: RankRule[] = data.rules ?? [];
 
-    const generateId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const generateId = () => createId('id');
 
     const addRule = () => {
         const newRule: RankRule = { 
@@ -742,7 +743,7 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
     };
 
     const addAnswer = () => {
-        const newAnswer: Answer = { id: `ans-${Date.now()}`, text: `Ответ ${answers.length + 1}` };
+        const newAnswer: Answer = { id: createId('ans'), text: `Ответ ${answers.length + 1}` };
         update(id, { answers: [...answers, newAnswer] });
     };
 
@@ -950,7 +951,7 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
     };
 
     const addAnswer = () => {
-        const newAnswer: Answer = { id: `opt-${Date.now()}`, text: `Вариант ${answers.length + 1}` };
+        const newAnswer: Answer = { id: createId('opt'), text: `Вариант ${answers.length + 1}` };
         update(id, { answers: [...answers, newAnswer] });
     };
 
@@ -1442,7 +1443,7 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
     };
 
     const addField = () => {
-        const newField: FormField = { id: `field-${Date.now()}`, label: 'Новое поле', type: 'text', variableName: 'newVar' };
+        const newField: FormField = { id: createId('field'), label: 'Новое поле', type: 'text', variableName: 'newVar' };
         update(id, { fields: [...fields, newField] });
     };
 
@@ -1515,7 +1516,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
     };
 
     const addEvent = () => {
-        const newEvent: TimelineEvent = { id: `evt-${Date.now()}`, text: `Событие ${events.length + 1}` };
+        const newEvent: TimelineEvent = { id: createId('evt'), text: `Событие ${events.length + 1}` };
         update(id, { events: [...events, newEvent] });
     };
 
@@ -1608,7 +1609,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     const addColumnItem = (columnIndex: 'leftColumn' | 'rightColumn') => {
         const prefix = columnIndex === 'leftColumn' ? 'l' : 'r';
         const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
-        const newItem: MatchColumnItem = { id: `${prefix}-${Date.now()}`, text: `Элемент ${column.length + 1}`, imageUrl: '' };
+        const newItem: MatchColumnItem = { id: createId(prefix), text: `Элемент ${column.length + 1}`, imageUrl: '' };
         update(id, { [columnIndex]: [...column, newItem] });
     };
 
@@ -1793,7 +1794,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
 
     const addItem = () => {
         const newItem = {
-            id: `item-${Date.now()}`,
+            id: createId('item'),
             label: `Категория ${items.length + 1}`,
             variableName: `cat_${items.length + 1}`,
             defaultValue: 0

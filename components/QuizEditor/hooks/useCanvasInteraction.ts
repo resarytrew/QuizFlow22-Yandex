@@ -4,6 +4,7 @@ import { CustomNodeType, NodeData } from '../../../types';
 import { DEFAULT_W, DEFAULT_H } from '../constants';
 import { createNewNode } from '../createNewNode';
 import { readDraggedNodeType } from '../nodeDragData';
+import { createId } from '../../../utils/createId';
 
 type FlowNode<T = NodeData> = Node<T>;
 type SelectionModifierEvent = Pick<React.MouseEvent, 'shiftKey' | 'ctrlKey' | 'metaKey'>;
@@ -224,7 +225,7 @@ export function useCanvasInteraction({
             if (n) {
                 const newNode: FlowNode<NodeData> = {
                     ...n,
-                    id: `${n.type}-${Date.now()}`,
+                    id: createId(n.type || 'node'),
                     position: { x: n.position.x + 50, y: n.position.y + 50 },
                     data: JSON.parse(JSON.stringify(n.data)),
                     selected: false,
