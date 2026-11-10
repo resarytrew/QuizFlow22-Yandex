@@ -688,6 +688,7 @@ export interface PathEventDetails {
 }
 
 export interface QuizData {
+  legacyThemeMigration?: import('./utils/migrateLegacyTheme').LegacyThemeMigration;
   editorOrder?: string[];
   nodes: Node<NodeData>[];
   edges: Edge[];

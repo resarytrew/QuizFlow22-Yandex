@@ -3,7 +3,8 @@ import {useAuthStore} from './useAuthStore';
 import type {PublicQuiz} from '../types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Quiz } from '../types';
-import { useQuizDataStore } from './useQuizDataStore';
+import { buildCurrentQuizData, useQuizDataStore } from './useQuizDataStore';
+import { useCanvasStore } from './useCanvasStore';
 
 describe('useQuizDataStore quiz settings compatibility', () => {
   beforeEach(() => {
@@ -42,6 +43,23 @@ describe('useQuizDataStore quiz settings compatibility', () => {
       duration: 0,
       onTimeoutNodeId: null,
     });
+  });
+
+  it('loads a legacy themed project into the default template and retains its recovery copy through save payload construction', () => {
+    const original = {
+      templateId: 'importantTalks',
+      nodes: [{ id: 'q', type: 'questionNode', position: { x: 5, y: 7 }, data: { question: 'Q', answers: [{ id: 'a', text: 'A' }], importantTalks: { correctText: 'explanation' } } }],
+      edges: [{ id: 'e', source: 'q', sourceHandle: 'a', target: 'result' }],
+      globalTimer: { enabled: true, duration: 42, onTimeoutNodeId: null },
+      designSettings: {},
+    };
+    useQuizDataStore.getState().loadQuiz({ id: 'legacy', user_id: 'u', name: 'Legacy', created_at: '', updated_at: '', quiz_data: original } as unknown as Quiz);
+    expect(useQuizDataStore.getState().templateId).toBe('default');
+    expect(useCanvasStore.getState().edges[0].sourceHandle).toBe('a');
+    const saved = buildCurrentQuizData();
+    expect(saved.legacyThemeMigration?.original).toEqual(original);
+    expect(saved.legacyThemeMigration?.unsupportedPaths).toContain('nodes.q.importantTalks.correctText');
+    expect(saved.globalTimer.duration).toBe(42);
   });
 
   it('falls back to the default template for invalid database values', () => {

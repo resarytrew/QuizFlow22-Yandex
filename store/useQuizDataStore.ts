@@ -1,4 +1,5 @@
 import { screenQuizDefaults } from '../utils/screenQuizDefaults';
+import { migrateLegacyTheme } from '../utils/migrateLegacyTheme';
 import { create } from 'zustand';
 import {
   GlobalTimer,
@@ -321,14 +322,15 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
 
   loadQuiz: (quiz) => {
     const defaults = createInitialState();
+    const quizData = migrateLegacyTheme(quiz.quiz_data);
     storeEvents.emit('QUIZ_LOADED', {
-      nodes: quiz.quiz_data.nodes || [],
-      edges: quiz.quiz_data.edges || [],
+      nodes: quizData.nodes || [],
+      edges: quizData.edges || [],
     });
 
     set({
       editorKey: crypto.randomUUID(),
-      quizDataBase: quiz.quiz_data,
+      quizDataBase: quizData,
       revision: quiz.revision,
       saveStatus: "saved",
       saveError: null,
@@ -338,13 +340,13 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       currentQuizVisibility: (quiz.visibility as QuizVisibility) ?? (quiz.is_published ? 'public' : 'private'),
       globalTimer: {
         ...defaults.globalTimer,
-        ...(quiz.quiz_data.globalTimer ?? {}),
+        ...(quizData.globalTimer ?? {}),
       },
       designSettings: deepMerge(
         defaults.designSettings,
-        quiz.quiz_data.designSettings ?? {},
+        quizData.designSettings ?? {},
       ),
-      templateId: normalizeTemplateId(quiz.quiz_data.templateId),
+      templateId: normalizeTemplateId(quizData.templateId),
     });
   },
 

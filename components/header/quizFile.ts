@@ -1,4 +1,5 @@
 import type { Edge, Node } from 'reactflow';
+import type { LegacyThemeMigration } from '../../utils/migrateLegacyTheme';
 import type {
   DesignSettings,
   GlobalTimer,
@@ -7,6 +8,7 @@ import type {
 } from '../../types';
 
 export interface QuizFile {
+  legacyThemeMigration?: LegacyThemeMigration;
   description?: string;
   cover_image_url?: string;
   keywords?: string[];
@@ -127,6 +129,8 @@ export function parseQuizFile(content: string): QuizFile {
   }
 
   return {
+    ...(isRecord(parsed.legacyThemeMigration) && parsed.legacyThemeMigration.version === 1 && Array.isArray(parsed.legacyThemeMigration.unsupportedPaths) && parsed.legacyThemeMigration.unsupportedPaths.every((value: unknown) => typeof value === 'string') && 'original' in parsed.legacyThemeMigration
+      ? { legacyThemeMigration: parsed.legacyThemeMigration as unknown as LegacyThemeMigration } : {}),
     description: typeof parsed.description === "string" ? parsed.description : undefined,
     cover_image_url: typeof parsed.cover_image_url === "string" ? parsed.cover_image_url : undefined,
     keywords: Array.isArray(parsed.keywords) ? parsed.keywords.filter((x): x is string=>typeof x === "string") : undefined,
@@ -152,6 +156,7 @@ export function parseQuizFile(content: string): QuizFile {
 
 export function serializeQuizFile(quiz: QuizFile): string {
   const quizFile: QuizFile = {
+    legacyThemeMigration: quiz.legacyThemeMigration,
     nodes: quiz.nodes.map(({ id, type, data, position }) => ({
       id,
       type,

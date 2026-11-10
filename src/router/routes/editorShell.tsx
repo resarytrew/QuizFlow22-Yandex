@@ -18,6 +18,7 @@ import LivePreview from '../../../components/LivePreview';
 import Header from '../../../components/Header';
 import { useUIStore } from '../../../store/useUIStore';
 import { CustomNodeType } from '../../../types';
+import { downloadQuizFile } from '../../../components/header/quizFile';
 
 export const Route = createRoute({
   getParentRoute: () => appShellRoute,
@@ -28,6 +29,11 @@ export const Route = createRoute({
 function EditorShellLayout() {
   useEditorAutosave();
   const [pane,setPane]=useState('canvas');
+  const [migrationDismissed, setMigrationDismissed] = useState(false);
+  const migrationCandidate = useQuizDataStore(s => s.quizDataBase.legacyThemeMigration);
+  const migration = migrationCandidate?.version === 1 && Array.isArray(migrationCandidate.unsupportedPaths) && migrationCandidate.unsupportedPaths.every(path => typeof path === 'string') ? migrationCandidate : undefined;
+  const editorKey = useQuizDataStore(s => s.editorKey);
+  useEffect(() => setMigrationDismissed(false), [editorKey]);
   const [designPreviewNode, setDesignPreviewNode] = useState('');
   const [designPreviewWidth, setDesignPreviewWidth] = useState('desktop');
   const previewNodes = useCanvasStore(s => s.nodes).filter(n => [CustomNodeType.Start, CustomNodeType.Question, CustomNodeType.MultipleChoice, CustomNodeType.Info, CustomNodeType.Result].includes(n.type as CustomNodeType));
@@ -80,6 +86,12 @@ function EditorShellLayout() {
             </div>
           </CanvasErrorBoundary>
           <RestoreAutosavePrompt />
+          {migration && !migrationDismissed && <aside role="alert" className="absolute bottom-4 left-4 z-50 max-w-lg rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 shadow-lg">
+            <p className="font-semibold">Проект перенесён на базовый шаблон</p>
+            <p className="mt-1">Специальные сцены и обратная связь могут отличаться. Исходный проект сохранён в резервной копии; проверьте прохождение перед публикацией.</p>
+            {migration.unsupportedPaths.length > 0 && <details className="mt-2"><summary>Неперенесённые поля: {migration.unsupportedPaths.length}</summary><ul className="max-h-32 overflow-auto break-all">{migration.unsupportedPaths.map(path => <li key={path}>{path}</li>)}</ul></details>}
+            <div className="mt-2 flex gap-3"><button type="button" className="underline" onClick={() => downloadQuizFile(JSON.stringify(migration.original, null, 2), 'original-quiz-backup')}>Скачать исходный JSON</button><button type="button" className="underline" onClick={() => setMigrationDismissed(true)}>Закрыть</button></div>
+          </aside>}
           {!workspaceOpen && !isPreviewModeActive && <nav className="editor-mobile-nav" aria-label="Панели редактора">
             {([['canvas','Холст'],['palette','Блоки'],['settings','Настройки'],['ai','AI']] as const).map(([id,label]) =>
               <button key={id} type="button" disabled={id === 'settings' && !selected} aria-pressed={pane === id}

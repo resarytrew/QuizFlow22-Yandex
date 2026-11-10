@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 const quizId = '11111111-1111-4111-8111-111111111111';
 const user = { id: '22222222-2222-4222-8222-222222222222', email: 'owner@example.invalid', emailVerified: true, role: 'user', authLevel: 'normal' };
-async function mockApi(page: Page, templateId: 'default' | 'screenQuiz') {
+async function mockApi(page: Page, templateId: 'default' | 'screenQuiz' | 'importantTalks') {
   const quiz = { id: quizId, user_id: user.id, name: 'Проверка редактора', visibility: 'private', is_favorite: false, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', revision: 1,
     quiz_data: { templateId, currentQuizName: 'Проверка редактора', globalTimer: { enabled: false, duration: 0 }, designSettings: {},
       nodes: [
         { id: 'start', type: 'startNode', position: { x: 0, y: 0 }, data: { label: 'Старт' } },
-        { id: 'question', type: 'questionNode', position: { x: 350, y: 0 }, data: { label: 'Вопрос', question: 'Какая планета красная?', answers: [{ id: 'mars', text: 'Марс', isCorrect: true }], correctAnswer: 'mars' } },
+        { id: 'question', type: 'questionNode', position: { x: 350, y: 0 }, data: { label: 'Вопрос', question: 'Какая планета красная?', answers: [{ id: 'mars', text: 'Марс', isCorrect: true }], correctAnswer: 'mars', ...(templateId === 'importantTalks' ? { importantTalks: { correctText: 'Старое объяснение' } } : {}) } },
         { id: 'result', type: 'resultNode', position: { x: 700, y: 0 }, data: { label: 'Результат', title: 'Готово' } },
       ], edges: [ { id: 's-q', source: 'start', target: 'question' }, { id: 'q-r', source: 'question', sourceHandle: 'mars', target: 'result' } ] } };
   await page.route('**/api/**', async route => {
@@ -94,3 +94,24 @@ test('screen quiz uses selected scene and local override', async ({ page }, info
   await expect(restored.getByLabel('Длительность таймера', { exact: true })).toHaveValue('30');
   await expect.poll(storedData, { timeout: 10000 }).not.toContain('\"timerSeconds\":45');
 });
+
+
+test('legacy theme migration exposes an original backup', async ({ page }) => {
+  const storedData = await mockApi(page, 'importantTalks');
+  await page.goto(`/#/editor/${quizId}`);
+  const warning = page.getByRole('alert').filter({ hasText: 'Проект перенесён на базовый шаблон' });
+  await expect(warning).toBeVisible();
+  await warning.getByText('Неперенесённые поля: 1').click();
+  await expect(warning).toContainText('nodes.question.importantTalks.correctText');
+  const download = page.waitForEvent('download');
+  await warning.getByRole('button', { name: 'Скачать исходный JSON' }).click();
+  expect((await download).suggestedFilename()).toBe('original-quiz-backup.json');
+  await warning.getByRole('button', { name: 'Закрыть' }).click();
+  await page.locator('.react-flow__node[data-id="question"]').click();
+  const question = page.getByLabel('Текст вопроса', { exact: true });
+  await question.fill('Изменённый вопрос');
+  await expect.poll(storedData, { timeout: 10000 }).toContain('"legacyThemeMigration"');
+  expect(storedData()).toContain('Старое объяснение');
+  expect(storedData()).toContain('Изменённый вопрос');
+});
+

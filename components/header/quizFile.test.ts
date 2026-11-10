@@ -108,3 +108,12 @@ describe('quiz file import and export', () => {
     ).toThrow('Неверная структура JSON-файла квиза.');
   });
 });
+
+
+describe('migration backup file round-trip', () => {
+  it('preserves the complete legacy backup when exporting and importing', () => {
+    const backup = { version: 1 as const, original: { templateId: 'importantTalks', nodes: [{ data: { importantTalks: { hint: 'x' } } }] }, unsupportedPaths: ['nodes.q.importantTalks.hint'] };
+    const parsed = parseQuizFile(serializeQuizFile({ nodes: [], edges: [], legacyThemeMigration: backup }));
+    expect(parsed.legacyThemeMigration).toEqual(backup);
+  });
+});

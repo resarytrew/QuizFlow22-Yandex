@@ -4,7 +4,7 @@ import SettingsPanel from './SettingsPanel';
 import { createNewNode } from './QuizEditor/createNewNode';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { useUIStore } from '../store/useUIStore';
-import { CustomNodeType, type QuestionNodeData } from '../types';
+import { CustomNodeType, type QuestionNodeData, type ScoreNodeData } from '../types';
 
 describe('contextual settings panel', () => {
   beforeEach(() => { useCanvasStore.getState().reset(); useUIStore.getState().reset(); });
@@ -62,10 +62,10 @@ describe('contextual settings panel', () => {
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: '' } });
     fireEvent.blur(input);
-    expect(useCanvasStore.getState().nodes[0].data.value).toBe(10);
+    expect((useCanvasStore.getState().nodes[0].data as ScoreNodeData).value).toBe(10);
     fireEvent.change(input, { target: { value: '0' } });
     fireEvent.blur(input);
-    expect(useCanvasStore.getState().nodes[0].data.value).toBe(0);
+    expect((useCanvasStore.getState().nodes[0].data as ScoreNodeData).value).toBe(0);
   });
 
 });
