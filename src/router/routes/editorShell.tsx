@@ -7,6 +7,8 @@ import { Route as appShellRoute } from './appShell';
 import Sidebar from '../../../components/Sidebar';
 import SettingsPanel from '../../../components/SettingsPanel';
 import DesignPanel from '../../../components/DesignPanel';
+import { ScreenQuizWorkspace } from '../../../components/ScreenQuizWorkspace';
+import { useQuizDataStore } from '../../../store/useQuizDataStore';
 import AIAssistantPanel from '../../../components/AIAssistantPanel';
 import AssetManagerModal from '../../../components/modals/AssetManagerModal';
 import { AIQuizWizard } from '../../../components/AIQuizWizard';
@@ -33,6 +35,12 @@ function EditorShellLayout() {
   const isPreviewModeActive = useUIStore((s) => s.isPreviewModeActive);
   const isDesignModeActive = useUIStore((s) => s.isDesignModeActive);
   const setDesignMode = useUIStore((s) => s.setDesignMode);
+  const isScreenQuizModeActive = useUIStore((s) => s.isScreenQuizModeActive);
+  const setScreenQuizMode = useUIStore((s) => s.setScreenQuizMode);
+  const templateId = useQuizDataStore((s) => s.templateId);
+  const workspaceOpen = isDesignModeActive || isScreenQuizModeActive;
+  useEffect(() => { if (templateId !== 'screenQuiz' && isScreenQuizModeActive) setScreenQuizMode(false); }, [templateId, isScreenQuizModeActive, setScreenQuizMode]);
+  useEffect(() => { if (templateId === 'screenQuiz' && isDesignModeActive) setDesignMode(false); }, [templateId, isDesignModeActive, setDesignMode]);
   const showSettings = isSettingsPanelVisible && Boolean(selected);
   useEffect(() => {
     if (!selected) useUIStore.getState().closeSettingsPanel();
@@ -48,12 +56,12 @@ function EditorShellLayout() {
         <Header />
         <main className="relative flex-grow w-full h-full overflow-hidden bg-slate-50">
           <CanvasErrorBoundary>
-            <div className="absolute inset-0 z-0" inert={isDesignModeActive && !isPreviewModeActive} aria-hidden={isDesignModeActive && !isPreviewModeActive}>
+            <div className="absolute inset-0 z-0" inert={workspaceOpen && !isPreviewModeActive} aria-hidden={workspaceOpen && !isPreviewModeActive}>
               {isPreviewModeActive ? <LivePreview /> : <Outlet />}
             </div>
           </CanvasErrorBoundary>
           <RestoreAutosavePrompt />
-          {!isDesignModeActive && !isPreviewModeActive && <nav className="editor-mobile-nav" aria-label="Панели редактора">
+          {!workspaceOpen && !isPreviewModeActive && <nav className="editor-mobile-nav" aria-label="Панели редактора">
             {([['canvas','Холст'],['palette','Блоки'],['settings','Настройки'],['ai','AI']] as const).map(([id,label]) =>
               <button key={id} type="button" disabled={id === 'settings' && !selected} aria-pressed={pane === id}
                 onClick={() => { setPane(id); if (id === 'settings') useUIStore.getState().openSettingsPanel(); if (id === 'palette') useUIStore.setState({isSidebarVisible:true}); if (id === 'ai') useUIStore.setState({isAIAssistantPanelVisible:true}); }}>{label}</button>)}
@@ -68,12 +76,13 @@ function EditorShellLayout() {
               <div className="design-workspace-preview min-w-0 flex-1"><LivePreview embedded /></div>
             </div>
           </section>}
+          {isScreenQuizModeActive && !isPreviewModeActive && <ScreenQuizWorkspace />}
           <div
             data-testid="editor-sidebar-container"
-            aria-hidden={isPreviewModeActive || isDesignModeActive || !isSidebarVisible}
-            inert={isPreviewModeActive || isDesignModeActive || !isSidebarVisible}
+            aria-hidden={isPreviewModeActive || workspaceOpen || !isSidebarVisible}
+            inert={isPreviewModeActive || workspaceOpen || !isSidebarVisible}
             className={`editor-palette absolute top-16 left-4 bottom-4 w-72 transition-[transform,opacity] duration-300 ease-in-out z-20 ${
-              !isPreviewModeActive && !isDesignModeActive && isSidebarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              !isPreviewModeActive && !workspaceOpen && isSidebarVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             style={{
               transform: isSidebarVisible ? 'translateX(0)' : 'translateX(calc(-100% - 2rem))',
@@ -82,9 +91,9 @@ function EditorShellLayout() {
             <Sidebar />
           </div>
           <div
-            inert={isPreviewModeActive || isDesignModeActive || !isAIAssistantPanelVisible}
+            inert={isPreviewModeActive || workspaceOpen || !isAIAssistantPanelVisible}
             className={`editor-ai absolute top-16 left-80 bottom-4 w-80 transition-transform duration-300 ease-in-out z-30 ${
-              !isPreviewModeActive && !isDesignModeActive && isAIAssistantPanelVisible
+              !isPreviewModeActive && !workspaceOpen && isAIAssistantPanelVisible
                 ? 'translate-x-0'
                 : '-translate-x-[200%] opacity-0 pointer-events-none'
             }`}
@@ -93,10 +102,10 @@ function EditorShellLayout() {
           </div>
           <div
             data-testid="editor-settings-container"
-            aria-hidden={isPreviewModeActive || isDesignModeActive || !showSettings}
-            inert={isPreviewModeActive || isDesignModeActive || !showSettings}
+            aria-hidden={isPreviewModeActive || workspaceOpen || !showSettings}
+            inert={isPreviewModeActive || workspaceOpen || !showSettings}
             className={`editor-properties absolute top-16 right-4 bottom-4 w-96 transition-[transform,opacity] duration-300 ease-in-out z-20 ${
-              !isPreviewModeActive && !isDesignModeActive && showSettings ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              !isPreviewModeActive && !workspaceOpen && showSettings ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             style={{
               transform: showSettings ? 'translateX(0)' : 'translateX(calc(100% + 2rem))',

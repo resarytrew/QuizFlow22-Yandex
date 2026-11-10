@@ -52,4 +52,15 @@ describe("useUIStore panel controls", () => {
     expect(useUIStore.getState().isDesignModeActive).toBe(false);
   });
 
+  it('keeps screen quiz and design modes mutually exclusive', () => {
+    useUIStore.getState().setDesignMode(true);
+    useUIStore.getState().setScreenQuizMode(true);
+    expect(useUIStore.getState().isDesignModeActive).toBe(false);
+    expect(useUIStore.getState().isScreenQuizModeActive).toBe(true);
+    useUIStore.getState().setDesignMode(true);
+    expect(useUIStore.getState().isScreenQuizModeActive).toBe(false);
+    useUIStore.getState().reset();
+    expect(useUIStore.getState().isScreenQuizModeActive).toBe(false);
+  });
+
 });

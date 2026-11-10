@@ -31,6 +31,9 @@ const Header: React.FC = () => {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const isDesignModeActive = useUIStore((s) => s.isDesignModeActive);
   const setDesignMode = useUIStore((s) => s.setDesignMode);
+  const isScreenQuizModeActive = useUIStore((s) => s.isScreenQuizModeActive);
+  const setScreenQuizMode = useUIStore((s) => s.setScreenQuizMode);
+  const templateId = useQuizDataStore((s) => s.templateId);
   const isAuthModalOpen = useUIStore((s) => s.isAuthModalOpen);
   const setAuthModalOpen = useUIStore((s) => s.setAuthModalOpen);
   const nav = useAppNavigation();
@@ -278,10 +281,15 @@ const Header: React.FC = () => {
             </div>
           )}
 
-          <button type="button" onClick={() => setDesignMode(!isDesignModeActive)} aria-pressed={isDesignModeActive}
+          {templateId === 'screenQuiz' && <button type="button" onClick={() => setScreenQuizMode(!isScreenQuizModeActive)} aria-pressed={isScreenQuizModeActive}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
+            {isScreenQuizModeActive ? 'К схеме' : 'Экранная викторина'}
+          </button>}
+          {isScreenQuizModeActive && <button type="button" onClick={() => void controller.handleExportMp4()} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Экспорт MP4</button>}
+          {templateId !== 'screenQuiz' && <button type="button" onClick={() => setDesignMode(!isDesignModeActive)} aria-pressed={isDesignModeActive}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">
             {isDesignModeActive ? 'К схеме' : 'Оформление'}
-          </button>
+          </button>}
         </div>
       </header>
 

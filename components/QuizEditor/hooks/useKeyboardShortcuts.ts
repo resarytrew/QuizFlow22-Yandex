@@ -44,7 +44,7 @@ export function useKeyboardShortcuts({
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (useUIStore.getState().isDesignModeActive) return;
+            if (useUIStore.getState().isDesignModeActive || useUIStore.getState().isScreenQuizModeActive) return;
             const el = document.activeElement as HTMLElement | null;
             const isTyping = el && (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable);
             if ((e.ctrlKey || e.metaKey) && !isTyping) {

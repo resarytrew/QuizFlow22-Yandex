@@ -217,11 +217,13 @@
 @media(max-width:1100px){
  .editor-header{height:auto;min-height:108px;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px 12px;}
  .editor-header-brand{display:none;}
- .editor-header-actions{justify-self:stretch;justify-content:space-between;gap:8px;}
+ .editor-header-actions{justify-self:stretch;justify-content:space-between;gap:8px;flex-wrap:wrap;min-width:0;}
  .editor-header-document>div{padding:8px;}
 }
 
+.screen-preview-jump { display: none; }
 @media(max-width: 768px) {
+ .screen-preview-jump { display: block; }
  .design-workspace { flex-direction: column; overflow-y: auto; }
  .design-workspace-controls { width: 100%; overflow: visible; }
  .design-workspace-preview { min-height: 36rem; flex: none; }

@@ -122,40 +122,6 @@ export const SoundSection: React.FC = () => {
           />
         </div>
 
-        <div className="border-t border-slate-200 pt-4">
-          <div className="mb-3">
-            <h4 className="text-sm font-semibold text-slate-800">Экранная викторина</h4>
-            <p className="mt-1 text-xs text-slate-500">
-              Звуки для автоматического YouTube-режима: заставка, таймер, раскрытие ответа и переходы.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <UrlInput
-              label="Звук заставки"
-              value={sound.screenQuizIntro || ''}
-              onChange={(v) => setSound('screenQuizIntro', v)}
-              placeholder="Intro-sting.mp3"
-            />
-            <UrlInput
-              label="Тик таймера"
-              value={sound.screenQuizTick || ''}
-              onChange={(v) => setSound('screenQuizTick', v)}
-              placeholder="Tick.mp3"
-            />
-            <UrlInput
-              label="Раскрытие ответа"
-              value={sound.screenQuizReveal || ''}
-              onChange={(v) => setSound('screenQuizReveal', v)}
-              placeholder="Reveal.mp3"
-            />
-            <UrlInput
-              label="Переход между сценами"
-              value={sound.screenQuizTransition || ''}
-              onChange={(v) => setSound('screenQuizTransition', v)}
-              placeholder="Whoosh.mp3"
-            />
-          </div>
-        </div>
       </div>
     </Section>
   );

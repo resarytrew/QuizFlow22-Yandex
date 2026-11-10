@@ -15,12 +15,13 @@ function htmlKey(html: string): string {
   return `${html.length}-${hash}`;
 }
 
-const LivePreview: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+const LivePreview: React.FC<{ embedded?: boolean; startNodeId?: string | null }> = ({ embedded = false, startNodeId }) => {
   const nodes = useCanvasStore(s => s.nodes);
   const edges = useCanvasStore(s => s.edges);
   const globalTimer = useQuizDataStore(s => s.globalTimer);
   const designSettings = useQuizDataStore(s => s.designSettings);
-  const previewStartNodeId = useUIStore(s => s.previewStartNodeId);
+  const storedPreviewStartNodeId = useUIStore(s => s.previewStartNodeId);
+  const previewStartNodeId = startNodeId === undefined ? storedPreviewStartNodeId : startNodeId;
   const templateId = useQuizDataStore(s => s.templateId);
   const currentQuizName = useQuizDataStore(s => s.currentQuizName);
   const iframeRef = useRef<HTMLIFrameElement>(null);

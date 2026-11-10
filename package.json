@@ -71,6 +71,7 @@
     "check:seo": "node scripts/check-seo.mjs",
     "check:public-seo": "node scripts/check-public-quiz-seo.mjs",
     "test:admin:e2e": "playwright test --config playwright.admin.config.ts",
-    "test:landing:e2e": "playwright test --config playwright.landing.config.ts"
+    "test:landing:e2e": "playwright test --config playwright.landing.config.ts",
+    "test:editor:e2e": "playwright test --config playwright.editor.config.ts"
   }
 }

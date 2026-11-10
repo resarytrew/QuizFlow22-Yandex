@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import type { Node } from 'reactflow';
 import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode, ImportantTalksInteractionContent } from '../types.ts';
+import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ImportantTalksInteractionContent } from '../types.ts';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
 
@@ -720,7 +720,6 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
     const { id, data } = node;
     const { question = '', timer } = data;
     const answers: Answer[] = data.answers ?? [];
-    const screenQuiz = data.screenQuiz || {};
     const importantTalks = data.importantTalks || {};
     const isTrueFalseQuestion =
         answers.length === 2 &&
@@ -773,23 +772,9 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 { id: falseId, text: TRUE_FALSE_LABELS.false, isCorrect: correct === 'false' },
             ],
             correctAnswer,
-            screenQuiz: {
-                ...screenQuiz,
-                layout: 'question-only',
-            },
         });
     };
 
-    const updateScreenQuiz = (patch: Partial<NonNullable<QuestionNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            const typedKey = key as keyof typeof next;
-            if (next[typedKey] === undefined || next[typedKey] === null || next[typedKey] === '') {
-                delete next[typedKey];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
 
     const updateImportantTalks = (patch: Partial<NonNullable<QuestionNodeData['importantTalks']>>) => {
         update(id, { importantTalks: { ...importantTalks, ...patch } });
@@ -907,100 +892,6 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                     Добавить ответ
                 </button>
             </SettingsSection>
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Эти параметры применяются только к этому экрану. Значение "Наследовать" берет настройку из глобального дизайна шаблона.</HelperText>
-                <Select
-                    label="Композиция этого экрана"
-                    value={screenQuiz.layout || 'inherit'}
-                    onChange={e => updateScreenQuiz({ layout: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizLayout })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="media-right">Медиа справа</option>
-                    <option value="media-left">Медиа слева</option>
-                    <option value="media-top">Медиа сверху</option>
-                    <option value="image-grid">Сетка изображений</option>
-                    <option value="question-only">Только вопрос</option>
-                    <option value="hero-media">Большое медиа</option>
-                </Select>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
-                    placeholder="Наследовать"
-                />
-                <Select
-                    label="Показ перед таймером"
-                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Включить</option>
-                    <option value="hide">Выключить</option>
-                </Select>
-                <Select
-                    label="Темп озвучивания"
-                    value={screenQuiz.introTiming || 'inherit'}
-                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="fast">Быстро</option>
-                    <option value="calm">Спокойно</option>
-                    <option value="manual">Ручной</option>
-                </Select>
-                <Select
-                    label="Режим монтажной ленты"
-                    value={screenQuiz.timelineMode || 'inherit'}
-                    onChange={e => updateScreenQuiz({ timelineMode: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizTimelineMode })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто по шоу-ритму</option>
-                    <option value="timeline">Ручная монтажная лента</option>
-                </Select>
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Раскрытие ответа, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
-            </SettingsSection>
             <SettingsSection title="Таймер">
                 <HelperText>Если время выйдет, произойдет переход по красной точке выхода внизу узла.</HelperText>
                 <Checkbox label="Включить таймер на ответ" checked={!!timer && timer > 0} onChange={handleTimerToggle} />
@@ -1043,7 +934,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
     const { question = '' } = data;
     const answers: Answer[] = data.answers ?? [];
     const correctOptions: string[] = data.correctOptions ?? [];
-    const screenQuiz = data.screenQuiz || {};
     const importantTalks = data.importantTalks || {};
 
     const correctCount = correctOptions.length;
@@ -1078,16 +968,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
         update(id, { correctOptions: newCorrectOptions });
     };
 
-    const updateScreenQuiz = (patch: Partial<NonNullable<MultipleChoiceNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            const typedKey = key as keyof typeof next;
-            if (next[typedKey] === undefined || next[typedKey] === null || next[typedKey] === '') {
-                delete next[typedKey];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
 
     const updateImportantTalks = (patch: Partial<NonNullable<MultipleChoiceNodeData['importantTalks']>>) => {
         update(id, { importantTalks: { ...importantTalks, ...patch } });
@@ -1299,100 +1179,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                 </div>
             )}
 
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Эти параметры применяются только к этому экрану множественного выбора. Значение "Наследовать" берет настройку из глобального дизайна шаблона.</HelperText>
-                <Select
-                    label="Композиция этого экрана"
-                    value={screenQuiz.layout || 'inherit'}
-                    onChange={e => updateScreenQuiz({ layout: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizLayout })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="media-right">Медиа справа</option>
-                    <option value="media-left">Медиа слева</option>
-                    <option value="media-top">Медиа сверху</option>
-                    <option value="image-grid">Сетка изображений</option>
-                    <option value="question-only">Только вопрос</option>
-                    <option value="hero-media">Большое медиа</option>
-                </Select>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
-                    placeholder="Наследовать"
-                />
-                <Select
-                    label="Показ перед таймером"
-                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Включить</option>
-                    <option value="hide">Выключить</option>
-                </Select>
-                <Select
-                    label="Темп озвучивания"
-                    value={screenQuiz.introTiming || 'inherit'}
-                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="fast">Быстро</option>
-                    <option value="calm">Спокойно</option>
-                    <option value="manual">Ручной</option>
-                </Select>
-                <Select
-                    label="Режим монтажной ленты"
-                    value={screenQuiz.timelineMode || 'inherit'}
-                    onChange={e => updateScreenQuiz({ timelineMode: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizTimelineMode })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто по шоу-ритму</option>
-                    <option value="timeline">Ручная монтажная лента</option>
-                </Select>
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Раскрытие ответа, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
-            </SettingsSection>
 
             {/* Кнопка */}
             <SettingsSection title="Кнопка">
@@ -1454,22 +1240,12 @@ const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData
 
 const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
-    const screenQuiz = data.screenQuiz || {};
     const importantTalks = data.importantTalks || {};
     const importantTalksAgendaItems = importantTalks.agendaItems || [
         '6 заданий',
         'проверка знаний',
         'полезные размышления',
     ];
-    const updateScreenQuiz = (patch: Partial<NonNullable<InfoNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            if (next[key as keyof typeof next] === undefined) {
-                delete next[key as keyof typeof next];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
     const updateImportantTalks = (patch: Partial<NonNullable<InfoNodeData['importantTalks']>>) => {
         update(id, { importantTalks: { ...importantTalks, ...patch } });
     };
@@ -1511,57 +1287,6 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                     value={data.backgroundImageUrl || ''}
                     onChange={e => update(id, { backgroundImageUrl: e.target.value })}
                     placeholder="Переопределить глобальный фон"
-                />
-            </SettingsSection>
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Локальные настройки этого информационного экрана в шаблоне "Экранная викторина".</HelperText>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: parseOptionalNumber(e.target.value, 5, 180, 30) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Пауза после сцены, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
                 />
             </SettingsSection>
          </div>
@@ -1759,16 +1484,6 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
 
 const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
-    const screenQuiz = data.screenQuiz || {};
-    const updateScreenQuiz = (patch: Partial<NonNullable<FeedbackNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            if (next[key as keyof typeof next] === undefined) {
-                delete next[key as keyof typeof next];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
 
     return (
         <div className="space-y-8">
@@ -1778,57 +1493,6 @@ const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNode
                 <UrlInput label="URL изображения (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} placeholder="https://example.com/image.png" />
                 <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
-            </SettingsSection>
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Локальные настройки этого экрана обратной связи в шаблоне "Экранная викторина".</HelperText>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: parseOptionalNumber(e.target.value, 5, 180, 30) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Пауза после сцены, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
             </SettingsSection>
          </div>
     );
