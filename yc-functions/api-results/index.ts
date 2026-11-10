@@ -14,15 +14,12 @@ export async function handler(event: any) {
 
   if (httpMethod === 'OPTIONS') return handleCors(event);
 
-  if (httpMethod === 'GET') {
-    return await getAnalytics(event, event.queryStringParameters || {});
-  }
-
-  if (httpMethod !== 'POST') {
+  if (httpMethod !== 'GET' && httpMethod !== 'POST') {
     return response(405, { error: 'Method not allowed' }, headers);
   }
 
   try {
+    if (httpMethod === 'GET') return await getAnalytics(event, event.queryStringParameters || {});
     return await saveResult(event);
   } catch (error) {
     if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
@@ -80,7 +77,8 @@ async function getAnalytics(event: any, params: any) {
     [quizId],
   );
 
-  return response(200, { sessions, results }, headers);
+  // Legacy rows are also client-submitted and must never be treated as verified.
+  return response(200, { sessions, results: results.map(result => ({ ...result, score_trust: 'unverified', results_data: { ...normalizeJsonObject(result.results_data), score_trust: 'unverified' } })) }, headers);
 }
 
 async function saveResult(event: any) {
@@ -117,7 +115,12 @@ async function saveResult(event: any) {
   }
 
   const sessionId = normalizeSessionId(body.session_id);
-  const score = clampInt(body.score, 0, 10_000_000, 0);
+  const scoreValue = body.score === undefined ? 0 : body.score;
+  if ((typeof scoreValue !== 'number' && !(typeof scoreValue === 'string' && scoreValue.trim() !== '')) ||
+      !Number.isFinite(Number(scoreValue)) || !Number.isInteger(Number(scoreValue)) || Number(scoreValue) < 0 || Number(scoreValue) > 10_000_000) {
+    return response(400, { error: 'score must be an integer between 0 and 10000000' }, headers);
+  }
+  const score = Number(scoreValue);
   const timeSpentSeconds = clampInt(
     body.time_spent_seconds ?? body.time_spent,
     0,
@@ -127,7 +130,7 @@ async function saveResult(event: any) {
   const participantName = clampString(body.participant_name, 200, 'Guest');
   const participantEmail = clampString(body.participant_email, 320, null);
   const finalNodeTitle = clampString(body.final_node_title, 300, 'Завершено');
-  const resultsData = normalizeJsonObject(body.results_data);
+  const resultsData: Record<string, unknown> = { ...normalizeJsonObject(body.results_data), score_trust: 'unverified' };
   const pathData = clampPathData(body.path_data);
 
   const [result] = await query(
@@ -135,14 +138,7 @@ async function saveResult(event: any) {
        (quiz_id, session_id, user_id, score, participant_name, participant_email,
         final_node_title, results_data, path_data, time_spent_seconds)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10)
-     ON CONFLICT (session_id) DO UPDATE SET
-       score = EXCLUDED.score,
-       participant_name = EXCLUDED.participant_name,
-       participant_email = EXCLUDED.participant_email,
-       final_node_title = EXCLUDED.final_node_title,
-       results_data = EXCLUDED.results_data,
-       path_data = EXCLUDED.path_data,
-       time_spent_seconds = EXCLUDED.time_spent_seconds
+     ON CONFLICT (session_id) DO NOTHING
      RETURNING id, score`,
     [
       quizId,
@@ -158,18 +154,19 @@ async function saveResult(event: any) {
     ],
   );
 
-  await query(
+  if (!result) return response(409, { error: 'Result already submitted' }, headers);
+
+  // An opaque session token or row ID is not sufficient authorization on its own.
+  if (user && resultsData.abandoned !== true) await query(
     `UPDATE public.quiz_sessions
-     SET status = 'completed',
-         completed_at = COALESCE(completed_at, now()),
-         path_data = $1::jsonb
-     WHERE session_token = $2 OR id::text = $2`,
-    [JSON.stringify(pathData), sessionId],
+     SET status = 'completed', completed_at = COALESCE(completed_at, now()), path_data = $1::jsonb
+     WHERE quiz_id = $3 AND user_id = $4 AND (session_token = $2 OR id::text = $2)`,
+    [JSON.stringify(pathData), sessionId, quizId, user.id],
   ).catch((error) => {
     console.warn('[api-results] session update skipped:', error?.message || error);
   });
 
-  return response(201, { id: result.id, score: result.score, session_id: sessionId }, headers);
+  return response(201, { id: result.id, score: result.score, session_id: sessionId, score_trust: 'unverified' }, headers);
 }
 
 function canSavePublicResult(quiz: any, user: AuthUser | null): boolean {
@@ -180,7 +177,8 @@ function canSavePublicResult(quiz: any, user: AuthUser | null): boolean {
 async function optionalUser(event: any): Promise<AuthUser | null> {
   try {
     return await verifyAuth(event);
-  } catch {
+  } catch (error) {
+    if (error instanceof AccountBlockedError) throw error;
     return null;
   }
 }
@@ -239,15 +237,9 @@ function getHeader(headers: any, name: string): string | undefined {
 }
 
 function getIp(event: any): string {
-  const headers = event.headers || {};
-  return (
-    getHeader(headers, 'x-forwarded-for')?.split(',')[0]?.trim() ||
-    getHeader(headers, 'cf-connecting-ip') ||
-    getHeader(headers, 'x-real-ip') ||
-    event.requestContext?.identity?.sourceIp ||
-    event.requestContext?.http?.sourceIp ||
-    'unknown'
-  );
+  // Request context is supplied by API Gateway; caller-provided forwarding
+  // headers are not an authenticated client address.
+  return event.requestContext?.identity?.sourceIp || event.requestContext?.http?.sourceIp || 'unknown';
 }
 
 function checkRate(ip: string): boolean {

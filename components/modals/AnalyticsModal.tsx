@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../../services/apiClient';
 import { Quiz, QuizResult, PathEvent, QuizSession } from '../../types.ts';
 import { useQuizDataStore } from '../../store/useQuizDataStore';
+import { reportedResultStatus, sortReportedResults } from '../../utils/reportedResults';
 
 interface Props {
   isOpen: boolean;
@@ -13,7 +14,7 @@ interface Props {
 }
 
 type TabType = 'leaderboard' | 'funnel' | 'map' | 'leads' | 'sessions' | 'segments';
-type SegmentKey = 'all' | 'completed' | 'abandoned' | 'leads' | 'highScore' | 'lowScore' | 'longSessions' | 'withPath';
+type SegmentKey = 'all' | 'completed' | 'abandoned' | 'leads' | 'longSessions' | 'withPath';
 
 const formatTime = (seconds: number): string => {
   if (!seconds || seconds <= 0) return '-';
@@ -455,8 +456,6 @@ const getSegmentLabel = (key: SegmentKey) => {
     completed: 'Завершили',
     abandoned: 'Покинули',
     leads: 'Оставили контакты',
-    highScore: 'Высокий балл',
-    lowScore: 'Низкий балл',
     longSessions: 'Долгие сессии',
     withPath: 'Есть маршрут',
   };
@@ -471,10 +470,6 @@ const sessionMatchesSegment = (session: QuizSession, segment: SegmentKey) => {
       return session.status === 'abandoned' || session.status === 'in_progress';
     case 'leads':
       return hasLeadData(session);
-    case 'highScore':
-      return (session.score || 0) >= 80;
-    case 'lowScore':
-      return (session.score || 0) > 0 && (session.score || 0) < 50;
     case 'longSessions':
       return (session.time_spent_seconds || 0) >= 180;
     case 'withPath':
@@ -659,7 +654,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
       '№',
       'Участник',
       'Название квиза',
-      'Баллы',
+      'Баллы (не проверены сервером)',
       'Время прохождения',
       'Дата начала',
       'Дата завершения',
@@ -747,7 +742,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
           user_id: r.user_id,
           participant_name: r.participant_name,
           participant_email: r.participant_email,
-          status: 'completed' as const,
+          status: reportedResultStatus(r.results_data),
           score: r.score,
           variables: r.results_data?.variables || {},
           achievements: r.results_data?.achievements || [],
@@ -763,7 +758,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
           const existing = sourceResult.session_id ? bySessionId.get(sourceResult.session_id) : null;
 
           if (existing) {
-            existing.status = 'completed';
+            existing.status = legacySession.status;
             existing.score = legacySession.score;
             existing.participant_name = legacySession.participant_name || existing.participant_name;
             existing.participant_email = legacySession.participant_email || existing.participant_email;
@@ -838,7 +833,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
 
   const leaderboard = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return [...sessions]
+    return sortReportedResults(sessions)
       .filter(s => s.status === 'completed')
       .filter((session) => {
         if (!query) return true;
@@ -852,10 +847,6 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
           .join(' ')
           .toLowerCase()
           .includes(query);
-      })
-      .sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return (a.time_spent_seconds || 0) - (b.time_spent_seconds || 0);
       });
   }, [sessions, searchQuery]);
 
@@ -961,7 +952,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
   );
 
   const segmentCards = useMemo(() => {
-    const keys: SegmentKey[] = ['all', 'completed', 'abandoned', 'leads', 'highScore', 'lowScore', 'longSessions', 'withPath'];
+    const keys: SegmentKey[] = ['all', 'completed', 'abandoned', 'leads', 'longSessions', 'withPath'];
     return keys.map((key) => ({
       key,
       label: getSegmentLabel(key),
@@ -988,7 +979,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
   if (!isOpen) return null;
 
   const tabs = [
-    { key: 'leaderboard', label: 'Лидеры', icon: '#' },
+    { key: 'leaderboard', label: 'Результаты', icon: '#' },
     { key: 'funnel', label: 'Воронка', icon: '↘' },
     { key: 'map', label: 'Карта сценария', icon: '◎' },
     { key: 'leads', label: 'Лиды и формы', icon: '◼' },
@@ -1128,6 +1119,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
             </div>
           ) : (
             <div className="space-y-6">
+              <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Данные прохождений, баллы и достижения поступают от браузера участника и не проверяются сервером.</p>
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                 <StatCard 
@@ -1171,7 +1163,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
                   color="orange"
                 />
                 <StatCard 
-                  label="Средний балл" 
+                  label="Средний балл (не проверен)"
                   value={stats.avgScore}
                   icon={
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1232,8 +1224,8 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
                   <div className="border-b border-stone-200 bg-[#fbf4e8]/70 px-6 py-4">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                       <div>
-                        <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Лидеры</h3>
-                        <p className="mt-1 text-sm text-stone-500">Итоговые баллы участников для викторин, тестов и образовательных квизов.</p>
+                        <h3 className="font-serif text-2xl font-semibold tracking-[-0.035em] text-stone-950">Результаты</h3>
+                        <p className="mt-1 text-sm text-stone-500">Прохождения показаны по дате. Баллы переданы браузером и сервером не проверены; не используйте их для наград или определения победителей.</p>
                       </div>
                       <div className="rounded-xl border border-stone-200 bg-white/70 px-4 py-2 text-right">
                         <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-stone-400">Завершили</div>
@@ -1249,7 +1241,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
                       <table className="w-full text-sm">
                         <thead className="border-b border-stone-200 bg-white/55">
                           <tr>
-                            <th className="w-20 px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Место</th>
+                            <th className="w-20 px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">№</th>
                             <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Участник</th>
                             <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Баллы</th>
                             <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Время</th>
@@ -1261,14 +1253,7 @@ const AnalyticsModal: React.FC<Props> = ({ isOpen, onClose, quizId, quizName }) 
                           {leaderboard.map((session, index) => (
                             <tr key={session.id} className="transition hover:bg-white/65">
                               <td className="px-5 py-4">
-                                <div className={`flex h-9 w-9 items-center justify-center rounded-[0.9rem_0.3rem_0.9rem_0.3rem] border text-sm font-bold ${
-                                  index === 0 ? 'border-amber-300 bg-amber-100 text-amber-800' :
-                                  index === 1 ? 'border-stone-300 bg-stone-100 text-stone-700' :
-                                  index === 2 ? 'border-orange-200 bg-orange-50 text-orange-700' :
-                                  'border-stone-200 bg-white/75 text-stone-500'
-                                }`}>
-                                  {index + 1}
-                                </div>
+                                <span className="text-sm text-stone-500">{index + 1}</span>
                               </td>
                               <td className="px-5 py-4">
                                 <div className="font-semibold text-stone-950">{getDisplayName(session)}</div>

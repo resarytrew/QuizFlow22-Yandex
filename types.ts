@@ -673,6 +673,7 @@ export interface ResultAchievement {
 }
 
 export interface QuizResultData {
+  score_trust?: 'unverified';
   variables?: Record<string, unknown>;
   achievements?: Array<ResultAchievement | string>;
   [key: string]: unknown;
@@ -735,6 +736,7 @@ export interface PublicQuiz {
 }
 
 export interface QuizResult {
+  score_trust?: 'unverified';
   id: string;
   created_at: string;
   quiz_id: string;
