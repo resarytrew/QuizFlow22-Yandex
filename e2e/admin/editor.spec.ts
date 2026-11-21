@@ -72,6 +72,7 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
   expect(saved.quiz_data.keywords).toEqual(["editor-test"]);
   await page.locator('.react-flow__node[data-id="q"]').click();
   await expect(page.getByText("Настройки узла", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Закрыть панель настроек", exact: true }).click();
   await page.locator('.flow-edge-path[id="qr"]').click();
   await expect(page.getByText("Настройки связи", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Следующий блок", { exact: true })).toHaveValue("r");
