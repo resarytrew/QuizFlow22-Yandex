@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+process.env.OTP_PEPPER = 'test-pepper';
 
 const fixtures = vi.hoisted(() => ({
   user: null as { id: string; email: string } | null,
@@ -9,6 +10,7 @@ const fixtures = vi.hoisted(() => ({
 vi.mock('../_shared/auth', () => ({ AccountBlockedError: class extends Error {}, verifyAuth: async () => fixtures.user, ensureUser: async () => {} }));
 vi.mock('../_shared/cors', () => ({ corsHeaders: () => ({}), handleCors: () => ({ statusCode: 204 }) }));
 vi.mock('../_shared/db', () => ({
+  queryOne: async () => ({ attempts: 1, blocked: false }),
   query: async (sql: string, params: unknown[] = []) => {
     fixtures.queries.push({ sql, params });
     if (sql.includes('FROM public.quizzes')) return params.length > 1 && params[1] !== fixtures.quiz.user_id ? [] : [fixtures.quiz];

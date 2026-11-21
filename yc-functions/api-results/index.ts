@@ -3,11 +3,11 @@ import { verifyAuth, ensureUser, type AuthUser } from '../_shared/auth';
 import { query } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 import { randomUUID } from 'node:crypto';
+import { enforceRateLimit } from '../_shared/rateLimit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
-const rateMap = new Map<string, { count: number; reset: number }>();
 
 export async function handler(event: any) {
   const { httpMethod, headers } = event;
@@ -23,6 +23,7 @@ export async function handler(event: any) {
     return await saveResult(event);
   } catch (error) {
     if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
+    if (error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode?: unknown }).statusCode === 429) return response(429, { error: 'Rate limit exceeded. Try again in a minute.' }, headers);
     console.error('Results error:', error);
     return response(500, { error: 'Internal server error' }, headers);
   }
@@ -84,9 +85,7 @@ async function getAnalytics(event: any, params: any) {
 async function saveResult(event: any) {
   const headers = event.headers || {};
   const ip = getIp(event);
-  if (!checkRate(ip)) {
-    return response(429, { error: 'Rate limit exceeded. Try again in a minute.' }, headers);
-  }
+  await enforceRateLimit('public_result', ip, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS / 1000);
 
   const body = parseBody(event.body);
   if (!body || typeof body !== 'object') {
@@ -242,17 +241,6 @@ function getIp(event: any): string {
   return event.requestContext?.identity?.sourceIp || event.requestContext?.http?.sourceIp || 'unknown';
 }
 
-function checkRate(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateMap.get(ip) || { count: 0, reset: now + RATE_LIMIT_WINDOW_MS };
-  if (now > entry.reset) {
-    entry.count = 0;
-    entry.reset = now + RATE_LIMIT_WINDOW_MS;
-  }
-  entry.count += 1;
-  rateMap.set(ip, entry);
-  return entry.count <= RATE_LIMIT_MAX;
-}
 
 function response(statusCode: number, body: unknown, headers?: any) {
   return {

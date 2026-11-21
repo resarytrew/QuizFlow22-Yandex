@@ -7,3 +7,7 @@ The result API validates integer score bounds and uses `ON CONFLICT (session_id)
 Limits: a participant can still invent a new session ID and submit arbitrary results. A signed server-managed attempt with authenticated answers and independent scoring is needed for a trustworthy competition or to prevent fabricated new attempts. The current in-memory rate limiter is per serverless instance, not a global limit; the request context address depends on trusted gateway configuration. No production infrastructure or data was modified.
 
 For the PostgreSQL conflict test, create an isolated empty database named `quizflow_results_test`, set `PG_DATABASE`, `PG_HOST`, `PG_PORT`, `PG_USER`, `PG_PASSWORD` and TLS settings, then run `npm --prefix yc-functions run test:results:integration`. The test drops and recreates the public schema in that exact database. It must never run against real data. A local attempt failed before execution because PostgreSQL was unavailable on 127.0.0.1:5432.
+
+## Results rate limiter checkpoint
+
+Public result writes now use the existing transactional `auth_rate_limits` table through `enforceRateLimit('public_result', sourceIp, 30, 60)`. The old per-instance `rateMap` was removed, so concurrent serverless instances share the same atomic window. The source address comes only from Yandex request context; forwarded client headers are ignored. The existing `OTP_PEPPER` is reused for the bucket hash, so no new secret is required.
