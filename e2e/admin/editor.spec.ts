@@ -86,6 +86,8 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
           .quiz_data.nodes.length,
     )
     .toBe(4);
+  const closeInspector = page.getByRole("button", { name: "Закрыть панель настроек", exact: true });
+  if (await closeInspector.count()) await closeInspector.click({ force: true });
   if (isMobile)
     await page
       .getByRole("navigation", { name: "Панели редактора" })
@@ -94,7 +96,7 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
   await page.getByRole("button", { name: "Проверить", exact: true }).click({ force: true });
   await expect(page.getByRole("dialog", { name: "Проверка схемы" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Проверка схемы" })).toBeVisible();
-  await page.getByRole("button", { name: "Закрыть проверку", exact: true }).click();
+  await page.getByRole("button", { name: "Закрыть проверку", exact: true }).click({ force: true });
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.locator('.react-flow__node')).toHaveCount(4);
   expect(
