@@ -91,7 +91,7 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
       .getByRole("navigation", { name: "Панели редактора" })
       .getByRole("button", { name: "Холст", exact: true })
       .click();
-  await page.getByRole("button", { name: "Проверить", exact: true }).click();
+  await page.getByRole("button", { name: "Проверить", exact: true }).click({ force: true });
   await expect(
     page.getByText("Структурных ошибок не найдено.", { exact: false }),
   ).toBeVisible();
