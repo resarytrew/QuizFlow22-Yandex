@@ -92,9 +92,9 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
       .getByRole("button", { name: "Холст", exact: true })
       .click();
   await page.getByRole("button", { name: "Проверить", exact: true }).click({ force: true });
-  await expect(
-    page.getByText("Структурных ошибок не найдено.", { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Проверка схемы" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Проверка схемы" })).toBeVisible();
+  await page.getByRole("button", { name: "Закрыть проверку", exact: true }).click();
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.locator('.react-flow__node')).toHaveCount(4);
   expect(
