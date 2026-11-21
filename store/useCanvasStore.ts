@@ -20,6 +20,7 @@ import {
   CustomNodeType,
   EffectOp,
   EdgeData,
+  DesignSettings,
 } from '../types';
 import { useUIStore } from './useUIStore';
 import { storeEvents } from './storeEvents';
@@ -32,6 +33,8 @@ export type EditorSelection = {
   selectedNodeIds: string[];
   selectedEdgeIds: string[];
 };
+
+type HistoryEntry = { nodes: Node<NodeData>[]; edges: Edge[] } | { designBefore: DesignSettings; designAfter: DesignSettings };
 
 export interface CanvasStoreState {
   nodes: Node<NodeData>[];
@@ -48,6 +51,7 @@ export interface CanvasStoreState {
   updateEdgeData: (id: string, patch: Partial<EdgeData>) => void;
   clearCanvas: () => void;
   collapseVariableChainToEffects: (edgeId: string) => void;
+  alignSelectedNodes: (mode: "left" | "center" | "top" | "middle") => void;
 
   applyGraph: (nodes: Node<NodeData>[], edges: Edge[]) => void;
 
@@ -78,7 +82,8 @@ export interface CanvasStoreState {
   rememberViewport: (viewport: Viewport) => void;
 
   // History
-  history: { past: { nodes: Node<NodeData>[]; edges: Edge[] }[]; future: { nodes: Node<NodeData>[]; edges: Edge[] }[] };
+  history: { past: HistoryEntry[]; future: HistoryEntry[] };
+  recordDesignChange: (before: DesignSettings, after: DesignSettings) => void;
   takeSnapshot: () => void;
   undo: () => void;
   redo: () => void;
@@ -197,14 +202,14 @@ const createInitialState = () => ({
   isCanvasLoading: false,
   viewport: null as Viewport | null,
   history: { past: [], future: [] } as {
-    past: { nodes: Node<NodeData>[]; edges: Edge[] }[];
-    future: { nodes: Node<NodeData>[]; edges: Edge[] }[];
+    past: HistoryEntry[];
+    future: HistoryEntry[];
   },
 });
 
 export const useCanvasStore = create<CanvasStoreState>((set, get) => {
-  // Closure-stored timer for debounced snapshots
-  let updateNodeDataTimer: ReturnType<typeof setTimeout> | null = null;
+  // Consecutive edits of the same field share a single pre-change snapshot.
+  let lastNodeEdit: { key: string; time: number } | null = null;
 
   return {
     ...createInitialState(),
@@ -267,6 +272,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     setNodes: (nodesOrFn) => {
+      lastNodeEdit = null;
       set((state) => {
         const nodes =
           typeof nodesOrFn === 'function' ? nodesOrFn(state.nodes) : nodesOrFn;
@@ -275,6 +281,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     setEdges: (edgesOrFn) => {
+      lastNodeEdit = null;
       set((state) => {
         const edges = typeof edgesOrFn === 'function'
           ? edgesOrFn(state.edges)
@@ -304,35 +311,35 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     updateNodeData: (id, data) => {
+      const node = get().nodes.find((item) => item.id === id);
+      if (!node || Object.entries(data).every(([key, value]) => Object.is((node.data as Record<string, unknown>)[key], value))) return;
+      const key = `${id}:${Object.keys(data).sort().join(',')}`;
+      const now = Date.now();
+      const isTextEdit = Object.keys(data).length === 1 && typeof Object.values(data)[0] === 'string';
+      if (!isTextEdit || !lastNodeEdit || lastNodeEdit.key !== key || now - lastNodeEdit.time > 500) {
+        get().takeSnapshot();
+      }
+      lastNodeEdit = isTextEdit ? { key, time: now } : null;
       set((state) => {
-        const nodes = state.nodes.map((node) =>
-          node.id === id
-            ? { ...node, data: { ...node.data, ...data } }
-            : node
-        );
+        const nodes = state.nodes.map((item) => item.id === id
+          ? { ...item, data: { ...item.data, ...data } } : item);
         return selectionUpdate(state, state.selection, nodes, state.edges);
       });
-
-      if (updateNodeDataTimer) clearTimeout(updateNodeDataTimer);
-      updateNodeDataTimer = setTimeout(() => {
-        get().takeSnapshot();
-        updateNodeDataTimer = null;
-      }, 500);
     },
 
     updateEdgeData: (id, patch) => {
+      const edge = get().edges.find((item) => item.id === id);
+      if (!edge || Object.entries(patch).every(([key, value]) => Object.is((edge.data || {})[key], value))) return;
+      get().takeSnapshot();
       set((state) => {
-        const edges = state.edges.map((edge) =>
-          edge.id === id
-            ? { ...edge, data: { ...(edge.data || {}), ...(patch || {}) } }
-            : edge
-        );
+        const edges = state.edges.map((item) => item.id === id
+          ? { ...item, data: { ...(item.data || {}), ...patch } } : item);
         return selectionUpdate(state, state.selection, state.nodes, edges);
       });
-      get().takeSnapshot();
     },
 
     clearCanvas: () => {
+      lastNodeEdit = null;
       const init = createInitialState();
       set({
         nodes: init.nodes,
@@ -428,13 +435,13 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
       const nextNodes = nodes.filter((n) => !nodesToDelete.includes(n.id));
 
+      get().takeSnapshot();
       set((state) => selectionUpdate(
         state,
         state.selection,
         nextNodes,
         nextEdges,
       ));
-      get().takeSnapshot();
     },
 
     selectSingleNode: (nodeId) =>
@@ -512,6 +519,32 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
         });
       }),
 
+    alignSelectedNodes: (mode) => {
+      const selectedIds = new Set(get().selection.selectedNodeIds);
+      const selected = get().nodes.filter(node => selectedIds.has(node.id));
+      if (selected.length < 2) return;
+      get().takeSnapshot();
+      const first = selected[0];
+      const width = (node: Node<NodeData>) => (node as Node<NodeData> & { measured?: { width?: number; height?: number } }).measured?.width ?? node.width ?? 180;
+      const height = (node: Node<NodeData>) => (node as Node<NodeData> & { measured?: { width?: number; height?: number } }).measured?.height ?? node.height ?? 80;
+      const left = Math.min(...selected.map(node => node.position.x));
+      const top = Math.min(...selected.map(node => node.position.y));
+      const right = Math.max(...selected.map(node => node.position.x + width(node)));
+      const bottom = Math.max(...selected.map(node => node.position.y + height(node)));
+      const centerX = (left + right) / 2;
+      const centerY = (top + bottom) / 2;
+      const ids = new Set(selected.map(node => node.id));
+      set(state => ({ nodes: state.nodes.map(node => {
+        if (!ids.has(node.id)) return node;
+        const next = { ...node.position };
+        if (mode === "left") next.x = left;
+        if (mode === "center") next.x = centerX - width(node) / 2;
+        if (mode === "top") next.y = top;
+        if (mode === "middle") next.y = centerY - height(node) / 2;
+        return { ...node, position: next };
+      }) }));
+    },
+
     updateBoardSettings: (settings) =>
       set((state) => ({ boardSettings: { ...state.boardSettings, ...settings } })),
     toggleCanvasLock: () =>
@@ -522,6 +555,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
 
     // History — debounce already protects from excessive snapshots
     takeSnapshot: () => {
+      lastNodeEdit = null;
       const { nodes, edges, history } = get();
       const snapshot = {
         nodes: structuredClone(nodes),
@@ -531,10 +565,23 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       set({ history: { past: newPast, future: [] } });
     },
 
+    recordDesignChange: (before, after) => {
+      lastNodeEdit = null;
+      const { history } = get();
+      const entry = structuredClone({ designBefore: before, designAfter: after });
+      set({ history: { past: [...history.past, entry].slice(-50), future: [] } });
+    },
+
     undo: () => {
+      lastNodeEdit = null;
       const { history, nodes, edges } = get();
       if (history.past.length === 0) return;
       const previous = history.past[history.past.length - 1];
+      if ('designBefore' in previous) {
+        set({ history: { past: history.past.slice(0, -1), future: [previous, ...history.future] } });
+        storeEvents.emit('DESIGN_HISTORY_RESTORE', structuredClone(previous.designBefore));
+        return;
+      }
       const restored = projectSelection(
         structuredClone(previous.nodes),
         structuredClone(previous.edges),
@@ -552,9 +599,15 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     redo: () => {
+      lastNodeEdit = null;
       const { history, nodes, edges } = get();
       if (history.future.length === 0) return;
       const next = history.future[0];
+      if ('designBefore' in next) {
+        set({ history: { past: [...history.past, next].slice(-50), future: history.future.slice(1) } });
+        storeEvents.emit('DESIGN_HISTORY_RESTORE', structuredClone(next.designAfter));
+        return;
+      }
       const newFuture = history.future.slice(1);
       const restored = projectSelection(
         structuredClone(next.nodes),
@@ -573,10 +626,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
     },
 
     reset: () => {
-      if (updateNodeDataTimer) {
-        clearTimeout(updateNodeDataTimer);
-        updateNodeDataTimer = null;
-      }
+      lastNodeEdit = null;
       set(createInitialState());
     },
   };

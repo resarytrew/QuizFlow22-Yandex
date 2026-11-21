@@ -26,8 +26,10 @@
     "build:api-router": "npm run build:router",
     "build:cron-cleanup": "npm run build:cron",
     "build:seo": "esbuild public-quiz-seo/index.ts --bundle --minify --platform=node --target=node22 --outfile=dist/public-quiz-seo/index.js",
-    "test:integration": "vitest run --environment node integration",
-    "build:admin-migration": "esbuild deploy/admin-migration.ts --bundle --platform=node --target=node22 --outfile=dist/admin-migration/index.cjs && node -e \"for(const v of ['004_admin_stabilization','005_admin_workspace','006_gallery_moderation','007_editor_versions']) require('fs').copyFileSync('migrations/'+v+'.sql','dist/admin-migration/'+v+'.sql')\""
+    "test:integration": "vitest run --environment node integration --exclude \"integration/ai-quota.test.ts\" --exclude \"integration/results.test.ts\"",
+    "build:admin-migration": "esbuild deploy/admin-migration.ts --bundle --platform=node --target=node22 --outfile=dist/admin-migration/index.cjs && node -e \"for(const v of ['004_admin_stabilization','005_admin_workspace','006_gallery_moderation','007_editor_versions']) require('fs').copyFileSync('migrations/'+v+'.sql','dist/admin-migration/'+v+'.sql')\"",
+    "test:ai-quota:integration": "vitest run --environment node integration/ai-quota.test.ts",
+    "test:results:integration": "vitest run --environment node integration/results.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",

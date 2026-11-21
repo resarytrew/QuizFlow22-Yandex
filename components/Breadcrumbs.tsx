@@ -9,7 +9,7 @@ const Breadcrumbs: React.FC = React.memo(() => {
     const currentGroup = useUIStore(s => s.currentGroup);
     const setCurrentGroup = useUIStore(s => s.setCurrentGroup);
     const selectSingleNode = useCanvasStore(s => s.selectSingleNode);
-    const toggleSettingsPanel = useUIStore(s => s.toggleSettingsPanel);
+    const openSettingsPanel = useUIStore(s => s.openSettingsPanel);
     const { getNodes } = useReactFlow();
     
     const path = useMemo(() => {
@@ -32,7 +32,7 @@ const Breadcrumbs: React.FC = React.memo(() => {
     
     const handleEditGroup = (node: Node<NodeData>) => {
         selectSingleNode(node.id);
-        toggleSettingsPanel(); // Open settings for this group
+        openSettingsPanel();
     };
 
     const navigateToGroup = (groupId: string | null) => {

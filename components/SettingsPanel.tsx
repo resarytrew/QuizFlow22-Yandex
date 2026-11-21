@@ -1,14 +1,12 @@
-import { NodeInspector } from './QuizEditor/NodeInspector';
-
 import React, { useMemo } from 'react';
 import type { Node } from 'reactflow';
 import { selectPrimarySelectedNode, useCanvasStore } from '../store/useCanvasStore.ts';
 import { useUIStore } from '../store/useUIStore.ts';
-import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData, ScreenQuizIntroTiming, ScreenQuizLayout, ScreenQuizTimelineMode, ImportantTalksInteractionContent } from '../types.ts';
-import DesignPanel from './DesignPanel.tsx';
-import toast from 'react-hot-toast';
+import { CustomNodeType, NodeData, QuestionNodeData, Answer, ResultNodeData, ScoreNodeData, VariableNodeData, ConditionNodeData, CollectInfoNodeData, FormField, FeedbackNodeData, GoToNodeData, TimerNodeData, TimelineNodeData, TimelineEvent, MatchingNodeData, MatchColumnItem, MatchPair, TextInputNodeData, InfoNodeData, AchievementNodeData, MultipleChoiceNodeData, AllocatorNodeData, GroupNodeData, FormulaNodeData, NodeSoundSettings, AllocatorItem, ProgressionNodeData, RankRule, Requirement, DialogueNodeData } from '../types.ts';
 import { getRutubeId } from '../utils/videoUtils.ts';
 import { parseMarkdown } from '../utils/parseText.ts';
+import { createId } from '../utils/createId';
+import { NumericInput } from './settings/ui/NumericInput';
 
 type UpdateNodeData = (id: string, data: Partial<NodeData>) => void;
 
@@ -20,13 +18,6 @@ const TRUE_FALSE_LABELS: Record<TrueFalseCorrectAnswer, string> = {
 };
 
 const normalizeAnswerText = (value: string | undefined): string => String(value || '').trim().toLowerCase();
-
-const parseOptionalNumber = (value: string, min: number, max: number, fallback: number): number | undefined => {
-    if (value === '') return undefined;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) return fallback;
-    return Math.max(min, Math.min(max, parsed));
-};
 
 function useDerivedNodes<T>(compute: (nodes: Node<NodeData>[]) => T, isEqual: (a: T, b: T) => boolean): T {
     const computeRef = React.useRef(compute);
@@ -143,88 +134,6 @@ const Checkbox = ({ label, ...props }: React.InputHTMLAttributes<HTMLInputElemen
 
 const HelperText = ({ children }: { children?: React.ReactNode }) => (
     <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200/75 p-2.5 rounded-lg">{children}</p>
-);
-
-const ImportantTalksInteractionSettings = ({
-    timer,
-    content,
-    updateTimer,
-    updateContent,
-    includeTimer = true,
-}: {
-    timer?: number;
-    content: ImportantTalksInteractionContent;
-    updateTimer: (timer: number | undefined) => void;
-    updateContent: (patch: Partial<ImportantTalksInteractionContent>) => void;
-    includeTimer?: boolean;
-}) => (
-    <SettingsSection title="Фидбэк и таймер «Разговоров о важном»">
-        <HelperText>Эти параметры действуют только в тематическом шаблоне. После ответа участник увидит объяснение и сам продолжит прохождение.</HelperText>
-        {includeTimer && (
-            <>
-                <Checkbox
-                    label="Включить таймер на этом экране"
-                    checked={Boolean(timer && timer > 0)}
-                    onChange={event => updateTimer(event.target.checked ? 30 : undefined)}
-                />
-                {Boolean(timer && timer > 0) && (
-                    <Input
-                        label="Время на ответ, секунд"
-                        type="number"
-                        min="1"
-                        max="3600"
-                        value={timer ?? 30}
-                        onChange={event => updateTimer(parseOptionalNumber(event.target.value, 1, 3600, 30))}
-                    />
-                )}
-            </>
-        )}
-        <Input
-            label="Заголовок правильного ответа"
-            value={content.correctTitle ?? ''}
-            onChange={event => updateContent({ correctTitle: event.target.value })}
-            placeholder="Вы зажгли искру добра"
-        />
-        <Textarea
-            label="Пояснение правильного ответа"
-            value={content.correctText ?? ''}
-            onChange={event => updateContent({ correctText: event.target.value })}
-            rows={2}
-            placeholder="Почему этот ответ важен"
-        />
-        <Input
-            label="Заголовок неверного ответа"
-            value={content.incorrectTitle ?? ''}
-            onChange={event => updateContent({ incorrectTitle: event.target.value })}
-            placeholder="Посмотрите на ситуацию ещё раз"
-        />
-        <Textarea
-            label="Пояснение неверного ответа"
-            value={content.incorrectText ?? ''}
-            onChange={event => updateContent({ incorrectText: event.target.value })}
-            rows={2}
-            placeholder="Подсказка без раскрытия ответа"
-        />
-        <Input
-            label="Заголовок по окончании времени"
-            value={content.timeoutTitle ?? ''}
-            onChange={event => updateContent({ timeoutTitle: event.target.value })}
-            placeholder="Продолжим размышление"
-        />
-        <Textarea
-            label="Текст по окончании времени"
-            value={content.timeoutText ?? ''}
-            onChange={event => updateContent({ timeoutText: event.target.value })}
-            rows={2}
-            placeholder="Можно двигаться дальше — важные ответы иногда приходят не сразу"
-        />
-        <Input
-            label="Текст кнопки фидбэка"
-            value={content.feedbackButtonText ?? ''}
-            onChange={event => updateContent({ feedbackButtonText: event.target.value })}
-            placeholder="Продолжить"
-        />
-    </SettingsSection>
 );
 
 const MarkdownPreview = ({ text }: { text?: string }) => {
@@ -565,15 +474,7 @@ const FormulaSettings = React.memo(({ node, update }: { node: Node<FormulaNodeDa
             
             <SettingsSection title="Настройки результата">
                 <div className="grid grid-cols-2 gap-4">
-                    <Input 
-                        label="Округление (знаков)" 
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={data.decimalPlaces !== undefined ? data.decimalPlaces : ''} 
-                        onChange={e => update(id, { decimalPlaces: e.target.value === '' ? undefined : parseInt(e.target.value) })} 
-                        placeholder="0"
-                    />
+                    <NumericInput label="Округление (знаков)" min={0} max={10} optional value={data.decimalPlaces} onCommit={decimalPlaces => update(id, { decimalPlaces })} />
                 </div>
                  <HelperText>
                     Поддерживаются функции math.js: sin, cos, log, e, pi и другие. Используйте точку для дробей (3.14).
@@ -588,7 +489,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
     const { levelVar = 'rankLevel', nameVar = 'rankName' } = data;
     const rules: RankRule[] = data.rules ?? [];
 
-    const generateId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const generateId = () => createId('id');
 
     const addRule = () => {
         const newRule: RankRule = { 
@@ -647,15 +548,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                         <button onClick={() => removeRule(ruleIdx)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500">×</button>
                         <div className="flex gap-2">
                              <div className="w-1/4">
-                                <label className="text-[10px] font-bold text-gray-500">LVL</label>
-                                <input 
-                                    id={`rank-rule-level-${id}-${ruleIdx}`}
-                                    name={`rank-rule-level-${id}-${ruleIdx}`}
-                                    type="number" 
-                                    className="w-full p-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
-                                    value={rule.level} 
-                                    onChange={e => updateRule(ruleIdx, { level: parseInt(e.target.value) })} 
-                                />
+                                <NumericInput label={`Уровень ${ruleIdx + 1}`} value={rule.level} onCommit={value => { if (value !== undefined) updateRule(ruleIdx, { level: value }); }} />
                              </div>
                              <div className="flex-1">
                                 <label className="text-[10px] font-bold text-gray-600">Название</label>
@@ -698,14 +591,7 @@ const ProgressionSettings = React.memo(({ node, update }: { node: Node<Progressi
                                         />
                                     )}
                                     
-                                    <input 
-                                        id={`rank-rule-requirement-value-${id}-${ruleIdx}-${reqIdx}`}
-                                        name={`rank-rule-requirement-value-${id}-${ruleIdx}-${reqIdx}`}
-                                        type="number" 
-                                        className="text-xs border border-slate-200 rounded-lg p-2 w-16 bg-slate-50 text-gray-800 focus:outline-none focus:border-indigo-500" 
-                                        value={req.value} 
-                                        onChange={e => updateRequirement(ruleIdx, reqIdx, { value: parseInt(e.target.value) })} 
-                                    />
+                                    <NumericInput label={`Значение условия ${reqIdx + 1}`} value={req.value} integer={false} onCommit={value => { if (value !== undefined) updateRequirement(ruleIdx, reqIdx, { value }); }} />
 
                                     <button onClick={() => removeRequirement(ruleIdx, reqIdx)} className="text-red-400 hover:text-red-600">×</button>
                                 </div>
@@ -724,8 +610,6 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
     const { id, data } = node;
     const { question = '', timer } = data;
     const answers: Answer[] = data.answers ?? [];
-    const screenQuiz = data.screenQuiz || {};
-    const importantTalks = data.importantTalks || {};
     const isTrueFalseQuestion =
         answers.length === 2 &&
         normalizeAnswerText(answers[0]?.text) === normalizeAnswerText(TRUE_FALSE_LABELS.true) &&
@@ -747,7 +631,7 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
     };
 
     const addAnswer = () => {
-        const newAnswer: Answer = { id: `ans-${Date.now()}`, text: `Ответ ${answers.length + 1}` };
+        const newAnswer: Answer = { id: createId('ans'), text: `Ответ ${answers.length + 1}` };
         update(id, { answers: [...answers, newAnswer] });
     };
 
@@ -777,27 +661,10 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 { id: falseId, text: TRUE_FALSE_LABELS.false, isCorrect: correct === 'false' },
             ],
             correctAnswer,
-            screenQuiz: {
-                ...screenQuiz,
-                layout: 'question-only',
-            },
         });
     };
 
-    const updateScreenQuiz = (patch: Partial<NonNullable<QuestionNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            const typedKey = key as keyof typeof next;
-            if (next[typedKey] === undefined || next[typedKey] === null || next[typedKey] === '') {
-                delete next[typedKey];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
 
-    const updateImportantTalks = (patch: Partial<NonNullable<QuestionNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
 
     const handleTimerToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -814,12 +681,6 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={4} />
                 <UrlInput label="URL изображения (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} placeholder="https://example.com/image.png" />
                 <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
-                <Input
-                    label="Подсказка над ответами для «Разговоров о важном»"
-                    value={importantTalks.instruction ?? ''}
-                    onChange={e => updateImportantTalks({ instruction: e.target.value })}
-                    placeholder="Выберите один ответ"
-                />
             </SettingsSection>
             <SettingsSection title="Фон узла">
                 <UrlInput
@@ -911,121 +772,13 @@ const QuestionSettings = React.memo(({ node, update }: { node: Node<QuestionNode
                     Добавить ответ
                 </button>
             </SettingsSection>
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Эти параметры применяются только к этому экрану. Значение "Наследовать" берет настройку из глобального дизайна шаблона.</HelperText>
-                <Select
-                    label="Композиция этого экрана"
-                    value={screenQuiz.layout || 'inherit'}
-                    onChange={e => updateScreenQuiz({ layout: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizLayout })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="media-right">Медиа справа</option>
-                    <option value="media-left">Медиа слева</option>
-                    <option value="media-top">Медиа сверху</option>
-                    <option value="image-grid">Сетка изображений</option>
-                    <option value="question-only">Только вопрос</option>
-                    <option value="hero-media">Большое медиа</option>
-                </Select>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
-                    placeholder="Наследовать"
-                />
-                <Select
-                    label="Показ перед таймером"
-                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Включить</option>
-                    <option value="hide">Выключить</option>
-                </Select>
-                <Select
-                    label="Темп озвучивания"
-                    value={screenQuiz.introTiming || 'inherit'}
-                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="fast">Быстро</option>
-                    <option value="calm">Спокойно</option>
-                    <option value="manual">Ручной</option>
-                </Select>
-                <Select
-                    label="Режим монтажной ленты"
-                    value={screenQuiz.timelineMode || 'inherit'}
-                    onChange={e => updateScreenQuiz({ timelineMode: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizTimelineMode })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто по шоу-ритму</option>
-                    <option value="timeline">Ручная монтажная лента</option>
-                </Select>
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Раскрытие ответа, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
-            </SettingsSection>
             <SettingsSection title="Таймер">
                 <HelperText>Если время выйдет, произойдет переход по красной точке выхода внизу узла.</HelperText>
                 <Checkbox label="Включить таймер на ответ" checked={!!timer && timer > 0} onChange={handleTimerToggle} />
                 {timer !== undefined && timer > 0 && (
-                    <Input
-                        label="Время на ответ (сек)"
-                        type="number"
-                        value={timer || 0}
-                        onChange={e => update(id, { timer: parseInt(e.target.value) || 0 })}
-                        min="1"
-                    />
+                    <NumericInput label="Время на ответ (сек)" min={1} value={timer} onCommit={value => { if (value !== undefined) update(id, { timer: value }); }} />
                 )}
             </SettingsSection>
-            <ImportantTalksInteractionSettings
-                timer={timer}
-                content={importantTalks}
-                updateTimer={nextTimer => update(id, { timer: nextTimer })}
-                updateContent={updateImportantTalks}
-                includeTimer={false}
-            />
-            <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
@@ -1048,8 +801,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
     const { question = '' } = data;
     const answers: Answer[] = data.answers ?? [];
     const correctOptions: string[] = data.correctOptions ?? [];
-    const screenQuiz = data.screenQuiz || {};
-    const importantTalks = data.importantTalks || {};
 
     const correctCount = correctOptions.length;
     const totalAnswers = answers.length;
@@ -1065,7 +816,7 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
     };
 
     const addAnswer = () => {
-        const newAnswer: Answer = { id: `opt-${Date.now()}`, text: `Вариант ${answers.length + 1}` };
+        const newAnswer: Answer = { id: createId('opt'), text: `Вариант ${answers.length + 1}` };
         update(id, { answers: [...answers, newAnswer] });
     };
 
@@ -1083,20 +834,7 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
         update(id, { correctOptions: newCorrectOptions });
     };
 
-    const updateScreenQuiz = (patch: Partial<NonNullable<MultipleChoiceNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            const typedKey = key as keyof typeof next;
-            if (next[typedKey] === undefined || next[typedKey] === null || next[typedKey] === '') {
-                delete next[typedKey];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
 
-    const updateImportantTalks = (patch: Partial<NonNullable<MultipleChoiceNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
 
     // Генерация превью выходов
     const outputsPreview = useMemo(() => {
@@ -1141,12 +879,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                     value={data.videoUrl || ''} 
                     onChange={e => update(id, { videoUrl: e.target.value })} 
                     placeholder="https://.../video.mp4"
-                />
-                <Input
-                    label="Подсказка для «Разговоров о важном»"
-                    value={importantTalks.hint ?? ''}
-                    onChange={e => updateImportantTalks({ hint: e.target.value })}
-                    placeholder="Можно выбрать несколько вариантов"
                 />
             </SettingsSection>
 
@@ -1304,100 +1036,6 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                 </div>
             )}
 
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Эти параметры применяются только к этому экрану множественного выбора. Значение "Наследовать" берет настройку из глобального дизайна шаблона.</HelperText>
-                <Select
-                    label="Композиция этого экрана"
-                    value={screenQuiz.layout || 'inherit'}
-                    onChange={e => updateScreenQuiz({ layout: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizLayout })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="media-right">Медиа справа</option>
-                    <option value="media-left">Медиа слева</option>
-                    <option value="media-top">Медиа сверху</option>
-                    <option value="image-grid">Сетка изображений</option>
-                    <option value="question-only">Только вопрос</option>
-                    <option value="hero-media">Большое медиа</option>
-                </Select>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: e.target.value === '' ? undefined : Math.max(5, Math.min(180, parseInt(e.target.value, 10) || 30)) })}
-                    placeholder="Наследовать"
-                />
-                <Select
-                    label="Показ перед таймером"
-                    value={screenQuiz.introEnabled === undefined ? 'inherit' : screenQuiz.introEnabled ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ introEnabled: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Включить</option>
-                    <option value="hide">Выключить</option>
-                </Select>
-                <Select
-                    label="Темп озвучивания"
-                    value={screenQuiz.introTiming || 'inherit'}
-                    onChange={e => updateScreenQuiz({ introTiming: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizIntroTiming })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто</option>
-                    <option value="fast">Быстро</option>
-                    <option value="calm">Спокойно</option>
-                    <option value="manual">Ручной</option>
-                </Select>
-                <Select
-                    label="Режим монтажной ленты"
-                    value={screenQuiz.timelineMode || 'inherit'}
-                    onChange={e => updateScreenQuiz({ timelineMode: e.target.value === 'inherit' ? undefined : e.target.value as ScreenQuizTimelineMode })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="auto">Авто по шоу-ритму</option>
-                    <option value="timeline">Ручная монтажная лента</option>
-                </Select>
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Раскрытие ответа, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
-            </SettingsSection>
 
             {/* Кнопка */}
             <SettingsSection title="Кнопка">
@@ -1409,22 +1047,11 @@ const MultipleChoiceSettings = React.memo(({ node, update }: { node: Node<Multip
                 />
             </SettingsSection>
 
-            <ImportantTalksInteractionSettings
-                timer={data.timer}
-                content={importantTalks}
-                updateTimer={nextTimer => update(id, { timer: nextTimer })}
-                updateContent={updateImportantTalks}
-            />
-            <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
 const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
-    const importantTalks = data.importantTalks || {};
-    const updateImportantTalks = (patch: Partial<NonNullable<ResultNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
     return (
         <div className="space-y-8">
             <SettingsSection title="Настройки результата">
@@ -1440,46 +1067,12 @@ const ResultSettings = React.memo(({ node, update }: { node: Node<ResultNodeData
                     placeholder="Пройти ещё раз"
                 />
             </SettingsSection>
-            <SettingsSection title="Экран результата «Разговоров о важном»">
-                <Input
-                    label="Надзаголовок"
-                    value={importantTalks.kicker ?? ''}
-                    onChange={e => updateImportantTalks({ kicker: e.target.value })}
-                    placeholder="Важный разговор завершён"
-                />
-                <Input
-                    label="Заголовок итогового сообщения"
-                    value={importantTalks.insightTitle ?? ''}
-                    onChange={e => updateImportantTalks({ insightTitle: e.target.value })}
-                    placeholder="Искры добра"
-                />
-            </SettingsSection>
-            <NodeSoundSettingsSection node={node} update={update} />
         </div>
     );
 });
 
 const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
-    const screenQuiz = data.screenQuiz || {};
-    const importantTalks = data.importantTalks || {};
-    const importantTalksAgendaItems = importantTalks.agendaItems || [
-        '6 заданий',
-        'проверка знаний',
-        'полезные размышления',
-    ];
-    const updateScreenQuiz = (patch: Partial<NonNullable<InfoNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            if (next[key as keyof typeof next] === undefined) {
-                delete next[key as keyof typeof next];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
-    const updateImportantTalks = (patch: Partial<NonNullable<InfoNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
 
     return (
         <div className="space-y-8">
@@ -1491,27 +1084,6 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                 <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
             </SettingsSection>
-            <SettingsSection title="Сцена «Разговоры о важном»">
-                <HelperText>Эти поля используются в правом блоке информационной сцены одноимённого шаблона.</HelperText>
-                <Input
-                    label="Заголовок списка"
-                    value={importantTalks.agendaTitle ?? ''}
-                    onChange={e => updateImportantTalks({ agendaTitle: e.target.value })}
-                    placeholder="Что вас ждёт"
-                />
-                {importantTalksAgendaItems.map((item, index) => (
-                    <Input
-                        key={index}
-                        label={`Пункт ${index + 1}`}
-                        value={item}
-                        onChange={e => {
-                            const nextItems = [...importantTalksAgendaItems];
-                            nextItems[index] = e.target.value;
-                            updateImportantTalks({ agendaItems: nextItems });
-                        }}
-                    />
-                ))}
-            </SettingsSection>
             <SettingsSection title="Фон узла">
                 <UrlInput
                     label="URL фонового изображения"
@@ -1520,59 +1092,7 @@ const InfoSettings = React.memo(({ node, update }: { node: Node<InfoNodeData>, u
                     placeholder="Переопределить глобальный фон"
                 />
             </SettingsSection>
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Локальные настройки этого информационного экрана в шаблоне "Экранная викторина".</HelperText>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: parseOptionalNumber(e.target.value, 5, 180, 30) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Пауза после сцены, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
-            </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -1596,7 +1116,7 @@ const ScoreSettings = React.memo(({ node, update }: { node: Node<ScoreNodeData>,
                 <option value="subtract">Вычесть</option>
                 <option value="set">Установить</option>
             </Select>
-            <Input label="Значение" type="number" value={data.value || 0} onChange={e => update(id, { value: parseInt(e.target.value, 10) })} />
+            <NumericInput label="Значение" value={data.value ?? 0} onCommit={value => { if (value !== undefined) update(id, { value }); }} />
         </SettingsSection>
     );
 });
@@ -1679,13 +1199,7 @@ const TimerSettings = React.memo(({ node, update }: { node: Node<TimerNodeData>,
 
     return (
         <SettingsSection title="Настройки таймера">
-            <Input
-                label="Задержка (сек)"
-                type="number"
-                value={data.duration || 0}
-                onChange={e => update(id, { duration: parseInt(e.target.value) || 0 })}
-                min="0"
-            />
+            <NumericInput label="Задержка (сек)" min={0} value={data.duration ?? 0} onCommit={value => { if (value !== undefined) update(id, { duration: value }); }} />
             <Select
                 label="Действие после задержки"
                 value={data.action || 'goToNext'}
@@ -1725,7 +1239,7 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
     };
 
     const addField = () => {
-        const newField: FormField = { id: `field-${Date.now()}`, label: 'Новое поле', type: 'text', variableName: 'newVar' };
+        const newField: FormField = { id: createId('field'), label: 'Новое поле', type: 'text', variableName: 'newVar' };
         update(id, { fields: [...fields, newField] });
     };
 
@@ -1767,16 +1281,6 @@ const CollectInfoSettings = React.memo(({ node, update }: { node: Node<CollectIn
 
 const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
-    const screenQuiz = data.screenQuiz || {};
-    const updateScreenQuiz = (patch: Partial<NonNullable<FeedbackNodeData['screenQuiz']>>) => {
-        const next = { ...screenQuiz, ...patch };
-        Object.keys(next).forEach((key) => {
-            if (next[key as keyof typeof next] === undefined) {
-                delete next[key as keyof typeof next];
-            }
-        });
-        update(id, { screenQuiz: Object.keys(next).length > 0 ? next : undefined });
-    };
 
     return (
         <div className="space-y-8">
@@ -1787,59 +1291,7 @@ const FeedbackSettings = React.memo(({ node, update }: { node: Node<FeedbackNode
                 <UrlInput label="Видеофайл из медиатеки" value={data.videoUrl || ''} onChange={e => update(id, { videoUrl: e.target.value })} placeholder="https://.../video.mp4" />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Далее" />
             </SettingsSection>
-            <SettingsSection title="Экранная викторина">
-                <HelperText>Локальные настройки этого экрана обратной связи в шаблоне "Экранная викторина".</HelperText>
-                <Select
-                    label="Таймер на этом экране"
-                    value={screenQuiz.showTimer === undefined ? 'inherit' : screenQuiz.showTimer ? 'show' : 'hide'}
-                    onChange={e => updateScreenQuiz({ showTimer: e.target.value === 'inherit' ? undefined : e.target.value === 'show' })}
-                >
-                    <option value="inherit">Наследовать</option>
-                    <option value="show">Показать</option>
-                    <option value="hide">Скрыть</option>
-                </Select>
-                <Input
-                    label="Длительность таймера, сек"
-                    type="number"
-                    min="5"
-                    max="180"
-                    value={screenQuiz.timerSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ timerSeconds: parseOptionalNumber(e.target.value, 5, 180, 30) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Удержание перед таймером, сек"
-                    type="number"
-                    min="0"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.holdSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ holdSeconds: parseOptionalNumber(e.target.value, 0, 8, 1.2) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Пауза после сцены, сек"
-                    type="number"
-                    min="0.3"
-                    max="8"
-                    step="0.1"
-                    value={screenQuiz.revealSeconds ?? ''}
-                    onChange={e => updateScreenQuiz({ revealSeconds: parseOptionalNumber(e.target.value, 0.3, 8, 1.4) })}
-                    placeholder="Наследовать"
-                />
-                <Input
-                    label="Переход, мс"
-                    type="number"
-                    min="80"
-                    max="2000"
-                    step="20"
-                    value={screenQuiz.transitionMs ?? ''}
-                    onChange={e => updateScreenQuiz({ transitionMs: parseOptionalNumber(e.target.value, 80, 2000, 340) })}
-                    placeholder="Наследовать"
-                />
-            </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -1847,11 +1299,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
     const { id, data } = node;
     const { question = '' } = data;
     const events: TimelineEvent[] = data.events ?? [];
-    const importantTalks = data.importantTalks || {};
 
-    const updateImportantTalks = (patch: Partial<NonNullable<TimelineNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
 
     const handleEventTextChange = (index: number, text: string) => {
         const newEvents = [...events];
@@ -1860,7 +1308,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
     };
 
     const addEvent = () => {
-        const newEvent: TimelineEvent = { id: `evt-${Date.now()}`, text: `Событие ${events.length + 1}` };
+        const newEvent: TimelineEvent = { id: createId('evt'), text: `Событие ${events.length + 1}` };
         update(id, { events: [...events, newEvent] });
     };
 
@@ -1883,12 +1331,6 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={3} />
                 <UrlInput label="Картинка (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} />
-                <Input
-                    label="Подсказка для «Разговоров о важном»"
-                    value={importantTalks.hint ?? ''}
-                    onChange={e => updateImportantTalks({ hint: e.target.value })}
-                    placeholder="Переместите карточки в правильном порядке"
-                />
             </SettingsSection>
             <SettingsSection title="События (в правильном порядке)">
                 <div className="space-y-2">
@@ -1920,14 +1362,7 @@ const TimelineSettings = React.memo(({ node, update }: { node: Node<TimelineNode
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Проверить" />
             </SettingsSection>
-            <ImportantTalksInteractionSettings
-                timer={data.timer}
-                content={importantTalks}
-                updateTimer={nextTimer => update(id, { timer: nextTimer })}
-                updateContent={updateImportantTalks}
-            />
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -1937,11 +1372,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     const leftColumn: MatchColumnItem[] = data.leftColumn ?? [];
     const rightColumn: MatchColumnItem[] = data.rightColumn ?? [];
     const correctPairs: MatchPair[] = data.correctPairs ?? [];
-    const importantTalks = data.importantTalks || {};
 
-    const updateImportantTalks = (patch: Partial<NonNullable<MatchingNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
 
     const handleColumnChange = (columnIndex: 'leftColumn' | 'rightColumn', itemIndex: number, prop: 'text' | 'imageUrl', value: string) => {
         const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
@@ -1954,7 +1385,7 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
     const addColumnItem = (columnIndex: 'leftColumn' | 'rightColumn') => {
         const prefix = columnIndex === 'leftColumn' ? 'l' : 'r';
         const column = columnIndex === 'leftColumn' ? leftColumn : rightColumn;
-        const newItem: MatchColumnItem = { id: `${prefix}-${Date.now()}`, text: `Элемент ${column.length + 1}`, imageUrl: '' };
+        const newItem: MatchColumnItem = { id: createId(prefix), text: `Элемент ${column.length + 1}`, imageUrl: '' };
         update(id, { [columnIndex]: [...column, newItem] });
     };
 
@@ -2021,24 +1452,6 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
             <SettingsSection title="Содержимое вопроса">
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Текст вопроса" value={question} onChange={(e) => update(id, { question: e.target.value })} rows={3} />
-                <Input
-                    label="Подсказка для «Разговоров о важном»"
-                    value={importantTalks.hint ?? ''}
-                    onChange={event => updateImportantTalks({ hint: event.target.value })}
-                    placeholder="Выберите ценность слева, затем подходящий пример справа"
-                />
-                <Input
-                    label="Название левой колонки"
-                    value={importantTalks.leftTitle ?? ''}
-                    onChange={event => updateImportantTalks({ leftTitle: event.target.value })}
-                    placeholder="Ценность"
-                />
-                <Input
-                    label="Название правой колонки"
-                    value={importantTalks.rightTitle ?? ''}
-                    onChange={event => updateImportantTalks({ rightTitle: event.target.value })}
-                    placeholder="Пример поведения"
-                />
             </SettingsSection>
             <HelperText>Для каждого элемента укажите либо текст, либо URL изображения.</HelperText>
             {renderColumnEditor('Левая колонка', leftColumn, 'leftColumn')}
@@ -2068,23 +1481,12 @@ const MatchingSettings = React.memo(({ node, update }: { node: Node<MatchingNode
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Проверить" />
             </SettingsSection>
-            <ImportantTalksInteractionSettings
-                timer={data.timer}
-                content={importantTalks}
-                updateTimer={nextTimer => update(id, { timer: nextTimer })}
-                updateContent={updateImportantTalks}
-            />
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
 const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNodeData>, update: UpdateNodeData }) => {
     const { id, data } = node;
-    const importantTalks = data.importantTalks || {};
-    const updateImportantTalks = (patch: Partial<NonNullable<TextInputNodeData['importantTalks']>>) => {
-        update(id, { importantTalks: { ...importantTalks, ...patch } });
-    };
     return (
         <div className="space-y-8">
             <SettingsSection title="Содержимое вопроса">
@@ -2093,44 +1495,12 @@ const TextInputSettings = React.memo(({ node, update }: { node: Node<TextInputNo
                 <UrlInput label="Картинка (необязательно)" value={data.imageUrl || ''} onChange={e => update(id, { imageUrl: e.target.value })} />
                 <Input label="Placeholder поля" value={data.placeholder || ''} onChange={e => update(id, { placeholder: e.target.value })} placeholder="Ваш ответ..." />
             </SettingsSection>
-            <SettingsSection title="Экран «Разговоров о важном»">
-                <Input
-                    label="Заголовок итоговой подсказки"
-                    value={importantTalks.insightTitle ?? ''}
-                    onChange={e => updateImportantTalks({ insightTitle: e.target.value })}
-                    placeholder="Ваше мнение важно"
-                />
-                <Textarea
-                    label="Текст итоговой подсказки"
-                    value={importantTalks.hint ?? ''}
-                    onChange={e => updateImportantTalks({ hint: e.target.value })}
-                    rows={3}
-                    placeholder="Ваш ответ поможет понять, что действительно имеет значение..."
-                />
-                <Input
-                    label="Максимум символов"
-                    type="number"
-                    min="50"
-                    max="1000"
-                    step="10"
-                    value={importantTalks.maxLength ?? ''}
-                    onChange={e => updateImportantTalks({ maxLength: parseOptionalNumber(e.target.value, 50, 1000, 300) })}
-                    placeholder="300"
-                />
-            </SettingsSection>
             <SettingsSection title="Проверка ответа">
                 <HelperText>Ответ считается верным, если он содержит ключевое слово. Проверка нечувствительна к регистру.</HelperText>
                 <Input label="Ключевое слово" value={data.keyword || ''} onChange={e => update(id, { keyword: e.target.value })} />
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="По умолчанию: Проверить" />
             </SettingsSection>
-            <ImportantTalksInteractionSettings
-                timer={data.timer}
-                content={importantTalks}
-                updateTimer={nextTimer => update(id, { timer: nextTimer })}
-                updateContent={updateImportantTalks}
-            />
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2141,7 +1511,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
 
     const addItem = () => {
         const newItem = {
-            id: `item-${Date.now()}`,
+            id: createId('item'),
             label: `Категория ${items.length + 1}`,
             variableName: `cat_${items.length + 1}`,
             defaultValue: 0
@@ -2162,7 +1532,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
             <SettingsSection title="Задача">
                 <Input label="Заголовок" value={data.title || ''} onChange={e => update(id, { title: e.target.value })} />
                 <Textarea label="Вопрос / Задание" value={data.question || ''} onChange={e => update(id, { question: e.target.value })} rows={3} />
-                <Input label="Макс. сумма (Лимит)" type="number" value={maxTotal} onChange={e => update(id, { maxTotal: parseInt(e.target.value) || 100 })} />
+                <NumericInput label="Макс. сумма (Лимит)" min={0} value={maxTotal} onCommit={value => { if (value !== undefined) update(id, { maxTotal: value }); }} />
             </SettingsSection>
             
             <SettingsSection title="Категории распределения">
@@ -2182,8 +1552,7 @@ const AllocatorSettings = React.memo(({ node, update }: { node: Node<AllocatorNo
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="Подтвердить" />
             </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2277,8 +1646,7 @@ const DialogueSettings: React.FC<{ node: Node<DialogueNodeData>; update: UpdateN
             <SettingsSection title="Кнопка">
                 <Input label="Текст кнопки" value={data.buttonText || ''} onChange={e => update(id, { buttonText: e.target.value })} placeholder="Далее" />
             </SettingsSection>
-             <NodeSoundSettingsSection node={node} update={update} />
-        </div>
+         </div>
     );
 });
 
@@ -2341,24 +1709,11 @@ const SettingsPanel: React.FC = () => {
         }
     }, [selectedNode, updateNodeData]);
 
+    if (!selectedNode) return null;
+
     return (
         <aside className="w-full h-full bg-white border-l border-gray-200/75 shadow-sm overflow-hidden">
             <div className="w-full h-full p-6 overflow-y-auto relative">
-                {!selectedNode && (
-                    <button
-                        type="button"
-                        onClick={closePanel}
-                        className="absolute top-4 right-4 z-10 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                        aria-label="Закрыть панель настроек"
-                        title="Закрыть панель настроек"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                )}
-                {!selectedNode ? (
-                    <DesignPanel />
-                ) : (
-                    <>
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h2 className="text-lg font-bold font-manrope text-gray-800">Настройки узла</h2>
@@ -2369,33 +1724,23 @@ const SettingsPanel: React.FC = () => {
                             </button>
                         </div>
                         
-                        {/* Node ID Display */}
-                        <div className="mb-6 relative group">
-                            <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-lg px-3 py-2">
-                                <div className="flex flex-col min-w-0">
-                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">ID</span>
-                                     <code className="text-xs font-mono text-gray-600 truncate select-all" title={selectedNode.id}>
-                                        {selectedNode.id}
-                                     </code>
-                                </div>
-                                <button 
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(selectedNode.id);
-                                        toast.success('ID скопирован');
-                                    }}
-                                    className="ml-2 p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-md transition-all shadow-sm"
-                                    title="Копировать ID"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                                </button>
-                            </div>
-                        </div>
-
                         <div className="space-y-8">
-                            <NodeInspector key={selectedNode.id} node={selectedNode}>{settingsContent}</NodeInspector>
+                            {settingsContent}
+                            <NodeSoundSettingsSection node={selectedNode} update={updateNodeData} />
+                            <details className="text-sm text-slate-700">
+                                <summary className="cursor-pointer font-medium">Заметка и дополнительные данные</summary>
+                                <label className="mt-3 block">Заметка автора
+                                    <textarea className="editor-input" value={selectedNode.data.editorNote || ''}
+                                      onChange={event => updateNodeData(selectedNode.id, { editorNote: event.target.value })} />
+                                </label>
+                                <p className="mt-1 text-xs text-slate-500">Заметка не показывается участникам.</p>
+                                {![CustomNodeType.Question, CustomNodeType.MultipleChoice, CustomNodeType.Result, CustomNodeType.Info, CustomNodeType.Feedback, CustomNodeType.Timeline, CustomNodeType.TextInput].includes(selectedNode.type as CustomNodeType) &&
+                                  <label className="mt-3 block">Изображение блока
+                                    <input className="editor-input" type="url" value={selectedNode.data.imageUrl || ''}
+                                      onChange={event => updateNodeData(selectedNode.id, { imageUrl: event.target.value })} />
+                                  </label>}
+                            </details>
                         </div>
-                    </>
-                )}
             </div>
         </aside>
     );

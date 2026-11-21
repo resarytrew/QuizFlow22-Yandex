@@ -115,11 +115,11 @@ function generateUnsafe(
   validateInput(input);
 
   // 2. Получаем шаблон
-  const templateId = input.templateId ?? DEFAULT_TEMPLATE_ID;
+  const templateId = String(input.templateId) === "importantTalks" ? DEFAULT_TEMPLATE_ID : (input.templateId ?? DEFAULT_TEMPLATE_ID);
   const templateHtml = resolveTemplate(templateId);
 
   // 3. Собираем payload
-  const payload = { ...buildPayload(input), preview: !!options.preview };
+  const payload = { ...buildPayload({ ...input, templateId }), preview: !!options.preview };
 
   // 4. Сериализуем данные
   const quizDataJson = serializeForHtmlScript(payload);
@@ -148,7 +148,7 @@ function generateUnsafe(
   //    (он корректно работает без необязательных CDN-библиотек), и их
   //    присутствие в iframe только замусорит консоль CSP-ошибками.
   html = inlineTailwind(html);
-  if (templateId === DEFAULT_TEMPLATE_ID || templateId === "importantTalks") {
+  if (templateId === DEFAULT_TEMPLATE_ID) {
     html = injectDesignCss(html, input.designSettings);
   }
   if (!options.preview) {

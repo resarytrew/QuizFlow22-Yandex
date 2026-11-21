@@ -22,6 +22,7 @@ import { executeLogic } from "./logic";
 import { playNodeEntrySound } from "./media";
 import { renderError, renderNode } from "./render";
 import { updateHUD } from "./hud";
+import { stopGlobalTimer } from "./globalTimer";
 
 let logicDepth = 0;
 
@@ -81,6 +82,8 @@ function processNodeUnsafe(nodeId: string): void {
     if (next) processNode(next);
     return;
   }
+
+  if (node.type === "resultNode") stopGlobalTimer();
 
   setCurrentNode(nodeId);
   pushPath(nodeId);

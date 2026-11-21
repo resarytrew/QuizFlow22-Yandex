@@ -2,9 +2,8 @@ import React from 'react';
 import ContextMenu from '../ContextMenu';
 import EdgeContextMenu from '../EdgeContextMenu';
 import QuickAddMenu from '../QuickAddMenu';
-import { EdgeLabelEditor } from './EdgeLabelEditor';
 import { ConnectionHint } from './ConnectionHint';
-import { NodeMenuState, EdgeMenuState, EdgeEditState } from './hooks/useEditorMenus';
+import { NodeMenuState, EdgeMenuState } from './hooks/useEditorMenus';
 import { QuickAddPos } from './createNewNode';
 import type { CustomNodeType } from '../../types';
 
@@ -13,12 +12,9 @@ interface EditorMenusProps {
   nodeMenu: NodeMenuState | null;
   edgeMenu: EdgeMenuState | null;
   quickAddMenu: QuickAddPos | null;
-  editingEdge: EdgeEditState | null;
   onNodeMenuClose: () => void;
   onEdgeMenuClose: () => void;
   onQuickAddClose: () => void;
-  onEdgeEditClose: () => void;
-  onEdgeEditSubmit: (value: string) => void;
   onDeleteNode: (id: string) => void;
   onDeleteEdge: (id: string) => void;
   onEditFromMenu: (id: string) => void;
@@ -32,12 +28,9 @@ export const EditorMenus = React.memo<EditorMenusProps>(({
   nodeMenu,
   edgeMenu,
   quickAddMenu,
-  editingEdge,
   onNodeMenuClose,
   onEdgeMenuClose,
   onQuickAddClose,
-  onEdgeEditClose,
-  onEdgeEditSubmit,
   onDeleteNode,
   onDeleteEdge,
   onEditFromMenu,
@@ -80,13 +73,7 @@ export const EditorMenus = React.memo<EditorMenusProps>(({
       />
     )}
 
-    {editingEdge && (
-      <EdgeLabelEditor
-        initialValue={editingEdge.label}
-        onSubmit={onEdgeEditSubmit}
-        onCancel={onEdgeEditClose}
-      />
-    )}
+
   </>
 ));
 

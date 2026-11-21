@@ -44,11 +44,12 @@ export async function handler(event: any) {
 
 async function createSession(body: string, user: any) {
   const { quiz_id } = JSON.parse(body);
-  if (!quiz_id) return badRequest('quiz_id is required');
+  if (typeof quiz_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(quiz_id)) return badRequest('valid quiz_id is required');
 
   const quiz = await queryOne(
-    `SELECT id FROM public.quizzes WHERE id = $1 AND deleted_at IS NULL`,
-    [quiz_id],
+    `SELECT id FROM public.quizzes WHERE id = $1 AND deleted_at IS NULL
+       AND (visibility IN ('public', 'unlisted') OR user_id = $2)`,
+    [quiz_id, user.id],
   );
   if (!quiz) return badRequest('Quiz not found');
 

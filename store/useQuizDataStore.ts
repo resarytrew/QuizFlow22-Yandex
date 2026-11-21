@@ -1,3 +1,5 @@
+import { screenQuizDefaults } from '../utils/screenQuizDefaults';
+import { migrateLegacyTheme } from '../utils/migrateLegacyTheme';
 import { create } from 'zustand';
 import {
   GlobalTimer,
@@ -49,7 +51,6 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'history',
   'newyear',
   'screenQuiz',
-  'importantTalks',
 ]);
 
 function normalizeTemplateId(value: unknown): QuizTemplateId {
@@ -140,7 +141,7 @@ const createInitialState = () => ({
     progress: { style: 'bar', position: 'top', color: '#2f5d50', trackColor: '#e4ded2', showPercent: true, showStepLabel: true, height: 8 },
     result: { preset: 'card', backgroundColor: '#fffefa', textColor: '#1d1a16', accentColor: '#2f5d50', showScore: true, showShare: true, scoreStyle: 'badge' },
     advanced: { customCss: '', reducedMotion: false, highContrast: false },
-    screenQuiz: { backgroundPreset: 'pop', backgroundImageUrl: '', backgroundColor: '#9a4bdb', accentColor: '#ffc928', secondaryColor: '#7c5ce7', panelColor: '#f1eef6', answerColor: '#eeeeec', inkColor: '#050305', correctColor: '#18c900', borderWidth: 10, radius: 54, decorIntensity: 1, motion: 'premium', layout: 'auto', timerSeconds: 30, showTimer: true, showStoryTimer: true, timelineMode: 'auto', holdSeconds: 1.2, revealSeconds: 1.4, transitionMs: 340, introEnabled: true, introTiming: 'auto', introQuestionMs: 2800, introAnswerMs: 1800, introMediaMs: 900, introGapMs: 280 },
+    screenQuiz: { ...screenQuizDefaults },
     sound: { volume: 0.5 },
   } as DesignSettings,
   userQuizzes: [] as Quiz[],
@@ -217,10 +218,13 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
   setGlobalTimer: (timer) =>
     set((state) => ({ globalTimer: { ...state.globalTimer, ...timer } })),
 
-  updateDesignSettings: (settings) =>
-    set((state) => ({
-      designSettings: deepMerge(state.designSettings, settings),
-    })),
+  updateDesignSettings: (settings) => {
+    const before = get().designSettings;
+    const after = deepMerge(before, settings);
+    if (JSON.stringify(before) === JSON.stringify(after)) return;
+    useCanvasStore.getState().recordDesignChange(before, after);
+    set({ designSettings: after });
+  },
 
   setUserQuizzes: (quizzes) => set({ userQuizzes: quizzes }),
   setAnalyticsQuizId: (id) => set({ analyticsQuizId: id }),
@@ -317,14 +321,15 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
 
   loadQuiz: (quiz) => {
     const defaults = createInitialState();
+    const quizData = migrateLegacyTheme(quiz.quiz_data);
     storeEvents.emit('QUIZ_LOADED', {
-      nodes: quiz.quiz_data.nodes || [],
-      edges: quiz.quiz_data.edges || [],
+      nodes: quizData.nodes || [],
+      edges: quizData.edges || [],
     });
 
     set({
       editorKey: crypto.randomUUID(),
-      quizDataBase: quiz.quiz_data,
+      quizDataBase: quizData,
       revision: quiz.revision,
       saveStatus: "saved",
       saveError: null,
@@ -334,13 +339,13 @@ export const useQuizDataStore = create<QuizDataStoreState>((set, get) => ({
       currentQuizVisibility: (quiz.visibility as QuizVisibility) ?? (quiz.is_published ? 'public' : 'private'),
       globalTimer: {
         ...defaults.globalTimer,
-        ...(quiz.quiz_data.globalTimer ?? {}),
+        ...(quizData.globalTimer ?? {}),
       },
       designSettings: deepMerge(
         defaults.designSettings,
-        quiz.quiz_data.designSettings ?? {},
+        quizData.designSettings ?? {},
       ),
-      templateId: normalizeTemplateId(quiz.quiz_data.templateId),
+      templateId: normalizeTemplateId(quizData.templateId),
     });
   },
 
@@ -573,6 +578,10 @@ export function buildCurrentQuizData(): QuizData {
     templateId: state.templateId, currentQuizName: state.currentQuizName,
   };
 }
+
+storeEvents.on('DESIGN_HISTORY_RESTORE', designSettings => {
+  useQuizDataStore.setState({ designSettings });
+});
 
 let saveQueue: Promise<unknown> = Promise.resolve();
 function persistEditor(opts: { visibility?: QuizVisibility } | undefined, manual: boolean): Promise<string | null> {

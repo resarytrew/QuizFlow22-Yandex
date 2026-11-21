@@ -15,6 +15,7 @@ import {
 import { useCanvasStore } from '../../store/useCanvasStore';
 import { buildCurrentQuizData, useQuizDataStore } from '../../store/useQuizDataStore';
 import type { QuizVisibility } from '../../types';
+import { migrateLegacyTheme } from '../../utils/migrateLegacyTheme';
 import {
   downloadQuizFile,
   parseQuizFile,
@@ -150,12 +151,12 @@ export function useHeaderController({
       }
 
       try {
-        const quizFile = parseQuizFile(reader.result);
+        const quizFile = migrateLegacyTheme(parseQuizFile(reader.result));
         startTransition(() => {
           setNodes(quizFile.nodes);
           setEdges(quizFile.edges);
           const quizStore = useQuizDataStore.getState();
-          useQuizDataStore.setState({quizDataBase:{description:quizFile.description,cover_image_url:quizFile.cover_image_url,keywords:quizFile.keywords,passport:quizFile.passport,editorOrder:quizFile.editorOrder}});
+          useQuizDataStore.setState({quizDataBase:{legacyThemeMigration:quizFile.legacyThemeMigration,description:quizFile.description,cover_image_url:quizFile.cover_image_url,keywords:quizFile.keywords,passport:quizFile.passport,editorOrder:quizFile.editorOrder}});
           if (quizFile.globalTimer) {
             quizStore.setGlobalTimer(quizFile.globalTimer);
           }
@@ -163,7 +164,7 @@ export function useHeaderController({
             quizStore.updateDesignSettings(quizFile.designSettings);
           }
           if (quizFile.templateId) {
-            quizStore.setTemplateId(quizFile.templateId);
+            quizStore.setTemplateId(quizFile.templateId === 'importantTalks' ? 'default' : quizFile.templateId);
           }
           if (quizFile.currentQuizName) {
             quizStore.setCurrentQuizName(quizFile.currentQuizName);

@@ -7,7 +7,7 @@ export async function handler() {
 
   // 1. Clean expired rate limits
   const deletedRateLimits = await execute(
-    `DELETE FROM public.ai_rate_limits WHERE window_start < now() - interval '2 hours'`
+    `DELETE FROM public.ai_rate_limits WHERE window_start < now() - interval '48 hours'`
   );
   results.push(`rate_limits: ${deletedRateLimits} deleted`);
 

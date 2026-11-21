@@ -3,29 +3,27 @@ import { verifyAuth, ensureUser, type AuthUser } from '../_shared/auth';
 import { query } from '../_shared/db';
 import { corsHeaders, handleCors } from '../_shared/cors';
 import { randomUUID } from 'node:crypto';
+import { enforceRateLimit } from '../_shared/rateLimit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
-const rateMap = new Map<string, { count: number; reset: number }>();
 
 export async function handler(event: any) {
   const { httpMethod, headers } = event;
 
   if (httpMethod === 'OPTIONS') return handleCors(event);
 
-  if (httpMethod === 'GET') {
-    return await getAnalytics(event, event.queryStringParameters || {});
-  }
-
-  if (httpMethod !== 'POST') {
+  if (httpMethod !== 'GET' && httpMethod !== 'POST') {
     return response(405, { error: 'Method not allowed' }, headers);
   }
 
   try {
+    if (httpMethod === 'GET') return await getAnalytics(event, event.queryStringParameters || {});
     return await saveResult(event);
   } catch (error) {
     if (error instanceof AccountBlockedError) return { statusCode: 403, headers: corsHeaders(), body: JSON.stringify({ error: error.code }) };
+    if (error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode?: unknown }).statusCode === 429) return response(429, { error: 'Rate limit exceeded. Try again in a minute.' }, headers);
     console.error('Results error:', error);
     return response(500, { error: 'Internal server error' }, headers);
   }
@@ -80,15 +78,14 @@ async function getAnalytics(event: any, params: any) {
     [quizId],
   );
 
-  return response(200, { sessions, results }, headers);
+  // Legacy rows are also client-submitted and must never be treated as verified.
+  return response(200, { sessions, results: results.map(result => ({ ...result, score_trust: 'unverified', results_data: { ...normalizeJsonObject(result.results_data), score_trust: 'unverified' } })) }, headers);
 }
 
 async function saveResult(event: any) {
   const headers = event.headers || {};
   const ip = getIp(event);
-  if (!checkRate(ip)) {
-    return response(429, { error: 'Rate limit exceeded. Try again in a minute.' }, headers);
-  }
+  await enforceRateLimit('public_result', ip, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS / 1000);
 
   const body = parseBody(event.body);
   if (!body || typeof body !== 'object') {
@@ -117,7 +114,12 @@ async function saveResult(event: any) {
   }
 
   const sessionId = normalizeSessionId(body.session_id);
-  const score = clampInt(body.score, 0, 10_000_000, 0);
+  const scoreValue = body.score === undefined ? 0 : body.score;
+  if ((typeof scoreValue !== 'number' && !(typeof scoreValue === 'string' && scoreValue.trim() !== '')) ||
+      !Number.isFinite(Number(scoreValue)) || !Number.isInteger(Number(scoreValue)) || Number(scoreValue) < 0 || Number(scoreValue) > 10_000_000) {
+    return response(400, { error: 'score must be an integer between 0 and 10000000' }, headers);
+  }
+  const score = Number(scoreValue);
   const timeSpentSeconds = clampInt(
     body.time_spent_seconds ?? body.time_spent,
     0,
@@ -127,7 +129,7 @@ async function saveResult(event: any) {
   const participantName = clampString(body.participant_name, 200, 'Guest');
   const participantEmail = clampString(body.participant_email, 320, null);
   const finalNodeTitle = clampString(body.final_node_title, 300, 'Завершено');
-  const resultsData = normalizeJsonObject(body.results_data);
+  const resultsData: Record<string, unknown> = { ...normalizeJsonObject(body.results_data), score_trust: 'unverified' };
   const pathData = clampPathData(body.path_data);
 
   const [result] = await query(
@@ -135,14 +137,7 @@ async function saveResult(event: any) {
        (quiz_id, session_id, user_id, score, participant_name, participant_email,
         final_node_title, results_data, path_data, time_spent_seconds)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10)
-     ON CONFLICT (session_id) DO UPDATE SET
-       score = EXCLUDED.score,
-       participant_name = EXCLUDED.participant_name,
-       participant_email = EXCLUDED.participant_email,
-       final_node_title = EXCLUDED.final_node_title,
-       results_data = EXCLUDED.results_data,
-       path_data = EXCLUDED.path_data,
-       time_spent_seconds = EXCLUDED.time_spent_seconds
+     ON CONFLICT (session_id) DO NOTHING
      RETURNING id, score`,
     [
       quizId,
@@ -158,18 +153,19 @@ async function saveResult(event: any) {
     ],
   );
 
-  await query(
+  if (!result) return response(409, { error: 'Result already submitted' }, headers);
+
+  // An opaque session token or row ID is not sufficient authorization on its own.
+  if (user && resultsData.abandoned !== true) await query(
     `UPDATE public.quiz_sessions
-     SET status = 'completed',
-         completed_at = COALESCE(completed_at, now()),
-         path_data = $1::jsonb
-     WHERE session_token = $2 OR id::text = $2`,
-    [JSON.stringify(pathData), sessionId],
+     SET status = 'completed', completed_at = COALESCE(completed_at, now()), path_data = $1::jsonb
+     WHERE quiz_id = $3 AND user_id = $4 AND (session_token = $2 OR id::text = $2)`,
+    [JSON.stringify(pathData), sessionId, quizId, user.id],
   ).catch((error) => {
     console.warn('[api-results] session update skipped:', error?.message || error);
   });
 
-  return response(201, { id: result.id, score: result.score, session_id: sessionId }, headers);
+  return response(201, { id: result.id, score: result.score, session_id: sessionId, score_trust: 'unverified' }, headers);
 }
 
 function canSavePublicResult(quiz: any, user: AuthUser | null): boolean {
@@ -180,7 +176,8 @@ function canSavePublicResult(quiz: any, user: AuthUser | null): boolean {
 async function optionalUser(event: any): Promise<AuthUser | null> {
   try {
     return await verifyAuth(event);
-  } catch {
+  } catch (error) {
+    if (error instanceof AccountBlockedError) throw error;
     return null;
   }
 }
@@ -239,28 +236,11 @@ function getHeader(headers: any, name: string): string | undefined {
 }
 
 function getIp(event: any): string {
-  const headers = event.headers || {};
-  return (
-    getHeader(headers, 'x-forwarded-for')?.split(',')[0]?.trim() ||
-    getHeader(headers, 'cf-connecting-ip') ||
-    getHeader(headers, 'x-real-ip') ||
-    event.requestContext?.identity?.sourceIp ||
-    event.requestContext?.http?.sourceIp ||
-    'unknown'
-  );
+  // Request context is supplied by API Gateway; caller-provided forwarding
+  // headers are not an authenticated client address.
+  return event.requestContext?.identity?.sourceIp || event.requestContext?.http?.sourceIp || 'unknown';
 }
 
-function checkRate(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateMap.get(ip) || { count: 0, reset: now + RATE_LIMIT_WINDOW_MS };
-  if (now > entry.reset) {
-    entry.count = 0;
-    entry.reset = now + RATE_LIMIT_WINDOW_MS;
-  }
-  entry.count += 1;
-  rateMap.set(ip, entry);
-  return entry.count <= RATE_LIMIT_MAX;
-}
 
 function response(statusCode: number, body: unknown, headers?: any) {
   return {

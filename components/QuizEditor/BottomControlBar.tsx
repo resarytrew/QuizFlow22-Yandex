@@ -10,6 +10,7 @@ import { getMotionDuration } from './performanceMode';
 interface BottomControlBarProps {
     onLayout: (dir: 'TB' | 'LR') => void;
     onPreview: () => void;
+    onValidate: () => void;
     onAIAssistant: () => void;
     isAIAssistantOpen: boolean;
     isAIAssistantLocked: boolean;
@@ -20,6 +21,7 @@ interface BottomControlBarProps {
 export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     onLayout,
     onPreview,
+    onValidate,
     onAIAssistant,
     isAIAssistantOpen,
     isAIAssistantLocked,
@@ -37,6 +39,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const toggleCanvasLock = useCanvasStore(s => s.toggleCanvasLock);
     const canUndo = useCanvasStore((s) => s.history.past.length > 0);
     const canRedo = useCanvasStore((s) => s.history.future.length > 0);
+    const selectedCount = useCanvasStore((s) => s.selection.selectedNodeIds.length);
+    const alignSelectedNodes = useCanvasStore((s) => s.alignSelectedNodes);
     const reduceMotion = usePreferencesStore((s) => s.preferences.reduceMotion);
     const simplified = usePreferencesStore((s) => s.preferences.simplified);
     const motionPreferences = { reduceMotion, simplified };
@@ -169,9 +173,13 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     onClick={onToggleGrid}
                     active={showGrid}
                 />
+                <ToolbarButton icon={<span className="text-xs font-bold">↔</span>} tooltip="Выровнять по центру" onClick={() => alignSelectedNodes('center')} disabled={isCanvasLocked || selectedCount < 2} />
+                <ToolbarButton icon={<span className="text-xs font-bold">↕</span>} tooltip="Выровнять по середине" onClick={() => alignSelectedNodes('middle')} disabled={isCanvasLocked || selectedCount < 2} />
             </div>
 
             <div className="w-px h-6 bg-slate-200 mx-1" />
+
+            <button type="button" onClick={onValidate} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">Проверить</button>
 
             <button
                 onClick={onPreview}

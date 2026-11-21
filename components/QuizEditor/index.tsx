@@ -1,4 +1,4 @@
-import { EditorWorkspace } from './EditorWorkspace';
+import { ValidationDialog } from './ValidationDialog';
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import ReactFlow, {
   Background,
@@ -56,7 +56,7 @@ const QuizEditor: React.FC = () => {
   const actions = useEditorActions();
   const menus = useEditorMenus();
 
-  const [editorView, setEditorView] = useState('graph');
+  const [isValidationOpen, setValidationOpen] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [connectingFrom, setConnectingFrom] = useState<{ nodeId: string; handleId?: string | null } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -137,17 +137,12 @@ const QuizEditor: React.FC = () => {
     selectAllVisibleNodes: actions.selectAllVisibleNodes,
   });
 
-  const onEditEdgeLabel = useCallback((edgeId: string, currentLabel: string) => {
-    menus.setEditingEdge({ id: edgeId, label: currentLabel });
-  }, [menus.setEditingEdge]);
-
   const {
     onDrop,
     onDragOver,
     onPaneContextMenu,
     onNodeContextMenu,
     onEdgeContextMenu,
-    onEdgeDoubleClick,
     handleQuickAdd,
     onNodeClick,
     onEdgeClick,
@@ -179,7 +174,6 @@ const QuizEditor: React.FC = () => {
       explicitMultiSelectionRef.current = additive;
     },
     addNode: actions.addNode,
-    onEditEdgeLabel,
     onConnect: actions.onConnect,
     screenToFlowPosition,
     getNode,
@@ -271,15 +265,6 @@ const QuizEditor: React.FC = () => {
     menus.setQuickAdd(null);
     setConnectingFrom(null);
   }, [menus.setQuickAdd]);
-  const handleEdgeEditClose = useCallback(() => menus.setEditingEdge(null), [menus.setEditingEdge]);
-  const handleEdgeEditSubmit = useCallback(
-    (value: string) => {
-      if (!menus.editingEdge) return;
-      actions.updateEdgeData(menus.editingEdge.id, { label: value });
-      menus.setEditingEdge(null);
-    },
-    [menus.editingEdge, menus.setEditingEdge, actions.updateEdgeData],
-  );
 
   return (
     <div
@@ -300,12 +285,9 @@ const QuizEditor: React.FC = () => {
         nodeMenu={menus.nodeMenu}
         edgeMenu={menus.edgeMenu}
         quickAddMenu={menus.quickAdd}
-        editingEdge={menus.editingEdge}
         onNodeMenuClose={handleNodeMenuClose}
         onEdgeMenuClose={handleEdgeMenuClose}
         onQuickAddClose={handleQuickAddClose}
-        onEdgeEditClose={handleEdgeEditClose}
-        onEdgeEditSubmit={handleEdgeEditSubmit}
         onDeleteNode={actions.deleteNode}
         onDeleteEdge={actions.deleteEdge}
         onEditFromMenu={handleEditFromMenu}
@@ -314,8 +296,12 @@ const QuizEditor: React.FC = () => {
         onQuickAddSelect={handleQuickAdd}
       />
 
-      <EditorWorkspace view={editorView} onView={setEditorView} />
-      <div className="absolute inset-x-0 bottom-0 top-14" style={{display: editorView === "graph" ? "block" : "none"}}>
+      {isValidationOpen && <ValidationDialog onClose={() => setValidationOpen(false)} onLocate={(id) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          void fitView({ nodes: [{ id }], duration: reduceMotion ? 0 : 200, maxZoom: 1 });
+        }));
+      }} />}
+      <div className="absolute inset-0">
       <ReactFlow
         nodes={visibleNodes}
         edges={visibleEdges}
@@ -333,7 +319,6 @@ const QuizEditor: React.FC = () => {
         onPaneContextMenu={onPaneContextMenu}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
-        onEdgeDoubleClick={onEdgeDoubleClick}
         onConnectStart={handleConnectStart}
         onConnectEnd={handleConnectEnd}
         onNodeDragStart={handleNodeDragStart}
@@ -384,6 +369,7 @@ const QuizEditor: React.FC = () => {
           <BottomControlBar
             onLayout={handleLayout}
             onPreview={handlePreview}
+            onValidate={() => setValidationOpen(true)}
             onAIAssistant={handleAIAssistant}
             isAIAssistantOpen={isAIAssistantPanelVisible}
             isAIAssistantLocked={isAIAssistantLocked}

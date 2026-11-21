@@ -1,7 +1,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore';
-import type { Effect, EffectOp } from '../types';
+import { CustomNodeType, type Effect, type EffectOp } from '../types';
+import { useUIStore } from '../store/useUIStore';
+import { createNewNode } from './QuizEditor/createNewNode';
+import { nodeOutputs, nodeTitle } from '../utils/editorValidation';
 
 // =========================
 // LocalStorage keys
@@ -134,13 +137,15 @@ const useVariableSuggestions = (): string[] => {
 };
 
 const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClose, onDelete }) => {
+  const menuRef = React.useRef<HTMLDivElement>(null);
   const edge = useCanvasStore(s => s.edges.find((e) => e.id === id));
-  const updateEdgeData = useCanvasStore(s => s.updateEdgeData);
+  const nodes = useCanvasStore(s => s.nodes);
   const collapseVariableChainToEffects = useCanvasStore(s => s.collapseVariableChainToEffects);
 
   // ----- Draft state (saved only on Save button) -----
   const [draftEffects, setDraftEffects] = useState<Effect[]>([]);
   const [draftLabel, setDraftLabel] = useState<string>('');
+  const [draftTarget, setDraftTarget] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
 
   // ----- Presets state -----
@@ -165,6 +170,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
     const initialLabel = (edge?.data?.label || edge?.label || '') as string;
     setDraftEffects(initialEffects);
     setDraftLabel(initialLabel);
+    setDraftTarget(edge?.target ?? '');
     setIsDirty(false);
   }, [edge?.id]);
 
@@ -177,6 +183,18 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, [onClose, isDirty]);
+
+  // Prevent a canvas click from silently switching away from an unsaved draft.
+  useEffect(() => {
+    const guardOutsideClick = (event: MouseEvent) => {
+      if (!isDirty || menuRef.current?.contains(event.target as Node)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (confirm('Есть несохранённые изменения. Закрыть без сохранения?')) onClose();
+    };
+    document.addEventListener('click', guardOutsideClick, true);
+    return () => document.removeEventListener('click', guardOutsideClick, true);
+  }, [isDirty, onClose]);
 
   // ESC closes (with confirmation if dirty)
   useEffect(() => {
@@ -235,12 +253,28 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
     setIsDirty(true);
   };
 
+  const saveDraft = (): boolean => {
+    const normalized = draftEffects.map(normalizeValue);
+    const state = useCanvasStore.getState();
+    const current = state.edges.find(item => item.id === id);
+    if (!current || !state.nodes.some(node => node.id === draftTarget)) return false;
+    const originalLabel = (current.data?.label || current.label || '') as string;
+    const originalEffects = (current.data?.effects || []) as Effect[];
+    const nextData = { ...(current.data || {}) };
+    if (draftLabel !== originalLabel) nextData.label = draftLabel;
+    if (JSON.stringify(draftEffects) !== JSON.stringify(originalEffects)) nextData.effects = normalized;
+    state.applyGraph(state.nodes, state.edges.map(item => item.id === id ? {
+      ...item, target: draftTarget,
+      targetHandle: draftTarget === item.target ? item.targetHandle : null,
+      data: current.data === undefined && Object.keys(nextData).length === 0 ? undefined : nextData,
+    } : item));
+    setIsDirty(false);
+    return true;
+  };
+
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const normalized = draftEffects.map(normalizeValue);
-    updateEdgeData(id, { label: draftLabel, effects: normalized });
-    setIsDirty(false);
-    onClose();
+    if (saveDraft()) onClose();
   };
 
   const handleCancel = (e: React.MouseEvent) => {
@@ -253,6 +287,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
     const initialLabel = (edge?.data?.label || edge?.label || '') as string;
     setDraftEffects(initialEffects);
     setDraftLabel(initialLabel);
+    setDraftTarget(edge?.target ?? '');
     setIsDirty(false);
     onClose();
   };
@@ -311,11 +346,29 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
     if (isDirty) {
       const ok = confirm('Есть несохранённые изменения. Сначала сохранить, затем свернуть цепочку?');
       if (!ok) return;
-      updateEdgeData(id, { label: draftLabel, effects: draftEffects.map(normalizeValue) });
-      setIsDirty(false);
+      if (!saveDraft()) return;
     }
 
     collapseVariableChainToEffects(id);
+    onClose();
+  };
+
+  const handleInsertQuestion = () => {
+    if (isDirty && !confirm('Отменить несохранённые изменения и вставить вопрос?')) return;
+    const state = useCanvasStore.getState();
+    const current = state.edges.find(item => item.id === id);
+    const source = state.nodes.find(node => node.id === current?.source);
+    if (!current || !source || !state.nodes.some(node => node.id === current.target)) return;
+    const question = createNewNode(CustomNodeType.Question, { x: source.position.x + 350, y: source.position.y });
+    question.data.parentId = source.data.parentId;
+    const nextEdge = { id: safeUUID(), source: question.id, sourceHandle: nodeOutputs(question)[0]?.id,
+      target: current.target, targetHandle: current.targetHandle };
+    state.applyGraph([...state.nodes, question], [
+      ...state.edges.map(item => item.id === id ? { ...item, target: question.id, targetHandle: null } : item),
+      nextEdge,
+    ]);
+    state.selectSingleNode(question.id);
+    useUIStore.getState().openSettingsPanel();
     onClose();
   };
 
@@ -342,8 +395,9 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
       </datalist>
 
       <div
-        style={{ top, left }}
-        className="absolute z-50 w-[460px] bg-white rounded-xl shadow-2xl border border-gray-200/75 p-3"
+        ref={menuRef}
+        style={{ top: Math.max(8, Math.min(top, window.innerHeight - 250)), left: `min(max(8px, ${left}px), max(8px, calc(100% - 29rem)))` }}
+        className="absolute z-50 w-[min(460px,calc(100%-1rem))] max-h-[min(70vh,40rem)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200/75 p-3"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -357,6 +411,18 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
             ✕
           </button>
         </div>
+
+        <label className="block border-t border-gray-200/75 pt-3 text-sm font-medium text-slate-700">
+          Следующий блок
+          <select aria-label="Следующий блок" value={draftTarget} onChange={event => { setDraftTarget(event.target.value); setIsDirty(true); }} className="editor-input">
+            {!nodes.some(node => node.id === draftTarget) && <option value={draftTarget}>Удалённый блок: {draftTarget}</option>}
+            {nodes.map(node => <option key={node.id} value={node.id}>{nodeTitle(node)}</option>)}
+          </select>
+        </label>
+
+        <button type="button" onClick={handleInsertQuestion} className="mt-2 text-sm text-indigo-700 underline">
+          Вставить вопрос между блоками
+        </button>
 
         {/* Label */}
         <div className="border-t border-gray-200/75 pt-3 space-y-2">
@@ -622,7 +688,7 @@ const EdgeContextMenu: React.FC<EdgeContextMenuProps> = ({ id, top, left, onClos
             <button
               type="button"
               onClick={handleSave}
-              disabled={!isDirty}
+              disabled={!isDirty || !nodes.some(node => node.id === draftTarget)}
               className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40"
             >
               Сохранить

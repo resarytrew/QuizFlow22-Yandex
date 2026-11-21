@@ -25,7 +25,7 @@ function renderInteraction(
   selectionOverrides: Partial<Pick<
     Parameters<typeof useCanvasInteraction>[0],
     'selectSingleNode' | 'toggleNodeSelection' | 'isNodeSelected' |
-    'selectSingleEdge' | 'clearSelection' | 'openNodeSettings'
+    'selectSingleEdge' | 'clearSelection' | 'openNodeSettings' | 'setEdgeMenu' | 'getNode'
   >> = {},
 ) {
   return renderHook(() =>
@@ -49,10 +49,9 @@ function renderInteraction(
       ...selectionOverrides,
       onSelectionIntent: vi.fn(),
       addNode,
-      onEditEdgeLabel: vi.fn(),
       onConnect: vi.fn(),
       screenToFlowPosition: vi.fn(() => ({ x: 200, y: 160 })),
-      getNode: vi.fn(),
+      getNode: selectionOverrides.getNode ?? vi.fn(),
       setPreviewMode: vi.fn(),
     }),
   );
@@ -152,14 +151,32 @@ describe('useCanvasInteraction selection', () => {
 
   it('selects one edge and clears the primary node through the edge command', () => {
     const selectSingleEdge = vi.fn();
-    const { result } = renderInteraction(vi.fn(), false, { selectSingleEdge });
+    const setEdgeMenu = vi.fn();
+    const { result } = renderInteraction(vi.fn(), false, { selectSingleEdge, setEdgeMenu });
     const edge = { id: 'edge-1', source: 'question-1', target: 'question-2' };
 
     result.current.onEdgeClick(
-      { shiftKey: false },
+      { clientX: 0, clientY: 0 } as React.MouseEvent,
       edge,
     );
 
     expect(selectSingleEdge).toHaveBeenCalledWith(edge.id);
+    expect(setEdgeMenu).toHaveBeenCalledWith({ id: edge.id, top: 0, left: 0 });
+  });
+});
+
+
+describe('duplicate node identifiers', () => {
+  it('creates distinct duplicates at the same clock time', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(123);
+    try {
+      const addNode = vi.fn();
+      const source: Node<NodeData> = { id: 'source', type: CustomNodeType.Question, position: { x: 0, y: 0 }, data: { label: 'Question', question: 'Q', answers: [] } };
+      const { result } = renderInteraction(addNode, false, { getNode: () => source });
+      result.current.handleDuplicate('source');
+      result.current.handleDuplicate('source');
+      expect(addNode.mock.calls[0][0].id).not.toBe(addNode.mock.calls[1][0].id);
+      expect(addNode.mock.calls[0][0].data).toEqual(source.data);
+    } finally { now.mockRestore(); }
   });
 });

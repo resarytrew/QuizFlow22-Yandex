@@ -70,15 +70,12 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
   ).json();
   expect(saved.quiz_data.description).toBe("Description survives");
   expect(saved.quiz_data.keywords).toEqual(["editor-test"]);
-  await page.getByRole("tab", { name: "Вопросы", exact: true }).click();
-  await page
-    .getByRole("button", { name: /Test question/ })
-    .filter({ has: page.locator("strong") })
-    .click();
-  await page.getByRole("tab", { name: "Переходы", exact: true }).click();
-  await expect(page.getByLabel("Переход: Yes", { exact: true })).toHaveValue(
-    "r",
-  );
+  await page.locator('.react-flow__node[data-id="q"]').click();
+  await expect(page.getByText("Настройки узла", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Закрыть панель настроек", exact: true }).click();
+  await page.locator('.flow-edge-path[id="qr"]').click({ button: 'right', force: true });
+  await expect(page.getByText("Настройки связи", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Следующий блок", { exact: true })).toHaveValue("r");
   await page
     .getByRole("button", { name: "Вставить вопрос между блоками", exact: true })
     .click();
@@ -89,24 +86,27 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
           .quiz_data.nodes.length,
     )
     .toBe(4);
-  if (isMobile)
+  const closeInspector = page.getByRole("button", { name: "Закрыть панель настроек", exact: true });
+  if (await closeInspector.count()) await closeInspector.click({ force: true });
+  if (isMobile) {
     await page
       .getByRole("navigation", { name: "Панели редактора" })
       .getByRole("button", { name: "Холст", exact: true })
       .click();
-  await page.getByRole("tab", { name: /Проверка/ }).click();
-  await expect(
-    page.getByText("Структурных ошибок не найдено.", { exact: false }),
-  ).toBeVisible();
+  } else {
+    await page.getByRole("button", { name: "Проверить", exact: true }).click({ force: true });
+    await expect(page.getByRole("dialog", { name: "Проверка схемы" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Проверка схемы" })).toBeVisible();
+    await page.getByRole("button", { name: "Закрыть проверку", exact: true }).click({ force: true });
+  }
   await page.reload({ waitUntil: "networkidle" });
-  await page.getByRole("tab", { name: "Вопросы", exact: true }).click();
-  await expect(page.getByRole("tabpanel").locator("article")).toHaveCount(4);
+  await expect(page.locator('.react-flow__node')).toHaveCount(4);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Пройти квиз", exact: true }).click();
+  await page.getByRole("button", { name: "Превью", exact: true }).click();
   await expect(
     page.getByRole("button", {
       name: "Редактировать текущий блок",
@@ -116,7 +116,6 @@ test("editor preserves metadata, edits transitions and previews the saved scenar
   await page
     .getByRole("button", { name: "Вернуться к схеме", exact: true })
     .click();
-  await page.getByRole("tab", { name: "Вопросы", exact: true }).click();
   await page.route('**/api/quizzes/'+quiz.id, async route => {
     if(route.request().method()==='PUT') await route.abort('failed');
     else await route.continue();

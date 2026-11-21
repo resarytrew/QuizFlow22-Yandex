@@ -34,27 +34,6 @@ function safeCss(value: unknown, fallback = ""): string {
   return value.replace(/[<>{}]/g, "").slice(0, 180);
 }
 
-function splitTalksBrandName(value: string): readonly [string, string] {
-  const normalized = value.replace(/\s+/g, " ").trim().slice(0, 80);
-  if (!normalized) return ["РАЗГОВОРЫ", "О ВАЖНОМ"];
-
-  const importantSuffix = normalized.toLocaleLowerCase("ru-RU").lastIndexOf(" о важном");
-  if (importantSuffix > 0) {
-    return [
-      normalized.slice(0, importantSuffix).toLocaleUpperCase("ru-RU"),
-      normalized.slice(importantSuffix + 1).toLocaleUpperCase("ru-RU"),
-    ];
-  }
-
-  const words = normalized.split(" ");
-  if (words.length === 1) return [normalized.toLocaleUpperCase("ru-RU"), ""];
-  const splitAt = Math.ceil(words.length / 2);
-  return [
-    words.slice(0, splitAt).join(" ").toLocaleUpperCase("ru-RU"),
-    words.slice(splitAt).join(" ").toLocaleUpperCase("ru-RU"),
-  ];
-}
-
 export function applyDesign(ds: DesignSettings | undefined): void {
   if (!ds) return;
   const root = document.documentElement;
@@ -618,6 +597,9 @@ export function applyDesign(ds: DesignSettings | undefined): void {
       .result-score-stat .result-stat-value {
         font-size: clamp(2.4rem, 6vw, 5rem);
       }
+      @media (max-width: 900px) {
+        body[class*="design-interface-"] .quiz-layout { grid-template-columns: minmax(0, 1fr); }
+      }
     `;
     document.head.appendChild(style);
   }
@@ -835,25 +817,10 @@ export function applyDesign(ds: DesignSettings | undefined): void {
       logo.style.backgroundImage = `url("${safeCss(logoUrl)}")`;
       logo.style.backgroundSize = "cover";
       logo.style.backgroundPosition = "center";
-    } else if (logo.dataset.logoMark === "talks") {
-      logo.textContent = "";
-      logo.style.backgroundImage = "";
-    } else if (ds.brand?.brandName) {
-      logo.textContent = ds.brand.brandName.trim().slice(0, 2).toUpperCase();
+    } else {
+      if (ds.brand?.brandName) logo.textContent = ds.brand.brandName.trim().slice(0, 2).toUpperCase();
       logo.style.backgroundImage = "";
     }
-  }
-
-  const talksBrandPrimary = document.getElementById("talks-brand-primary");
-  const talksBrandSecondary = document.getElementById("talks-brand-secondary");
-  if (
-    talksBrandPrimary instanceof HTMLElement
-    && talksBrandSecondary instanceof HTMLElement
-    && ds.brand?.brandName
-  ) {
-    const [primary, secondary] = splitTalksBrandName(ds.brand.brandName);
-    talksBrandPrimary.textContent = primary;
-    talksBrandSecondary.textContent = secondary;
   }
 
   const avatarImage = document.getElementById("hud-avatar-image");

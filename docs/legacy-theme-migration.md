@@ -1,0 +1,5 @@
+# Legacy theme migration (in progress)
+
+The old template stored specialized feedback and scene content inside node `importantTalks` objects. These fields do not have equivalent behavior in the standard renderer. On editor load or JSON import of that template, `migrateLegacyTheme` changes the template to `default`, retains the graph, handles, timer and design, and stores the complete unmodified original under `legacyThemeMigration.original` (version 1). The editor warns the owner, lists specialized field paths and offers the original JSON for download. Export/import preserves the backup; repeat migration is idempotent. A user should test the migrated quiz before publishing because specialized feedback and scenes can differ.
+
+This is a compatibility checkpoint, not completion of removal: old template UI and runtime still exist, and old public quizzes are still handled by the existing runtime. Their retirement and published-quiz compatibility need separate implementation and tests. Editor browser checks use a mocked API; no production records were changed.

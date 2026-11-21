@@ -16,17 +16,12 @@ describe('quiz settings sections', () => {
     expect(useQuizDataStore.getState().templateId).toBe('science');
   });
 
-  it('applies the editable visual preset for Important Talks', () => {
+  it('does not offer the retired template or change the timer when choosing a theme', () => {
     render(<TemplateSection />);
-    fireEvent.click(screen.getByRole('button', { name: /Разговоры о важном/ }));
-
-    const state = useQuizDataStore.getState();
-    expect(state.templateId).toBe('importantTalks');
-    expect(state.designSettings.brand?.brandName).toBe('Разговоры о важном');
-    expect(state.designSettings.brand?.scoreLabel).toBe('Искры добра');
-    expect(state.designSettings.answerCards.columns).toBe(2);
-    expect(state.designSettings.questionCard?.mediaPosition).toBe('right');
-    expect(state.globalTimer).toMatchObject({ enabled: true, duration: 900 });
+    expect(screen.queryByRole('button', { name: /Разговоры о важном/ })).toBeNull();
+    const timer = useQuizDataStore.getState().globalTimer;
+    fireEvent.click(screen.getByRole('button', { name: /Научный терминал/ }));
+    expect(useQuizDataStore.getState().globalTimer).toEqual(timer);
   });
 
   it('changes sound volume in quiz design settings', () => {

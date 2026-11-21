@@ -2,6 +2,7 @@ import { fireEvent, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Edge, Node } from 'reactflow';
 import { CustomNodeType, type NodeData } from '../../../types';
+import { useUIStore } from '../../../store/useUIStore';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
 vi.mock('react-hot-toast', () => ({
@@ -42,6 +43,7 @@ function renderShortcuts(options?: {
   const deleteEdge = vi.fn<(edgeId: string) => void>();
   const selectNodes = vi.fn<(nodeIds: readonly string[], primaryId?: string) => void>();
   const selectAllVisibleNodes = vi.fn<() => void>();
+  const redo = vi.fn<() => void>();
 
   renderHook(() => useKeyboardShortcuts({
     visibleNodes: nodes,
@@ -52,18 +54,19 @@ function renderShortcuts(options?: {
     deleteNode,
     deleteEdge,
     undo: vi.fn(),
-    redo: vi.fn(),
+    redo,
     addNode,
     selectNodes,
     selectAllVisibleNodes,
   }));
 
-  return { addNode, deleteNode, deleteEdge, selectNodes, selectAllVisibleNodes };
+  return { addNode, deleteNode, deleteEdge, selectNodes, selectAllVisibleNodes, redo };
 }
 
 describe('useKeyboardShortcuts selection integration', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+    useUIStore.getState().reset();
   });
 
   it('copies by selection IDs and selects pasted nodes through selectNodes', () => {
@@ -106,4 +109,25 @@ describe('useKeyboardShortcuts selection integration', () => {
 
     expect(selectAllVisibleNodes).toHaveBeenCalledOnce();
   });
+  it('does not delete the selected node while the design workspace is open', () => {
+    const { deleteNode } = renderShortcuts({ selectedNodeIds: ['node-a'] });
+    useUIStore.getState().setDesignMode(true);
+    fireEvent.keyDown(document, { key: 'Delete' });
+    expect(deleteNode).not.toHaveBeenCalled();
+    useUIStore.getState().reset();
+  });
+
+  it('supports Ctrl+Y redo without intercepting keys in a select', () => {
+    const { redo, deleteNode } = renderShortcuts({ selectedNodeIds: ['node-a'] });
+    fireEvent.keyDown(document, { key: 'y', ctrlKey: true });
+    expect(redo).toHaveBeenCalledOnce();
+    const select = document.createElement('select');
+    document.body.appendChild(select);
+    select.focus();
+    fireEvent.keyDown(select, { key: 'Delete' });
+    fireEvent.keyDown(select, { key: 'y', ctrlKey: true });
+    expect(deleteNode).not.toHaveBeenCalled();
+    expect(redo).toHaveBeenCalledOnce();
+  });
+
 });

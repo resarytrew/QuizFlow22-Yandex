@@ -1,5 +1,6 @@
 import type { Node } from 'reactflow';
 import { CustomNodeType, NodeData } from '../../types';
+import { createId } from '../../utils/createId';
 
 type FlowNode<T = NodeData> = Node<T>;
 
@@ -9,10 +10,7 @@ export interface QuickAddPos {
 }
 
 function freshNodeData(type: CustomNodeType): NodeData {
-    const id = () =>
-        typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const id = () => createId('id');
 
     const map: Record<CustomNodeType, Partial<NodeData>> = {
         [CustomNodeType.Start]: { label: 'Старт' },
@@ -136,7 +134,7 @@ export const createNewNode = (
     type: CustomNodeType,
     position: { x: number; y: number }
 ): FlowNode<NodeData> => {
-    const newNodeId = `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const newNodeId = createId(type);
     const baseNodeProps = { id: newNodeId, type, position };
     const style = type === CustomNodeType.Group ? { width: 400, height: 300 } : undefined;
 

@@ -3470,7 +3470,7 @@ const screenQuizTemplate = `
         });
         Object.keys(override || {}).forEach(function (key) {
           var value = override[key];
-          if (value !== undefined && value !== null && value !== "") {
+          if (value !== undefined && value !== null) {
             merged[key] = value;
           }
         });
@@ -3616,6 +3616,7 @@ const screenQuizTemplate = `
       }
 
       function startCountdownTicking(config, token) {
+        if (quizData.preview) return;
         var tickUrl = safeUrl(soundSettings.screenQuizTick || "");
         if (!tickUrl || config.showTimer === false) return;
         playTickSound(tickUrl);
@@ -3672,6 +3673,7 @@ const screenQuizTemplate = `
       }
 
       function createAudio(url, loop) {
+        if (quizData.preview) return null;
         if (!url || typeof Audio === "undefined") return null;
         var audio = new Audio(url);
         audio.loop = Boolean(loop);

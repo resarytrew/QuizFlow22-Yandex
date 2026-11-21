@@ -1,5 +1,6 @@
 import type { QuizState } from './types';
 import { MAX_PATH_LENGTH } from './constants';
+import { stopGlobalTimer } from './globalTimer';
 
 // ===== ЕДИНСТВЕННАЯ ТОЧКА МУТАЦИИ STATE =====
 
@@ -26,6 +27,7 @@ export function getState(): Readonly<QuizState> {
 }
 
 export function resetState(): void {
+  stopGlobalTimer();
   state = createInitialState();
 }
 

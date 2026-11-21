@@ -11,7 +11,9 @@ export type QuizTemplateId =
   | "history"
   | "newyear"
   | "screenQuiz"
-  | "importantTalks";
+;
+
+export type SerializedQuizTemplateId = QuizTemplateId | "importantTalks";
 
 export enum CustomNodeType {
   Start = "startNode",
@@ -121,7 +123,6 @@ export interface QuestionNodeData extends BaseNodeData {
   timer?: number;
   title?: string;
   correctAnswer?: string;
-  importantTalks?: ImportantTalksQuestionContent;
 }
 
 export interface MultipleChoiceNodeData extends BaseNodeData {
@@ -137,62 +138,15 @@ export interface MultipleChoiceNodeData extends BaseNodeData {
   maxScore?: number;
   penaltyPerError?: number;
   minScore?: number;
-  importantTalks?: ImportantTalksMultipleChoiceContent;
 }
 
 export interface ResultNodeData extends BaseNodeData {
   title?: string;
   showScore?: boolean;
-  importantTalks?: ImportantTalksResultContent;
-}
-
-export interface ImportantTalksInfoContent {
-  agendaTitle?: string;
-  agendaItems?: string[];
-}
-
-export interface ImportantTalksInteractionContent {
-  correctTitle?: string;
-  correctText?: string;
-  incorrectTitle?: string;
-  incorrectText?: string;
-  timeoutTitle?: string;
-  timeoutText?: string;
-  feedbackButtonText?: string;
-}
-
-export interface ImportantTalksQuestionContent extends ImportantTalksInteractionContent {
-  instruction?: string;
-}
-
-export interface ImportantTalksResultContent {
-  kicker?: string;
-  insightTitle?: string;
-}
-
-export interface ImportantTalksMultipleChoiceContent extends ImportantTalksInteractionContent {
-  hint?: string;
-}
-
-export interface ImportantTalksTimelineContent extends ImportantTalksInteractionContent {
-  hint?: string;
-}
-
-export interface ImportantTalksTextInputContent extends ImportantTalksInteractionContent {
-  hint?: string;
-  insightTitle?: string;
-  maxLength?: number;
-}
-
-export interface ImportantTalksMatchingContent extends ImportantTalksInteractionContent {
-  hint?: string;
-  leftTitle?: string;
-  rightTitle?: string;
 }
 
 export interface InfoNodeData extends BaseNodeData {
   title?: string;
-  importantTalks?: ImportantTalksInfoContent;
 }
 
 export interface ScoreNodeData extends BaseNodeData {
@@ -250,7 +204,6 @@ export interface TimelineNodeData extends BaseNodeData {
   events?: TimelineEvent[];
   correctOrder?: string[];
   title?: string;
-  importantTalks?: ImportantTalksTimelineContent;
 }
 
 export interface MatchColumnItem {
@@ -270,7 +223,6 @@ export interface MatchingNodeData extends BaseNodeData {
   rightColumn?: MatchColumnItem[];
   correctPairs?: MatchPair[];
   title?: string;
-  importantTalks?: ImportantTalksMatchingContent;
 }
 
 export interface TextInputNodeData extends BaseNodeData {
@@ -278,7 +230,6 @@ export interface TextInputNodeData extends BaseNodeData {
   question?: string;
   keyword?: string;
   placeholder?: string;
-  importantTalks?: ImportantTalksTextInputContent;
 }
 
 export interface AchievementNodeData extends BaseNodeData {
@@ -673,6 +624,7 @@ export interface ResultAchievement {
 }
 
 export interface QuizResultData {
+  score_trust?: 'unverified';
   variables?: Record<string, unknown>;
   achievements?: Array<ResultAchievement | string>;
   [key: string]: unknown;
@@ -687,6 +639,7 @@ export interface PathEventDetails {
 }
 
 export interface QuizData {
+  legacyThemeMigration?: import('./utils/migrateLegacyTheme').LegacyThemeMigration;
   editorOrder?: string[];
   nodes: Node<NodeData>[];
   edges: Edge[];
@@ -735,6 +688,7 @@ export interface PublicQuiz {
 }
 
 export interface QuizResult {
+  score_trust?: 'unverified';
   id: string;
   created_at: string;
   quiz_id: string;

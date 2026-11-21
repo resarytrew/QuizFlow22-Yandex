@@ -4,6 +4,7 @@ import { useQuizDataStore } from '../../../store/useQuizDataStore';
 import { Section } from '../ui/Section';
 import { SettingRow } from '../ui/SettingRow';
 import { Toggle } from '../ui/Toggle';
+import { NumericInput } from '../ui/NumericInput';
 
 export const TimerSection: React.FC = () => {
   const globalTimer = useQuizDataStore((s) => s.globalTimer);
@@ -33,20 +34,7 @@ export const TimerSection: React.FC = () => {
 
       {globalTimer.enabled && (
         <>
-          <SettingRow label="Длительность" description="Время в секундах.">
-            <input
-              id="global-timer-duration"
-              name="global-timer-duration"
-              type="number"
-              min={1}
-              value={globalTimer.duration}
-              onChange={(e) => {
-                const parsed = Number.parseInt(e.target.value, 10);
-                handleTimerChange('duration', Number.isFinite(parsed) ? Math.max(1, parsed) : 1);
-              }}
-              className="w-full bg-slate-100 border border-slate-200/80 rounded-lg h-9 px-3 text-sm font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-          </SettingRow>
+          <NumericInput label="Длительность, секунд" min={1} value={globalTimer.duration} onCommit={value => { if (value !== undefined) handleTimerChange('duration', value); }} />
 
           <SettingRow
             label="Действие при истечении"

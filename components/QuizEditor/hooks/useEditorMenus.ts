@@ -13,22 +13,16 @@ export interface EdgeMenuState {
   left: number;
 }
 
-export interface EdgeEditState {
-  id: string;
-  label: string;
-}
 
 export function useEditorMenus() {
   const [nodeMenu, setNodeMenu] = useState<NodeMenuState | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<EdgeMenuState | null>(null);
   const [quickAdd, setQuickAdd] = useState<QuickAddPos | null>(null);
-  const [editingEdge, setEditingEdge] = useState<EdgeEditState | null>(null);
 
   const closeAll = useCallback(() => {
     setNodeMenu(null);
     setEdgeMenu(null);
     setQuickAdd(null);
-    setEditingEdge(null);
   }, []);
 
   return {
@@ -38,8 +32,6 @@ export function useEditorMenus() {
     setEdgeMenu,
     quickAdd,
     setQuickAdd,
-    editingEdge,
-    setEditingEdge,
     closeAll,
   };
 }
