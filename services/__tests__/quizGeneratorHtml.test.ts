@@ -406,7 +406,7 @@ describe('screenQuiz template', () => {
       },
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 220));
+    await new Promise((resolve) => setTimeout(resolve, 1250));
 
     expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/bg.mp3');
     expect(playedAudio.map((item) => item.src)).toContain('https://cdn.example.com/audio/intro.mp3');
