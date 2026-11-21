@@ -525,8 +525,8 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
       if (selected.length < 2) return;
       get().takeSnapshot();
       const first = selected[0];
-      const width = (node: Node<NodeData>) => node.measured?.width ?? node.width ?? 180;
-      const height = (node: Node<NodeData>) => node.measured?.height ?? node.height ?? 80;
+      const width = (node: Node<NodeData>) => (node as Node<NodeData> & { measured?: { width?: number; height?: number } }).measured?.width ?? node.width ?? 180;
+      const height = (node: Node<NodeData>) => (node as Node<NodeData> & { measured?: { width?: number; height?: number } }).measured?.height ?? node.height ?? 80;
       const left = Math.min(...selected.map(node => node.position.x));
       const top = Math.min(...selected.map(node => node.position.y));
       const right = Math.max(...selected.map(node => node.position.x + width(node)));
