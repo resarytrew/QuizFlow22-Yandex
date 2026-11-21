@@ -51,6 +51,7 @@ export interface CanvasStoreState {
   updateEdgeData: (id: string, patch: Partial<EdgeData>) => void;
   clearCanvas: () => void;
   collapseVariableChainToEffects: (edgeId: string) => void;
+  alignSelectedNodes: (mode: "left" | "center" | "top" | "middle") => void;
 
   applyGraph: (nodes: Node<NodeData>[], edges: Edge[]) => void;
 
@@ -517,6 +518,32 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => {
           selectedEdgeIds: [...edgeIds],
         });
       }),
+
+    alignSelectedNodes: (mode) => {
+      const selectedIds = new Set(get().selection.selectedNodeIds);
+      const selected = get().nodes.filter(node => selectedIds.has(node.id));
+      if (selected.length < 2) return;
+      get().takeSnapshot();
+      const first = selected[0];
+      const width = (node: Node<NodeData>) => node.measured?.width ?? node.width ?? 180;
+      const height = (node: Node<NodeData>) => node.measured?.height ?? node.height ?? 80;
+      const left = Math.min(...selected.map(node => node.position.x));
+      const top = Math.min(...selected.map(node => node.position.y));
+      const right = Math.max(...selected.map(node => node.position.x + width(node)));
+      const bottom = Math.max(...selected.map(node => node.position.y + height(node)));
+      const centerX = (left + right) / 2;
+      const centerY = (top + bottom) / 2;
+      const ids = new Set(selected.map(node => node.id));
+      set(state => ({ nodes: state.nodes.map(node => {
+        if (!ids.has(node.id)) return node;
+        const next = { ...node.position };
+        if (mode === "left") next.x = left;
+        if (mode === "center") next.x = centerX - width(node) / 2;
+        if (mode === "top") next.y = top;
+        if (mode === "middle") next.y = centerY - height(node) / 2;
+        return { ...node, position: next };
+      }) }));
+    },
 
     updateBoardSettings: (settings) =>
       set((state) => ({ boardSettings: { ...state.boardSettings, ...settings } })),

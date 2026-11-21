@@ -302,4 +302,20 @@ describe('graph history regression', () => {
     actions.updateNodeData('node-b', { label: 'new branch' });
     expect(useCanvasStore.getState().history.future).toHaveLength(0);
   });
+  it('aligns selected nodes using their actual measured dimensions as one undoable action', () => {
+    useCanvasStore.getState().setNodes([
+      { ...makeNode('node-a', 10), width: 100, height: 40 },
+      { ...makeNode('node-b', 280), width: 60, height: 80 },
+      { ...makeNode('node-c', 700), width: 40, height: 20 },
+    ]);
+    useCanvasStore.getState().selectNodes(['node-a', 'node-b', 'node-c']);
+    useCanvasStore.getState().alignSelectedNodes('center');
+    const nodes = useCanvasStore.getState().nodes;
+    expect(nodes.map(node => node.position.x)).toEqual([325, 345, 355]);
+    expect(nodes.map(node => node.position.x + (node.width ?? 0) / 2)).toEqual([375, 375, 375]);
+    expect(useCanvasStore.getState().history.past).toHaveLength(1);
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().nodes.map(node => node.position.x)).toEqual([10, 280, 700]);
+  });
+
 });

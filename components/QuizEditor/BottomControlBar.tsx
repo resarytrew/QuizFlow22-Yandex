@@ -39,6 +39,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     const toggleCanvasLock = useCanvasStore(s => s.toggleCanvasLock);
     const canUndo = useCanvasStore((s) => s.history.past.length > 0);
     const canRedo = useCanvasStore((s) => s.history.future.length > 0);
+    const selectedCount = useCanvasStore((s) => s.selection.selectedNodeIds.length);
+    const alignSelectedNodes = useCanvasStore((s) => s.alignSelectedNodes);
     const reduceMotion = usePreferencesStore((s) => s.preferences.reduceMotion);
     const simplified = usePreferencesStore((s) => s.preferences.simplified);
     const motionPreferences = { reduceMotion, simplified };
@@ -171,6 +173,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                     onClick={onToggleGrid}
                     active={showGrid}
                 />
+                <ToolbarButton icon={<span className="text-xs font-bold">↔</span>} tooltip="Выровнять по центру" onClick={() => alignSelectedNodes('center')} disabled={isCanvasLocked || selectedCount < 2} />
+                <ToolbarButton icon={<span className="text-xs font-bold">↕</span>} tooltip="Выровнять по середине" onClick={() => alignSelectedNodes('middle')} disabled={isCanvasLocked || selectedCount < 2} />
             </div>
 
             <div className="w-px h-6 bg-slate-200 mx-1" />
