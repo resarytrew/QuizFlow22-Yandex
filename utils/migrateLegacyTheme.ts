@@ -1,5 +1,5 @@
 import type { Node } from 'reactflow';
-import type { NodeData, QuizTemplateId } from '../types';
+import type { NodeData, SerializedQuizTemplateId } from '../types';
 
 export interface LegacyThemeMigration {
   version: 1;
@@ -8,7 +8,7 @@ export interface LegacyThemeMigration {
 }
 
 /** Pure conversion: keep a complete original for recovery and never touch other templates. */
-export function migrateLegacyTheme<T extends { templateId?: QuizTemplateId; nodes: Node<NodeData>[] }>(input: T): T & { legacyThemeMigration?: LegacyThemeMigration } {
+export function migrateLegacyTheme<T extends { templateId?: SerializedQuizTemplateId; nodes: Node<NodeData>[] }>(input: T): T & { legacyThemeMigration?: LegacyThemeMigration } {
   if (input.templateId !== 'importantTalks') return input;
   const original = structuredClone(input);
   const unsupportedPaths: string[] = [];

@@ -43,21 +43,15 @@ function updatePresentationContext(): void {
   const totalSteps = Math.max(1, renderedNodes.length);
   const currentNode = currentIndex >= 0 ? renderedNodes[currentIndex] : undefined;
 
-  const currentStepEl = document.getElementById('talks-step-current');
-  const totalStepsEl = document.getElementById('talks-step-total');
-  const modeTitle = document.getElementById('talks-mode-title');
-  const stepContainer = document.querySelector('.talks-step');
+  const currentStepEl = document.getElementById('quiz-step-current');
+  const totalStepsEl = document.getElementById('quiz-step-total');
+  const stepContainer = document.querySelector('.quiz-step');
   const progress = document.querySelector('.top-progress');
   const progressTrack = document.querySelector('.top-progress-track');
 
   if (currentStepEl) currentStepEl.textContent = String(currentStep);
   if (totalStepsEl) totalStepsEl.textContent = String(totalSteps);
-  if (modeTitle && currentNode) {
-    const baseLabel = NODE_MODE_LABELS[currentNode.type] ?? 'Разговор о важном';
-    modeTitle.textContent = currentNode.type === 'questionNode'
-      ? `${baseLabel} ${currentStep}`
-      : baseLabel;
-  }
+
   if (stepContainer instanceof HTMLElement) {
     stepContainer.setAttribute('aria-label', `Шаг ${currentStep} из ${totalSteps}`);
   }
@@ -66,7 +60,7 @@ function updatePresentationContext(): void {
   }
   if (progressTrack instanceof HTMLElement) {
     const visibleSegments = Math.min(totalSteps, 8);
-    progressTrack.style.setProperty('--talks-progress-step', `${100 / visibleSegments}%`);
+    progressTrack.style.setProperty('--progress-step', `${100 / visibleSegments}%`);
   }
   if (currentNode) document.body.dataset.quizNodeType = currentNode.type;
 }

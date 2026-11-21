@@ -164,7 +164,7 @@ export function useHeaderController({
             quizStore.updateDesignSettings(quizFile.designSettings);
           }
           if (quizFile.templateId) {
-            quizStore.setTemplateId(quizFile.templateId);
+            quizStore.setTemplateId(quizFile.templateId === 'importantTalks' ? 'default' : quizFile.templateId);
           }
           if (quizFile.currentQuizName) {
             quizStore.setCurrentQuizName(quizFile.currentQuizName);

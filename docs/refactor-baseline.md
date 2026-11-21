@@ -7,7 +7,7 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 - `src/router/routes/editorQuiz.tsx` loads a project; `useQuizDataStore.loadQuiz` populates quiz metadata, template, design and canvas. `useCanvasStore` owns graph, selection and history. `useUIStore` owns transient panels, preview and grouping. `useEditorAutosave` and `persistEditor` save the serialized graph and quiz data through the existing API.
 - `editorShell.tsx` hosts the canvas, palette, properties panel, AI panel and real `LivePreview`. `EditorWorkspace` supplies the view tabs and validation list. `SettingsPanel` switches between node and global design based on selection. Its inspector also owns transitions and global color controls. `StatusBar` independently uses `validateEditorGraph`.
 - Published runtime is built by `services/quizGenerator` and `src/engine`; player routing uses `src/router/routes/playQuiz.tsx` and `services/loadQuizForPlayer.ts`. Yandex functions under `yc-functions` implement the API, including results and AI proxy.
-- `designSettings` are stored with quiz data, transformed through `src/engine/design.ts` and generator CSS. Changes must be checked against both real preview and published output. `screenQuiz` has shared template and per-node data; `importantTalks` has dedicated template/runtime/assets requiring a compatibility migration before removal.
+- `designSettings` are stored with quiz data, transformed through `src/engine/design.ts` and generator CSS. Changes must be checked against both real preview and published output. `screenQuiz` has shared template and per-node data; `importantTalks` is accepted only by the versioned compatibility migrator; its template, runtime and assets are removed from the active build.
 
 ## Confirmed risks and invariants
 
@@ -20,7 +20,7 @@ Baseline: `main` at `2b88b47a89e72122be53b21969414cf16d222708` (2026-11-09). Wor
 
 1. Regressions and state/history fixes; verify unit tests, then CI. Inspect timers and backend independently before changing them.
 2. Canvas and contextual inspector; preserve validation, edge semantics, preview and keyboard/mobile accessibility.
-3. Versioned compatibility for importantTalks, then remove specialized runtime only after migration tests.
+3. Versioned compatibility for importantTalks is covered by migration tests; specialized runtime/template/assets are removed from the active build.
 4. Screen quiz editor and design surface, using the existing real renderer and preserving serialization.
 5. Graph tools, end-to-end checks, screenshots and migration/release notes. Keep risky changes reviewable in sequential commits or PRs.
 

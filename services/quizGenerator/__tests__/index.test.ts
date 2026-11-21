@@ -68,6 +68,13 @@ describe("generateQuizHtml (integration)", () => {
     expect(html).toContain("<title>science</title>");
   });
 
+  it("renders legacy template input with the standard renderer and preserves the graph", () => {
+    const html = generateQuizHtml({ ...minimalInput, templateId: "importantTalks" as never, edges: [{ id: "e", source: "start", target: "result", sourceHandle: "answer" }] });
+    expect(html).toContain("<title>default</title>");
+    expect(html).toContain('"templateId":"default"');
+    expect(html).toContain('"sourceHandle":"answer"');
+  });
+
   it("injects design settings CSS in preview mode", () => {
     const html = generateQuizHtml(
       {

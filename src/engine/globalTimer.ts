@@ -30,7 +30,7 @@ export function setupGlobalTimer(
     container.textContent =
       `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     container.setAttribute("aria-label", `Осталось ${remaining} секунд`);
-    container.style.setProperty("--talks-global-timer-progress", `${(remaining / duration) * 360}deg`);
+    container.style.setProperty("--global-timer-progress", `${(remaining / duration) * 360}deg`);
     container.classList.toggle("is-warning", remaining <= Math.max(30, Math.ceil(duration / 4)));
     container.classList.toggle("is-urgent", remaining <= 10);
     container.classList.toggle("text-red-600", remaining <= 10);

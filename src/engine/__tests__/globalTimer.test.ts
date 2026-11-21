@@ -30,7 +30,7 @@ describe("setupGlobalTimer", () => {
 
     expect(timer?.getAttribute("role")).toBe("timer");
     expect(timer?.getAttribute("aria-label")).toBe("Осталось 40 секунд");
-    expect(timer?.style.getPropertyValue("--talks-global-timer-progress")).toBe("360deg");
+    expect(timer?.style.getPropertyValue("--global-timer-progress")).toBe("360deg");
 
     vi.advanceTimersByTime(10000);
     expect(timer?.classList.contains("is-warning")).toBe(true);

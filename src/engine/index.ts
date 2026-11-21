@@ -51,12 +51,12 @@ function init(): void {
   if (quizData.currentQuizName) {
     document.title = quizData.currentQuizName;
     const title = document.getElementById("header-title");
-    if (title && quizData.templateId !== 'importantTalks') {
+    if (title && true) {
       title.textContent = quizData.currentQuizName;
     }
   }
 
-  if (quizData.templateId === 'importantTalks' || (quizData.templateId ?? 'default') === 'default') {
+  if ((quizData.templateId ?? 'default') === 'default') {
     applyDesign(quizData.designSettings);
   }
   setupBackgroundMusic(quizData.designSettings);

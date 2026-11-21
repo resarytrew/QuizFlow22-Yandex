@@ -5,6 +5,7 @@ import type {
   GlobalTimer,
   NodeData,
   QuizTemplateId,
+  SerializedQuizTemplateId,
 } from '../../types';
 
 export interface QuizFile {
@@ -18,7 +19,7 @@ export interface QuizFile {
   edges: Edge[];
   globalTimer?: GlobalTimer;
   designSettings?: Partial<DesignSettings>;
-  templateId?: QuizTemplateId;
+  templateId?: SerializedQuizTemplateId;
   currentQuizName?: string;
 }
 
@@ -33,7 +34,6 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'history',
   'newyear',
   'screenQuiz',
-  'importantTalks',
 ]);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

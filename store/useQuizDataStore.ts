@@ -51,7 +51,6 @@ const TEMPLATE_IDS = new Set<QuizTemplateId>([
   'history',
   'newyear',
   'screenQuiz',
-  'importantTalks',
 ]);
 
 function normalizeTemplateId(value: unknown): QuizTemplateId {
